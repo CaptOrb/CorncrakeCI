@@ -4,8 +4,8 @@
 	"description": "",
 	"main": "index.js",
 	"scripts": {
-		"dev": "tsx --watch --env-file .env src/index.ts",
-		"watch": "tsx watch src/index.ts",
+		"dev": "tsx --watch --env-file .env src/server.ts",
+		"watch": "tsx watch src/server.ts",
 		"check": "tsc --noEmit",
 		"build": "tsc",
 		"test": "echo \"Error: no test specified\" && exit 1"
