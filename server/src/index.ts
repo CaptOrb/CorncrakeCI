@@ -1,11 +1,13 @@
 import express from "express";
-import { pool } from "./config/db";
+import { connectDB, pool } from "./config/db";
 import { config, isProduction } from "./config/env";
 
 const app = express();
 const PORT = config.APP_PORT;
 
 app.use(express.json());
+
+connectDB();
 
 app.get("/ping", async (_req, res) => {
 	try {
@@ -18,7 +20,6 @@ app.get("/ping", async (_req, res) => {
 			.json({ success: false, error: "Database connection failed" });
 	}
 });
-
 app.listen(PORT, () => {
 	console.log(
 		`Server running in ${isProduction ? "production" : "development"} mode on port ${PORT}`,
