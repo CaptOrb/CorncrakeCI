@@ -8,7 +8,8 @@
 		"watch": "tsx watch src/server.ts",
 		"check": "tsc --noEmit",
 		"build": "tsc",
-		"test": "echo \"Error: no test specified\" && exit 1"
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"migrate": "tsx --env-file .env migrations/runMigrations.ts"
 	},
 	"keywords": [],
 	"author": "",
@@ -29,6 +30,7 @@
 	"dependencies": {
 		"express": "^5.1.0",
 		"openapi-backend": "^5.15.0",
-		"pg": "^8.16.3"
+		"pg": "^8.16.3",
+		"postgres-migrations": "^5.3.0"
 	}
 }
