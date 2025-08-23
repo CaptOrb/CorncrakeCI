@@ -1,15 +1,34 @@
 import express from "express";
-import { connectDB, pool } from "./config/db";
+import { connectDB } from "./config/db";
 import { config, isProduction } from "./config/env";
+import { OpenAPIBackend, type Request } from "openapi-backend";
+import type { Repository } from "./types/openapi";
+
+const api = new OpenAPIBackend({
+	definition: "./openapi.yaml",
+	validate: true,
+});
+
+api.register({
+	listAvailableRepos: async (
+		_c,
+		_req: express.Request,
+		res: express.Response,
+	) => {
+		const repos: Repository[] = [];
+		return res.json(repos);
+	},
+});
 
 const app = express();
-const PORT = config.APP_PORT;
-
 app.use(express.json());
+
+api.init();
+app.use((req, res) => api.handleRequest(req as Request, req, res));
 
 connectDB();
 
-app.get("/ping", async (_req, res) => {
+/* app.get("/ping", async (_req, res) => {
 	try {
 		const result = await pool.query("SELECT NOW()");
 		res.json({ success: true, time: result.rows[0].now });
@@ -19,7 +38,9 @@ app.get("/ping", async (_req, res) => {
 			.status(500)
 			.json({ success: false, error: "Database connection failed" });
 	}
-});
+}); */
+
+const PORT = config.APP_PORT;
 app.listen(PORT, () => {
 	console.log(
 		`Server running in ${isProduction ? "production" : "development"} mode on port ${PORT}`,

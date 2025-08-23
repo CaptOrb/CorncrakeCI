@@ -9,7 +9,8 @@
 		"check": "tsc --noEmit",
 		"build": "tsc",
 		"test": "echo \"Error: no test specified\" && exit 1",
-		"migrate": "tsx --env-file .env migrations/runMigrations.ts"
+		"migrate": "tsx --env-file .env migrations/runMigrations.ts",
+		"generate-types": "npx openapicmd typegen --backend ./openapi.yaml > src/types/openapi.d.ts"
 	},
 	"keywords": [],
 	"author": "",
