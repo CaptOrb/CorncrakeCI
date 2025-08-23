@@ -1,0 +1,265 @@
+openapi: 3.1.1
+info:
+  title: MOLCI API
+  version: 0.1.0
+  description: >
+    OpenAPI spec for MOLCI backend. This API allows users to log in via a Git forge (Gitea),
+    list repositories and handle webhooks.
+
+servers:
+  - url: http://localhost:3000
+    description: MOLCI server
+
+security:
+  - giteaOAuth: []
+  
+paths:
+
+  /repos/available:
+    get:
+      summary: List repositories available from the user's forge account
+      operationId: listAvailableRepos
+      responses:
+        '200':
+          description: List of repositories from forge
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Repository'
+        '401':
+          description: Unauthorised
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /repos/configured:
+    get:
+      summary: List repositories already configured in MOLCI
+      operationId: listConfiguredRepos
+      responses:
+        '200':
+          description: Configured repos in MOLCI
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RepositoryConfig'
+        '401':
+          description: Unauthorised
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /repos/{id}:
+    put:
+      summary: Configure a repository for MOLCI
+      operationId: configureRepo
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Repository ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RepositoryConfigInput'
+      responses:
+        '200':
+          description: Repository configured successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RepositoryConfig'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorised
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Repository not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /webhooks/{forge}:
+    post:
+      summary: Handle webhook from a forge (e.g. Gitea, GitHub, GitLab)
+      operationId: handleWebhook
+      parameters:
+        - in: path
+          name: forge
+          schema:
+            type: string
+            enum: [gitea]
+          required: true
+          description: The forge identifier
+        - in: header
+          name: X-Gitea-Signature
+          schema:
+            type: string
+          required: true
+          description: HMAC signature for verifying webhook payload
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/GiteaWebhook'
+      responses:
+        '200':
+          description: Webhook received and processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+
+  securitySchemes:
+    giteaOAuth:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: https://YOUR-GITEA-URL/login/oauth/authorize
+          tokenUrl: https://YOUR-GITEA-URL/login/oauth/access_token
+          scopes:
+            read:repository: Grants read access to repository operations
+            write:repository: Grants read/write access to repository operations
+            read:user: Grants read access to user info
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+          example: "Repository not found"
+        code:
+          type: string
+          description: Error code for programmatic handling
+          example: "REPO_NOT_FOUND"
+        details:
+          type: object
+          description: Additional error details
+          additionalProperties: true
+      required:
+        - error
+        - code
+
+    Repository:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "123"
+        name:
+          type: string
+          example: "molci"
+        forge:
+          type: string
+          enum: [gitea]
+          example: "gitea"
+
+    RepositoryConfig:
+      type: object
+      properties:
+        repo:
+          $ref: '#/components/schemas/Repository'
+        configured_at:
+          type: string
+          format: date-time
+        webhook_id:
+          type: string
+
+    RepositoryConfigInput:
+      type: object
+      properties:
+        settings:
+          type: object
+          additionalProperties: true
+      required:
+        - settings
+
+    GiteaWebhook:
+      type: object
+      description: >
+        Webhook payload as sent by Gitea.
+      properties:
+        ref:
+          type: string
+        before:
+          type: string
+        after:
+          type: string
+        commits:
+          type: array
+          items:
+            type: object
+
+    WebhookResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "processed"
+        message:
+          type: string
+          example: "Webhook processed successfully"
+        timestamp:
+          type: string
+          format: date-time
