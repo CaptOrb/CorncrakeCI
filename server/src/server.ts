@@ -23,7 +23,7 @@ api.register({
 const app = express();
 app.use(express.json());
 
- app.get("/ping", async (_req, res) => {
+app.get("/ping", async (_req, res) => {
 	try {
 		const result = await pool.query("SELECT NOW()");
 		res.json({ success: true, time: result.rows[0].now });
@@ -33,7 +33,7 @@ app.use(express.json());
 			.status(500)
 			.json({ success: false, error: "Database connection failed" });
 	}
-}); 
+});
 
 api.init();
 app.use((req, res) => api.handleRequest(req as Request, req, res));
