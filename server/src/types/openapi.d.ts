@@ -25,15 +25,6 @@ declare namespace Components {
                 [name: string]: any;
             };
         }
-        export interface GiteaWebhook {
-            secret?: string;
-            ref?: string;
-            before?: string;
-            after?: string;
-            commits?: {
-                [key: string]: any;
-            }[];
-        }
         export interface Repository {
             /**
              * example:
@@ -61,19 +52,6 @@ declare namespace Components {
                 [name: string]: any;
             };
         }
-        export interface WebhookResponse {
-            /**
-             * example:
-             * processed
-             */
-            status?: string;
-            /**
-             * example:
-             * Webhook processed successfully
-             */
-            message?: string;
-            timestamp?: string; // date-time
-        }
     }
 }
 declare namespace Paths {
@@ -90,20 +68,6 @@ declare namespace Paths {
             export type $400 = Components.Schemas.Error;
             export type $401 = Components.Schemas.Error;
             export type $404 = Components.Schemas.Error;
-            export type $500 = Components.Schemas.Error;
-        }
-    }
-    namespace HandleWebhook {
-        namespace Parameters {
-            export type Forge = "gitea";
-        }
-        export interface PathParameters {
-            forge: Parameters.Forge;
-        }
-        export type RequestBody = Components.Schemas.GiteaWebhook;
-        namespace Responses {
-            export type $200 = Components.Schemas.WebhookResponse;
-            export type $400 = Components.Schemas.Error;
             export type $500 = Components.Schemas.Error;
         }
     }
@@ -162,18 +126,6 @@ export interface Operations {
     context: Context<Paths.ConfigureRepo.RequestBody, Paths.ConfigureRepo.PathParameters, UnknownParams, UnknownParams, UnknownParams>;
     response: Paths.ConfigureRepo.Responses.$200 | Paths.ConfigureRepo.Responses.$400 | Paths.ConfigureRepo.Responses.$401 | Paths.ConfigureRepo.Responses.$404 | Paths.ConfigureRepo.Responses.$500;
   }
-  /**
-   * POST /webhooks/{forge}
-   */
-  ['handleWebhook']: {
-    requestBody: Paths.HandleWebhook.RequestBody;
-    params: Paths.HandleWebhook.PathParameters;
-    query: UnknownParams;
-    headers: UnknownParams;
-    cookies: UnknownParams;
-    context: Context<Paths.HandleWebhook.RequestBody, Paths.HandleWebhook.PathParameters, UnknownParams, UnknownParams, UnknownParams>;
-    response: Paths.HandleWebhook.Responses.$200 | Paths.HandleWebhook.Responses.$400 | Paths.HandleWebhook.Responses.$500;
-  }
 }
 
 export type OperationContext<operationId extends keyof Operations> = Operations[operationId]["context"];
@@ -184,8 +136,6 @@ export type OperationHandler<operationId extends keyof Operations, HandlerArgs e
 
 
 export type Error = Components.Schemas.Error;
-export type GiteaWebhook = Components.Schemas.GiteaWebhook;
 export type Repository = Components.Schemas.Repository;
 export type RepositoryConfig = Components.Schemas.RepositoryConfig;
 export type RepositoryConfigInput = Components.Schemas.RepositoryConfigInput;
-export type WebhookResponse = Components.Schemas.WebhookResponse;

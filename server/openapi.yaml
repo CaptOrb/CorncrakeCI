@@ -4,7 +4,7 @@ info:
   version: 0.1.0
   description: >
     OpenAPI spec for MOLCI backend. This API allows users to log in via a Git forge (Gitea),
-    list repositories and handle webhooks.
+    list repositories and handle configuration.
 
 servers:
   - url: http://localhost:3000
@@ -122,51 +122,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /webhooks/{forge}:
-    post:
-      summary: Handle webhook from a forge (e.g. Gitea, GitHub, GitLab)
-      operationId: handleWebhook
-      parameters:
-        - in: path
-          name: forge
-          schema:
-            type: string
-            enum: [gitea]
-          required: true
-          description: The forge identifier
-        - in: header
-          name: X-Gitea-Signature
-          schema:
-            type: string
-          required: true
-          description: HMAC signature for verifying webhook payload
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              oneOf:
-                - $ref: '#/components/schemas/GiteaWebhook'
-      responses:
-        '200':
-          description: Webhook received and processed successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/WebhookResponse'
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
 components:
 
   securitySchemes:
@@ -234,32 +189,3 @@ components:
           additionalProperties: true
       required:
         - settings
-
-    GiteaWebhook:
-      type: object
-      description: >
-        Webhook payload as sent by Gitea.
-      properties:
-        ref:
-          type: string
-        before:
-          type: string
-        after:
-          type: string
-        commits:
-          type: array
-          items:
-            type: object
-
-    WebhookResponse:
-      type: object
-      properties:
-        status:
-          type: string
-          example: "processed"
-        message:
-          type: string
-          example: "Webhook processed successfully"
-        timestamp:
-          type: string
-          format: date-time
