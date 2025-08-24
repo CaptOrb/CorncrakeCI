@@ -14,5 +14,28 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  gitea:
+    image: docker.gitea.com/gitea:1.24.5
+    container_name: gitea
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    environment:
+      USER_UID: 1000
+      USER_GID: 1000
+      DB_TYPE: postgres
+      DB_HOST: postgres:5432
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWD: ${DB_PASSWORD}
+    ports:
+      - "3001:3000"
+      - "222:22"
+    volumes:
+      - ./gitea:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+
+
 volumes:
   postgres_data:
