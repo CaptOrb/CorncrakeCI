@@ -1,14 +1,14 @@
+import cookieParser from "cookie-parser";
 import express, {
 	type Request as ExpressRequest,
 	type Response as ExpressResponse,
 } from "express";
-import cookieParser from "cookie-parser";
 import session from "express-session";
-import { config, isProduction } from "./config/env";
-import { connectDB } from "./config/db";
 import { OpenAPIBackend, type Request } from "openapi-backend";
-import { createForge } from "./services/forges";
+import { connectDB } from "./config/db";
+import { config, isProduction } from "./config/env";
 import authRouter from "./routes/auth";
+import { createForge } from "./services/forges";
 
 const app = express();
 app.use(express.json());
@@ -29,7 +29,6 @@ app.use(
 );
 
 app.use("/auth", authRouter);
-
 
 const api = new OpenAPIBackend({
 	definition: "./openapi.yaml",
@@ -59,7 +58,6 @@ api.register({
 		}
 	},
 });
-
 
 api.init();
 app.use((req, res) => api.handleRequest(req as Request, req, res));

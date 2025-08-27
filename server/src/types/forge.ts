@@ -1,5 +1,5 @@
-import type { User } from "../types/user";
 import type { Repository } from "../types/openapi";
+import type { User } from "../types/user";
 
 export interface Forge {
 	getAuthorizationUrl(): { url: string; state: string; codeVerifier: string };
