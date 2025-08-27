@@ -1,4 +1,3 @@
-import cookieParser from "cookie-parser";
 import express, {
 	type Request as ExpressRequest,
 	type Response as ExpressResponse,
@@ -12,7 +11,6 @@ import { createForge } from "./services/forges";
 
 const app = express();
 app.use(express.json());
-app.use(cookieParser());
 
 // express session for Session cookie on the browser and Session object on the server
 app.use(
