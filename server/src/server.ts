@@ -1,8 +1,35 @@
-import express from "express";
-import { connectDB, pool } from "./config/db";
+import express, {
+	type Request as ExpressRequest,
+	type Response as ExpressResponse,
+} from "express";
+import cookieParser from "cookie-parser";
+import session from "express-session";
 import { config, isProduction } from "./config/env";
+import { connectDB } from "./config/db";
 import { OpenAPIBackend, type Request } from "openapi-backend";
-import type { Repository } from "./types/openapi";
+import { createForge } from "./services/forges";
+import authRouter from "./routes/auth";
+
+const app = express();
+app.use(express.json());
+app.use(cookieParser());
+
+// express session for Session cookie on the browser and Session object on the server
+app.use(
+	session({
+		secret: config.SESSION_SECRET,
+		resave: false,
+		saveUninitialized: false,
+		cookie: {
+			secure: config.IS_PRODUCTION,
+			httpOnly: true,
+			maxAge: 24 * 60 * 60 * 1000, // 1 day
+		},
+	}),
+);
+
+app.use("/auth", authRouter);
+
 
 const api = new OpenAPIBackend({
 	definition: "./openapi.yaml",
@@ -10,36 +37,34 @@ const api = new OpenAPIBackend({
 });
 
 api.register({
-	listAvailableRepos: async (
-		_c,
-		_req: express.Request,
-		res: express.Response,
-	) => {
-		const repos: Repository[] = [];
-		return res.json(repos);
+	listAvailableRepos: async (_c, req: ExpressRequest, res: ExpressResponse) => {
+		try {
+			const userId = req.session?.userId;
+			const forgeType = req.session?.forgeType;
+
+			if (!userId || !forgeType) {
+				return res.status(401).json({ error: "Not authenticated" });
+			}
+
+			// TODO: Fetch user from DB here
+			const simulatedAccessToken = "FAKE_TOKEN"; // remove once DB is used
+
+			const forge = createForge(forgeType);
+			const repos = await forge.listRepositories(simulatedAccessToken);
+
+			return res.json(repos);
+		} catch (err) {
+			console.error("Failed to fetch repos:", err);
+			return res.status(500).json({ error: "Failed to list repositories" });
+		}
 	},
 });
 
-const app = express();
-app.use(express.json());
-
-app.get("/ping", async (_req, res) => {
-	try {
-		const result = await pool.query("SELECT NOW()");
-		res.json({ success: true, time: result.rows[0].now });
-	} catch (error) {
-		console.error("Database error:", error);
-		res
-			.status(500)
-			.json({ success: false, error: "Database connection failed" });
-	}
-});
 
 api.init();
 app.use((req, res) => api.handleRequest(req as Request, req, res));
 
 connectDB();
-
 
 const PORT = config.APP_PORT;
 app.listen(PORT, () => {
