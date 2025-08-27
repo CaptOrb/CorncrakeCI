@@ -1,6 +1,6 @@
-import { GiteaForge } from "./gitea";
-import type { Forge } from "../../types/forge";
 import { config } from "../../config/env";
+import type { Forge } from "../../types/forge";
+import { GiteaForge } from "./gitea";
 
 /**
  * Returns a Forge implementation for the given forgeType.

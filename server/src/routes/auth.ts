@@ -1,6 +1,6 @@
-import { Router, type Request, type Response } from "express";
-import { createForge, listAvailableForges } from "../services/forges";
+import { type Request, type Response, Router } from "express";
 import { config } from "../config/env";
+import { createForge, listAvailableForges } from "../services/forges";
 
 const authRouter = Router();
 

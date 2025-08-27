@@ -2,7 +2,6 @@ import * as arctic from "arctic";
 import { config } from "../config/env";
 import type { User } from "../types/user";
 
-
 export class OAuthService {
 	private gitea: arctic.Gitea;
 
