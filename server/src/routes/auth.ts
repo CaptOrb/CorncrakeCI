@@ -1,3 +1,4 @@
+/** biome-ignore-all lint/complexity/useLiteralKeys: <oli said it was ok> */
 import { type Request, type Response, Router } from "express";
 import { config } from "../config/env";
 import { createForge, listAvailableForges } from "../services/forges";
