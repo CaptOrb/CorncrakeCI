@@ -68,6 +68,21 @@ declare namespace Paths {
 			export type $500 = Components.Schemas.Error;
 		}
 	}
+	namespace GetRepo {
+		namespace Parameters {
+			export type Id = string;
+		}
+		export interface PathParameters {
+			id: Parameters.Id;
+		}
+		namespace Responses {
+			export type $200 = Components.Schemas.RepositoryConfig;
+			export type $400 = Components.Schemas.Error;
+			export type $401 = Components.Schemas.Error;
+			export type $404 = Components.Schemas.Error;
+			export type $500 = Components.Schemas.Error;
+		}
+	}
 	namespace ListAvailableRepos {
 		namespace Responses {
 			export type $200 = Components.Schemas.Repository[];
@@ -130,7 +145,30 @@ export interface Operations {
 			| Paths.ListConfiguredRepos.Responses.$500;
 	};
 	/**
-	 * PUT /repos/{id}
+	 * GET /repo/{id}
+	 */
+	["getRepo"]: {
+		requestBody: any;
+		params: Paths.GetRepo.PathParameters;
+		query: UnknownParams;
+		headers: UnknownParams;
+		cookies: UnknownParams;
+		context: Context<
+			any,
+			Paths.GetRepo.PathParameters,
+			UnknownParams,
+			UnknownParams,
+			UnknownParams
+		>;
+		response:
+			| Paths.GetRepo.Responses.$200
+			| Paths.GetRepo.Responses.$400
+			| Paths.GetRepo.Responses.$401
+			| Paths.GetRepo.Responses.$404
+			| Paths.GetRepo.Responses.$500;
+	};
+	/**
+	 * PUT /repo/{id}
 	 */
 	["configureRepo"]: {
 		requestBody: Paths.ConfigureRepo.RequestBody;
