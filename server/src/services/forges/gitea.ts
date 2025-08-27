@@ -23,18 +23,26 @@ export class GiteaForge implements Forge {
 	getAuthorizationUrl() {
 		const state = arctic.generateState();
 		const codeVerifier = arctic.generateCodeVerifier();
-		const scopes = ["read:user"];
+		const scopes = ["read:user", "repo"];
 		const url = this.gitea.createAuthorizationURL(state, codeVerifier, scopes);
 
 		return { url: url.toString(), state, codeVerifier };
 	}
 
-	async exchangeCodeForToken(code: string, codeVerifier: string) {
-		const tokens = await this.gitea.validateAuthorizationCode(
-			code,
-			codeVerifier,
-		);
-		return { accessToken: tokens.accessToken() };
+	async exchangeCodeForToken(
+		code: string,
+		codeVerifier: string,
+	): Promise<{ accessToken: string }> {
+		try {
+			const tokens = await this.gitea.validateAuthorizationCode(
+				code,
+				codeVerifier,
+			);
+			return { accessToken: tokens.accessToken() };
+		} catch (error) {
+			console.error("Failed to exchange code for token:", error);
+			throw new Error("Failed to exchange authorisation code for token");
+		}
 	}
 
 	async getUserInfo(accessToken: string): Promise<User> {
