@@ -55,6 +55,10 @@ api.register({
 			return res.status(500).json({ error: "Failed to list repositories" });
 		}
 	},
+
+	notFound: (_c, _req, res) => res.status(404).json({ err: "not found" }),
+	validationFail: (c, _req, res) =>
+		res.status(400).json({ err: c.validation.errors }),
 });
 
 api.init();
