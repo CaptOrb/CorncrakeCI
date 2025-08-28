@@ -123,7 +123,7 @@ paths:
         - in: path
           name: id
           schema:
-            type: string
+            type: number
           required: true
           description: Repository ID
       requestBody:
@@ -202,8 +202,7 @@ components:
       type: object
       properties:
         id:
-          type: string
-          example: "123"
+          type: number
         name:
           type: string
           example: "molci"
