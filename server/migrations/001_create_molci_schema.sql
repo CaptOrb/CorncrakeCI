@@ -31,23 +31,3 @@ CREATE TABLE repositories (
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(forge_id, forge_repo_id)
 );
-
-
-INSERT INTO forges (forge_id, display_name, base_url)
-VALUES (0, 'gitea', 'http://localhost:3000');
-
-INSERT INTO users (forge_id, forge_user_id, access_token)
-VALUES (0, 'testuser', 'dummy_token');
-
-
-INSERT INTO repositories (forge_id, forge_repo_id, owner_id, repo_name, description, clone_url, ssh_url, html_url, is_private)
-VALUES
-    (0, '1', 1, 'my-awesome-project', 'A sample project for testing MOLCI',
-    'http://localhost:3000/testuser/my-awesome-project.git',
-    'git@localhost:testuser/my-awesome-project.git',
-    'http://localhost:3000/testuser/my-awesome-project', false),
-    
-    (0, '2', 1,'molci-frontend', 'Frontend for MOLCI CI system',
-    'http://localhost:3000/testuser/molci-frontend.git',
-    'git@localhost:testuser/molci-frontend.git',
-    'http://localhost:3000/testuser/molci-frontend', false);
