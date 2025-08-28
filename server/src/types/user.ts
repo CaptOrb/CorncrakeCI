@@ -77,3 +77,13 @@ export const getOrCreateUser = async (
 	}
 	return user;
 };
+
+export const getAccessToken = async (
+	userId: number,
+): Promise<string | null> => {
+	const result = await pool.query(
+		`SELECT access_token FROM users WHERE user_id = $1`,
+		[userId],
+	);
+	return result.rows[0]?.access_token ?? null;
+};
