@@ -33,13 +33,17 @@ export class GiteaForge implements Forge {
 	async exchangeCodeForToken(
 		code: string,
 		codeVerifier: string,
-	): Promise<{ accessToken: string }> {
+	): Promise<{ accessToken: string; accessTokenExpiresAt?: Date }> {
 		try {
 			const tokens = await this.gitea.validateAuthorizationCode(
 				code,
 				codeVerifier,
 			);
-			return { accessToken: tokens.accessToken() };
+
+			return {
+				accessToken: tokens.accessToken(),
+				accessTokenExpiresAt: tokens.accessTokenExpiresAt(),
+			};
 		} catch (error) {
 			console.error("Failed to exchange code for token:", error);
 			throw new Error("Failed to exchange authorisation code for token");

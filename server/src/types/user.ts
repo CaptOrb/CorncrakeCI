@@ -66,16 +66,18 @@ export const getOrCreateUser = async (
 ): Promise<User> => {
 	const forgeId = resolveForgeId(forgeType);
 
-	let user = await findUserByForge(forgeId, forgeUserId);
-	if (!user) {
-		user = await insertUser(
-			forgeId,
-			forgeUserId,
-			access_token,
-			token_expires_at,
-		);
-	}
-	return user;
+	const result = await pool.query(
+		`INSERT INTO users (forge_id, forge_user_id, access_token, token_expires_at)
+		VALUES ($1, $2, $3, $4)
+		ON CONFLICT (forge_id, forge_user_id)
+		DO UPDATE SET
+			access_token = EXCLUDED.access_token,
+			token_expires_at = EXCLUDED.token_expires_at
+		 RETURNING *`,
+		[forgeId, forgeUserId, access_token, token_expires_at],
+	);
+
+	return result.rows[0];
 };
 
 export const getAccessToken = async (

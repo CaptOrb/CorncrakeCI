@@ -47,10 +47,8 @@ authRouter.get("/callback", async (req: Request, res: Response) => {
 
 	try {
 		const forge = createForge(forgeType);
-		const { accessToken } = await forge.exchangeCodeForToken(
-			code,
-			codeVerifier,
-		);
+		const { accessToken, accessTokenExpiresAt } =
+			await forge.exchangeCodeForToken(code, codeVerifier);
 
 		const forgeUser = await forge.getUserInfo(accessToken);
 
@@ -58,6 +56,7 @@ authRouter.get("/callback", async (req: Request, res: Response) => {
 			forgeType,
 			forgeUser.id.toString(),
 			accessToken,
+			accessTokenExpiresAt,
 		);
 
 		req.session.userId = internalUser.user_id;

@@ -7,7 +7,10 @@ export interface Forge {
 	exchangeCodeForToken(
 		code: string,
 		codeVerifier: string,
-	): Promise<{ accessToken: string }>;
+	): Promise<{
+		accessToken: string;
+		accessTokenExpiresAt?: Date;
+	}>;
 
 	getUserInfo(accessToken: string): Promise<ForgeUser>;
 
