@@ -144,3 +144,4 @@ dist
 # Built Visual Studio Code Extensions
 *.vsix
 
+gitea/

@@ -1,5 +1,5 @@
 import type { Repository } from "../types/openapi";
-import type { User } from "../types/user";
+import type { ForgeUser } from "./forgeuser";
 
 export interface Forge {
 	getAuthorizationUrl(): { url: string; state: string; codeVerifier: string };
@@ -9,7 +9,7 @@ export interface Forge {
 		codeVerifier: string,
 	): Promise<{ accessToken: string }>;
 
-	getUserInfo(accessToken: string): Promise<User>;
+	getUserInfo(accessToken: string): Promise<ForgeUser>;
 
 	listRepositories(accessToken: string): Promise<Repository[]>;
 
