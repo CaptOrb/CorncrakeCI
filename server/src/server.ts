@@ -4,10 +4,11 @@ import express, {
 } from "express";
 import session from "express-session";
 import { OpenAPIBackend, type Request } from "openapi-backend";
-import { connectDB } from "./config/db";
+import { connectDB, pool } from "./config/db";
 import { config, isProduction } from "./config/env";
 import authRouter from "./routes/auth";
 import { createForge } from "./services/forges";
+import { FORGE_IDS } from "./services/forges/constants";
 import { getAccessToken } from "./types/user";
 
 const app = express();
@@ -29,6 +30,41 @@ app.use(
 
 app.use("/auth", authRouter);
 
+async function seedForges() {
+	for (const forgeType of config.FORGE_TYPES) {
+		const forgeId = FORGE_IDS[forgeType];
+		if (forgeId === undefined) {
+			console.warn(`Skipping unknown forge type: ${forgeType}`);
+			continue;
+		}
+
+		let baseUrl: string;
+		switch (forgeType) {
+			case "gitea":
+				baseUrl = config.GITEA_URL;
+				break;
+			default:
+				console.warn(`Forge type ${forgeType} not supported`);
+				continue;
+		}
+
+		try {
+			await pool.query(
+				`INSERT INTO forges (forge_id, display_name, base_url)
+					VALUES ($1, $2, $3)
+					ON CONFLICT (forge_id)
+					DO UPDATE SET base_url = EXCLUDED.base_url`,
+				[forgeId, forgeType, baseUrl],
+			);
+			console.log(`Forge seeded: ${forgeType} (${baseUrl})`);
+		} catch (err) {
+			console.error(`Failed to seed forge ${forgeType}:`, err);
+			throw err;
+		}
+	}
+}
+
+// OpenAPI backend
 const api = new OpenAPIBackend({
 	definition: "./openapi.yaml",
 	validate: true,
@@ -69,11 +105,19 @@ api.register({
 api.init();
 app.use((req, res) => api.handleRequest(req as Request, req, res));
 
-connectDB();
+async function startServer() {
+	await connectDB();
+	await seedForges();
 
-const PORT = config.APP_PORT;
-app.listen(PORT, () => {
-	console.log(
-		`Server running in ${isProduction ? "production" : "development"} mode on port ${PORT}`,
-	);
+	const PORT = config.APP_PORT;
+	app.listen(PORT, () => {
+		console.log(
+			`Server running in ${isProduction ? "production" : "development"} mode on port ${PORT}`,
+		);
+	});
+}
+
+startServer().catch((err) => {
+	console.error("Failed to start server:", err);
+	process.exit(1);
 });
