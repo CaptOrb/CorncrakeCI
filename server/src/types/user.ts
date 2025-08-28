@@ -7,14 +7,14 @@ export interface User {
 	access_token?: string;
 	forge_id: number;
 	forge_user_id: string;
-	forge_type: string;
 	token_expires_at?: Date;
 }
 
 const resolveForgeId = (forgeType: string): number => {
 	const forgeId = FORGE_IDS[forgeType];
-	if (forgeId === undefined)
+	if (forgeId === undefined) {
 		throw new Error(`Unsupported forge type: ${forgeType}`);
+	}
 	return forgeId;
 };
 
@@ -43,19 +43,17 @@ export const findUserByForge = async (
 };
 
 export const insertUser = async (
-	forgeType: string,
+	forgeId: number,
 	forgeUserId: string,
 	access_token?: string,
 	token_expires_at?: Date,
 ): Promise<User> => {
-	const forgeId = resolveForgeId(forgeType);
-
 	const result = await pool.query(
 		`INSERT INTO users
-		(forge_id, forge_user_id, access_token, token_expires_at, forge_type)
-		VALUES ($1, $2, $3, $4, $5)
+		(forge_id, forge_user_id, access_token, token_expires_at)
+		VALUES ($1, $2, $3, $4)
 		 RETURNING *`,
-		[forgeId, forgeUserId, access_token, token_expires_at, forgeType],
+		[forgeId, forgeUserId, access_token, token_expires_at],
 	);
 	return result.rows[0];
 };
@@ -71,7 +69,7 @@ export const getOrCreateUser = async (
 	let user = await findUserByForge(forgeId, forgeUserId);
 	if (!user) {
 		user = await insertUser(
-			forgeType,
+			forgeId,
 			forgeUserId,
 			access_token,
 			token_expires_at,
