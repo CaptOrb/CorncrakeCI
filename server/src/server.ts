@@ -8,7 +8,7 @@ import { connectDB } from "./config/db";
 import { config, isProduction } from "./config/env";
 import authRouter from "./routes/auth";
 import { createForge } from "./services/forges";
-import { findUserById } from "./types/user";
+import { getAccessToken } from "./types/user";
 
 const app = express();
 app.use(express.json());
@@ -44,16 +44,15 @@ api.register({
 				return res.status(401).json({ error: "Not authenticated" });
 			}
 
-			const user = await findUserById(userId);
-			if (!user) return res.status(401).json({ error: "User not found" });
-
-			const forge = createForge(forgeType);
-
-			if (!user.access_token) {
-				return res.status(401).json({ error: "Missing access token" });
+			const accessToken = await getAccessToken(userId);
+			if (!accessToken) {
+				return res
+					.status(401)
+					.json({ error: "Missing or expired access token" });
 			}
 
-			const repos = await forge.listRepositories(user.access_token);
+			const forge = createForge(forgeType);
+			const repos = await forge.listRepositories(accessToken);
 
 			return res.json(repos);
 		} catch (err) {
