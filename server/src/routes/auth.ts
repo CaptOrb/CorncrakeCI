@@ -2,6 +2,7 @@
 import { type Request, type Response, Router } from "express";
 import { config } from "../config/env";
 import { createForge, listAvailableForges } from "../services/forges";
+import { getOrCreateUser } from "../types/user";
 
 const authRouter = Router();
 
@@ -46,20 +47,20 @@ authRouter.get("/callback", async (req: Request, res: Response) => {
 
 	try {
 		const forge = createForge(forgeType);
-
 		const { accessToken } = await forge.exchangeCodeForToken(
 			code,
 			codeVerifier,
 		);
 
-		const userInfo = await forge.getUserInfo(accessToken);
+		const forgeUser = await forge.getUserInfo(accessToken);
 
-		// -----------------------------
-		// TODO: Insert user in DB
-		// -----------------------------
-		const simulatedUserId = 1; // replace with actual DB user_id
+		const internalUser = await getOrCreateUser(
+			forgeType,
+			forgeUser.id.toString(),
+			accessToken,
+		);
 
-		req.session.userId = simulatedUserId;
+		req.session.userId = internalUser.user_id;
 		req.session.forgeType = forgeType;
 
 		// Clear OAuth session data
@@ -68,10 +69,10 @@ authRouter.get("/callback", async (req: Request, res: Response) => {
 		res.json({
 			success: true,
 			user: {
-				id: simulatedUserId, // internal molci ID
-				forgeUserId: userInfo.id, // forge user ID
-				login: userInfo.login,
-				avatar_url: userInfo.avatar_url,
+				user_id: internalUser.user_id, // internal molci ID
+				forgeUserId: forgeUser.id,
+				login: forgeUser.login,
+				avatar_url: forgeUser.avatar_url,
 			},
 		});
 	} catch (err) {

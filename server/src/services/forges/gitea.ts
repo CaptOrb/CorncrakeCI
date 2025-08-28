@@ -1,8 +1,8 @@
 import * as arctic from "arctic";
 import { config } from "../../config/env";
 import type { Forge } from "../../types/forge";
+import type { ForgeUser } from "../../types/forgeuser";
 import type { Repository } from "../../types/openapi";
-import type { User } from "../../types/user";
 
 export class GiteaForge implements Forge {
 	private gitea: arctic.Gitea;
@@ -45,7 +45,7 @@ export class GiteaForge implements Forge {
 		}
 	}
 
-	async getUserInfo(accessToken: string): Promise<User> {
+	async getUserInfo(accessToken: string): Promise<ForgeUser> {
 		const res = await fetch(`${config.GITEA_URL}/api/v1/user`, {
 			headers: { Authorization: `token ${accessToken}` },
 		});
