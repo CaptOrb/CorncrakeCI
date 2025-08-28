@@ -2,6 +2,7 @@ import * as arctic from "arctic";
 import { config } from "../../config/env";
 import type { Forge } from "../../types/forge";
 import type { ForgeUser } from "../../types/forgeuser";
+import type { GiteaRepo } from "../../types/gitearepo";
 import type { Repository } from "../../types/openapi";
 
 export class GiteaForge implements Forge {
@@ -58,10 +59,27 @@ export class GiteaForge implements Forge {
 		const res = await fetch(`${config.GITEA_URL}/api/v1/user/repos`, {
 			headers: { Authorization: `token ${accessToken}` },
 		});
-		if (!res.ok) throw new Error(`Failed to fetch repos: ${res.status}`);
-		return res.json();
-	}
+		if (!res.ok) {
+			if (res.status === 401) throw new Error("Unauthorised");
+			throw new Error(`Failed to fetch repos: ${res.status}`);
+		}
 
+		const repos: GiteaRepo[] = await res.json();
+
+		return repos.map((repo) => ({
+			id: repo.id,
+			name: repo.name,
+			full_name: repo.full_name,
+			private: repo.private,
+			url: repo.html_url,
+			description: repo.description,
+			owner: {
+				id: repo.owner.id,
+				login: repo.owner.login,
+				avatar_url: repo.owner.avatar_url,
+			},
+		}));
+	}
 	async validateToken(accessToken: string) {
 		try {
 			await this.getUserInfo(accessToken);
