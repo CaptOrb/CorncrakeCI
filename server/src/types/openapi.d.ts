@@ -66,7 +66,7 @@ declare namespace Paths {
 	}
 	namespace GetRepo {
 		namespace Parameters {
-			export type Id = string;
+			export type Id = number;
 		}
 		export interface PathParameters {
 			id: Parameters.Id;
