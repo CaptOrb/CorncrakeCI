@@ -2,7 +2,7 @@
 import { type Request, type Response, Router } from "express";
 import { config } from "../config/env";
 import { createForge, listAvailableForges } from "../services/forges";
-import { getOrCreateUser } from "../types/user";
+import { getOrCreateUser } from "../services/user";
 
 const authRouter = Router();
 

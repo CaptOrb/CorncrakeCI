@@ -3,9 +3,6 @@ import { FORGE_IDS } from "../../services/forges/constants";
 import type { User } from "../models/user";
 
 class UserRepository {
-	/**
-	 * Resolves a forge type string to its corresponding ID
-	 */
 	private resolveForgeId(forgeType: string): number {
 		const forgeId = FORGE_IDS[forgeType];
 		if (forgeId === undefined) {
@@ -38,9 +35,6 @@ class UserRepository {
 		return result.rows[0] ?? null;
 	}
 
-	/**
-	 * Insert a new user into the database
-	 */
 	async insertUser(
 		forgeId: number,
 		forgeUserId: string,
@@ -57,9 +51,6 @@ class UserRepository {
 		return result.rows[0];
 	}
 
-	/**
-	 * Get an existing user or create a new one if not found
-	 */
 	async getOrCreateUser(
 		forgeType: string,
 		forgeUserId: string,
@@ -82,9 +73,6 @@ class UserRepository {
 		return result.rows[0];
 	}
 
-	/**
-	 * Get a user's access token
-	 */
 	async getAccessToken(userId: number): Promise<string | null> {
 		const result = await pool.query(
 			`SELECT access_token FROM users WHERE user_id = $1`,

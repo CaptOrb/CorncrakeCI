@@ -4,7 +4,7 @@ import type {
 } from "express";
 import type { Context } from "openapi-backend";
 import { createForge } from "../services/forges";
-import { getAccessToken } from "../types/user";
+import { getAccessToken } from "../services/user";
 
 export async function listAvailableRepos(
 	_c: Context,
