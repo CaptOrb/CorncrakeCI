@@ -81,7 +81,7 @@ paths:
         - in: path
           name: id
           schema:
-            type: string
+            type: integer
           required: true
           description: Repository ID
       responses:
@@ -123,7 +123,7 @@ paths:
         - in: path
           name: id
           schema:
-            type: number
+            type: integer
           required: true
           description: Repository ID
       requestBody:
@@ -202,7 +202,7 @@ components:
       type: object
       properties:
         id:
-          type: number
+          type: integer
         name:
           type: string
           example: "molci"
