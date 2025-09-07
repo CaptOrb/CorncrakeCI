@@ -1,0 +1,35 @@
+import type {
+	Request as ExpressRequest,
+	Response as ExpressResponse,
+} from "express";
+import type { Context } from "openapi-backend";
+import { createForge } from "../services/forges";
+import { getAccessToken } from "../types/user";
+
+export async function listAvailableRepos(
+	_c: Context,
+	req: ExpressRequest,
+	res: ExpressResponse,
+): Promise<ExpressResponse> {
+	try {
+		const userId = req.session?.userId;
+		const forgeType = req.session?.forgeType;
+
+		if (!userId || !forgeType) {
+			return res.status(401).json({ error: "Not authenticated" });
+		}
+
+		const accessToken = await getAccessToken(userId);
+		if (!accessToken) {
+			return res.status(401).json({ error: "Missing or expired access token" });
+		}
+
+		const forge = createForge(forgeType);
+		const repos = await forge.listRepositories(accessToken);
+
+		return res.json(repos);
+	} catch (err) {
+		console.error("Failed to fetch repos:", err);
+		return res.status(500).json({ error: "Failed to list repositories" });
+	}
+}
