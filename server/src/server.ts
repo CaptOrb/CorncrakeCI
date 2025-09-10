@@ -13,22 +13,24 @@ async function startServer() {
 	const app = express();
 	app.use(express.json());
 
-	const sessionCookieName = config.IS_PRODUCTION ? "__Host-SessionID" : "sessionID";
+	const sessionCookieName = config.IS_PRODUCTION
+		? "__Host-SessionID"
+		: "sessionID";
 
 	app.use(
-	session({
-		name: sessionCookieName,
-		secret: config.SESSION_SECRET,
-		resave: false,
-		saveUninitialized: false,
-		cookie: {
-		secure: config.IS_PRODUCTION, // false in dev
-		httpOnly: true,
-		sameSite: "lax",
-		maxAge: 24 * 60 * 60 * 1000,
-		path: "/",
-		},
-	}),
+		session({
+			name: sessionCookieName,
+			secret: config.SESSION_SECRET,
+			resave: false,
+			saveUninitialized: false,
+			cookie: {
+				secure: config.IS_PRODUCTION, // false in dev
+				httpOnly: true,
+				sameSite: "lax",
+				maxAge: 24 * 60 * 60 * 1000,
+				path: "/",
+			},
+		}),
 	);
 	app.use("/auth", authRouter);
 

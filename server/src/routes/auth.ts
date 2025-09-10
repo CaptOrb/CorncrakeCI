@@ -34,7 +34,7 @@ authRouter.get("/login/:forgeType", (req: Request, res: Response) => {
 			sameSite: "lax",
 		});
 
-		res.json({ authUrl: authData.url + `&state=${authData.state}` });
+		res.json({ authUrl: `${authData.url}&state=${authData.state}` });
 	} catch (err) {
 		console.error("Failed to generate auth URL:", err);
 		res.status(400).json({ error: (err as Error).message });
