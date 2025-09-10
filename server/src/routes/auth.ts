@@ -21,14 +21,20 @@ authRouter.get("/login/:forgeType", (req: Request, res: Response) => {
 		req.session.codeVerifier = authData.codeVerifier;
 		req.session.forgeType = forgeType;
 
-		res.cookie("state", authData.state, {
+		const cookieName = config.IS_PRODUCTION
+			? "__Host-oauth_state"
+			: "oauth_state";
+
+		// Store OAuth state in a cookie
+		res.cookie(cookieName, authData.state, {
 			secure: config.IS_PRODUCTION,
 			path: "/",
 			httpOnly: true,
 			maxAge: 10 * 60 * 1000, // 10 minutes
+			sameSite: "lax",
 		});
 
-		res.json({ authUrl: authData.url });
+		res.json({ authUrl: authData.url + `&state=${authData.state}` });
 	} catch (err) {
 		console.error("Failed to generate auth URL:", err);
 		res.status(400).json({ error: (err as Error).message });
@@ -41,8 +47,18 @@ authRouter.get("/callback", async (req: Request, res: Response) => {
 	const state = req.query["state"] as string;
 	const code = req.query["code"] as string;
 
+	const cookies = parseCookies(req);
+	const cookieName = config.IS_PRODUCTION
+		? "__Host-oauth_state"
+		: "oauth_state";
+	const stateFromCookie = cookies[cookieName];
+
 	if (!forgeType || !state || !code || !codeVerifier) {
 		return res.status(400).json({ error: "Missing OAuth callback parameters" });
+	}
+
+	if (state !== stateFromCookie) {
+		return res.status(400).json({ error: "Invalid OAuth state parameter" });
 	}
 
 	try {
@@ -64,6 +80,7 @@ authRouter.get("/callback", async (req: Request, res: Response) => {
 
 		// Clear OAuth session data
 		delete req.session.codeVerifier;
+		res.clearCookie(cookieName, { path: "/" });
 
 		res.json({
 			success: true,
@@ -75,6 +92,7 @@ authRouter.get("/callback", async (req: Request, res: Response) => {
 			},
 		});
 	} catch (err) {
+		res.clearCookie(cookieName, { path: "/" });
 		console.error("OAuth callback error:", err);
 		res.status(500).json({ error: "OAuth callback failed" });
 	}
@@ -83,9 +101,24 @@ authRouter.get("/callback", async (req: Request, res: Response) => {
 authRouter.post("/logout", (req: Request, res: Response) => {
 	req.session.destroy((err) => {
 		if (err) return res.status(500).json({ error: "Failed to logout" });
-		res.clearCookie("connect.sid");
+		res.clearCookie("__Host-SessionID", { path: "/" });
+		const cookieName = config.IS_PRODUCTION
+			? "__Host-oauth_state"
+			: "oauth_state";
+		res.clearCookie(cookieName, { path: "/" });
 		res.json({ success: true });
 	});
 });
+
+function parseCookies(req: Request): Record<string, string> {
+	const header = req.headers.cookie;
+	if (!header) return {};
+	return Object.fromEntries(
+		header.split("; ").map((c) => {
+			const [key, ...v] = c.split("=");
+			return [key, decodeURIComponent(v.join("="))];
+		}),
+	);
+}
 
 export default authRouter;

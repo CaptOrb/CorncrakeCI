@@ -13,18 +13,22 @@ async function startServer() {
 	const app = express();
 	app.use(express.json());
 
-	// express session for Session cookie on the browser and Session object on the server
+	const sessionCookieName = config.IS_PRODUCTION ? "__Host-SessionID" : "sessionID";
+
 	app.use(
-		session({
-			secret: config.SESSION_SECRET,
-			resave: false,
-			saveUninitialized: false,
-			cookie: {
-				secure: config.IS_PRODUCTION,
-				httpOnly: true,
-				maxAge: 24 * 60 * 60 * 1000, // 1 day
-			},
-		}),
+	session({
+		name: sessionCookieName,
+		secret: config.SESSION_SECRET,
+		resave: false,
+		saveUninitialized: false,
+		cookie: {
+		secure: config.IS_PRODUCTION, // false in dev
+		httpOnly: true,
+		sameSite: "lax",
+		maxAge: 24 * 60 * 60 * 1000,
+		path: "/",
+		},
+	}),
 	);
 	app.use("/auth", authRouter);
 
