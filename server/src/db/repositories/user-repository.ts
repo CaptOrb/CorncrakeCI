@@ -43,9 +43,9 @@ class UserRepository {
 	): Promise<User> {
 		const result = await pool.query(
 			`INSERT INTO users
-      (forge_id, forge_user_id, access_token, token_expires_at)
-      VALUES ($1, $2, $3, $4)
-       RETURNING *`,
+			(forge_id, forge_user_id, access_token, token_expires_at)
+			VALUES ($1, $2, $3, $4)
+			RETURNING user_id, forge_id, forge_user_id`,
 			[forgeId, forgeUserId, access_token, token_expires_at],
 		);
 		return result.rows[0];
@@ -66,7 +66,7 @@ class UserRepository {
       DO UPDATE SET
         access_token = EXCLUDED.access_token,
         token_expires_at = EXCLUDED.token_expires_at
-       RETURNING *`,
+       RETURNING user_id, forge_id, forge_user_id, access_token, token_expires_at`,
 			[forgeId, forgeUserId, access_token, token_expires_at],
 		);
 
