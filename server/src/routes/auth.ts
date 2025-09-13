@@ -12,7 +12,10 @@ authRouter.get("/providers", (_req, res) => {
 
 authRouter.get("/login/:forgeType", (req: Request, res: Response) => {
 	const forgeType = req.params["forgeType"];
-	if (!forgeType) return res.status(400).json({ error: "Missing forgeType" });
+	if (!forgeType) {
+		res.status(400).json({ error: "Missing forgeType" });
+		return;
+	}
 
 	try {
 		const forge = createForge(forgeType);
@@ -54,11 +57,13 @@ authRouter.get("/callback", async (req: Request, res: Response) => {
 	const stateFromCookie = cookies[cookieName];
 
 	if (!forgeType || !state || !code || !codeVerifier) {
-		return res.status(400).json({ error: "Missing OAuth callback parameters" });
+		res.status(400).json({ error: "Missing OAuth callback parameters" });
+		return;
 	}
 
 	if (state !== stateFromCookie) {
-		return res.status(400).json({ error: "Invalid OAuth state parameter" });
+		res.status(400).json({ error: "Invalid OAuth state parameter" });
+		return;
 	}
 
 	try {
@@ -100,7 +105,10 @@ authRouter.get("/callback", async (req: Request, res: Response) => {
 
 authRouter.post("/logout", (req: Request, res: Response) => {
 	req.session.destroy((err) => {
-		if (err) return res.status(500).json({ error: "Failed to logout" });
+		if (err) {
+			res.status(500).json({ error: "Failed to logout" });
+			return;
+		}
 		res.clearCookie("__Host-SessionID", { path: "/" });
 		const cookieName = config.IS_PRODUCTION
 			? "__Host-oauth_state"
