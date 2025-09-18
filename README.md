@@ -6,6 +6,7 @@ MolCI is an in progress self hosted CI system
 
 ## Prerequisites
 * Docker
+* Node.js
 
 # Compiling and running code
 1. Clone the repository:
