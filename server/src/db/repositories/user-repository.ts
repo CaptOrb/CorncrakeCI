@@ -1,16 +1,7 @@
 import { pool } from "../../config/db";
-import { FORGE_IDS } from "../../services/forges/constants";
 import type { User } from "../models/user";
 
 class UserRepository {
-	private resolveForgeId(forgeType: string): number {
-		const forgeId = FORGE_IDS[forgeType];
-		if (forgeId === undefined) {
-			throw new Error(`Unsupported forge type: ${forgeType}`);
-		}
-		return forgeId;
-	}
-
 	/**
 	 * Find a user by internal Molci ID
 	 */
@@ -52,13 +43,11 @@ class UserRepository {
 	}
 
 	async getOrCreateUser(
-		forgeType: string,
+		forgeId: number,
 		forgeUserId: string,
 		access_token?: string,
 		token_expires_at?: Date,
 	): Promise<User> {
-		const forgeId = this.resolveForgeId(forgeType);
-
 		const result = await pool.query(
 			`INSERT INTO users (forge_id, forge_user_id, access_token, token_expires_at)
       VALUES ($1, $2, $3, $4)

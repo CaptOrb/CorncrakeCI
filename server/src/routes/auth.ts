@@ -1,36 +1,42 @@
 /** biome-ignore-all lint/complexity/useLiteralKeys: <oli said it was ok> */
 import { type Request, type Response, Router } from "express";
-import { config } from "../config/env";
-import { createForge, listAvailableForges } from "../services/forges";
+import { config } from "../config";
+import { createForge, listAvailableForgeIds } from "../services/forges";
 import { getOrCreateUser } from "../services/user";
 
 const authRouter = Router();
 
 authRouter.get("/providers", (_req, res) => {
-	res.json({ providers: listAvailableForges() });
+	res.json({ providers: listAvailableForgeIds() });
 });
 
-authRouter.get("/login/:forgeType", (req: Request, res: Response) => {
-	const forgeType = req.params["forgeType"];
-	if (!forgeType) {
-		res.status(400).json({ error: "Missing forgeType" });
+authRouter.get("/login/:forgeId", (req: Request, res: Response) => {
+	const forgeIdParam = req.params["forgeId"];
+	if (!forgeIdParam) {
+		res.status(400).json({ error: "Missing forgeId" });
 		return;
 	}
 
+	const forgeId = parseInt(forgeIdParam, 10);
+	if (Number.isNaN(forgeId)) {
+		res.status(400).json({ error: "Invalid forgeId" });
+		return;
+	}
+
+	const isProduction = config.node.env === "production";
+
 	try {
-		const forge = createForge(forgeType);
+		const forge = createForge(forgeId);
 		const authData = forge.getAuthorizationUrl();
 
 		req.session.codeVerifier = authData.codeVerifier;
-		req.session.forgeType = forgeType;
+		req.session.forgeId = forgeId;
 
-		const cookieName = config.IS_PRODUCTION
-			? "__Host-oauth_state"
-			: "oauth_state";
+		const cookieName = isProduction ? "__Host-oauth_state" : "oauth_state";
 
 		// Store OAuth state in a cookie
 		res.cookie(cookieName, authData.state, {
-			secure: config.IS_PRODUCTION,
+			secure: isProduction,
 			path: "/",
 			httpOnly: true,
 			maxAge: 10 * 60 * 1000, // 10 minutes
@@ -45,18 +51,17 @@ authRouter.get("/login/:forgeType", (req: Request, res: Response) => {
 });
 
 authRouter.get("/callback", async (req: Request, res: Response) => {
-	const forgeType = req.session.forgeType;
+	const forgeId = req.session.forgeId;
 	const codeVerifier = req.session.codeVerifier;
 	const state = req.query["state"] as string;
 	const code = req.query["code"] as string;
 
+	const isProduction = config.node.env === "production";
 	const cookies = parseCookies(req);
-	const cookieName = config.IS_PRODUCTION
-		? "__Host-oauth_state"
-		: "oauth_state";
+	const cookieName = isProduction ? "__Host-oauth_state" : "oauth_state";
 	const stateFromCookie = cookies[cookieName];
 
-	if (!forgeType || !state || !code || !codeVerifier) {
+	if (forgeId === undefined || !state || !code || !codeVerifier) {
 		res.status(400).json({ error: "Missing OAuth callback parameters" });
 		return;
 	}
@@ -67,21 +72,21 @@ authRouter.get("/callback", async (req: Request, res: Response) => {
 	}
 
 	try {
-		const forge = createForge(forgeType);
+		const forge = createForge(forgeId);
 		const { accessToken, accessTokenExpiresAt } =
 			await forge.exchangeCodeForToken(code, codeVerifier);
 
 		const forgeUser = await forge.getUserInfo(accessToken);
 
 		const internalUser = await getOrCreateUser(
-			forgeType,
+			forgeId,
 			forgeUser.id.toString(),
 			accessToken,
 			accessTokenExpiresAt,
 		);
 
 		req.session.userId = internalUser.user_id;
-		req.session.forgeType = forgeType;
+		req.session.forgeId = forgeId;
 
 		// Clear OAuth session data
 		delete req.session.codeVerifier;
@@ -110,9 +115,8 @@ authRouter.post("/logout", (req: Request, res: Response) => {
 			return;
 		}
 		res.clearCookie("__Host-SessionID", { path: "/" });
-		const cookieName = config.IS_PRODUCTION
-			? "__Host-oauth_state"
-			: "oauth_state";
+		const isProduction = config.node.env === "production";
+		const cookieName = isProduction ? "__Host-oauth_state" : "oauth_state";
 		res.clearCookie(cookieName, { path: "/" });
 		res.json({ success: true });
 	});

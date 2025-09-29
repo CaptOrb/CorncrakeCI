@@ -1,20 +1,14 @@
 import { Pool } from "pg";
-import { config } from "./env";
+import { config } from "./index";
 
 let pool: Pool;
 
-const { DB_USER, DB_PASSWORD, DB_NAME } = config;
-
-if (!DB_USER || !DB_PASSWORD || !DB_NAME) {
-	throw new Error("DB_USER, DB_PASSWORD, and DB_NAME must be set");
-}
-
 pool = new Pool({
-	user: config.DB_USER,
-	host: config.DB_HOST,
-	database: config.DB_NAME,
-	password: config.DB_PASSWORD,
-	port: config.DB_PORT,
+	user: config.db.user,
+	host: config.db.host,
+	database: config.db.name,
+	password: config.db.password,
+	port: config.db.port,
 });
 
 const connectDB = async () => {
