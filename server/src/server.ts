@@ -1,8 +1,8 @@
 import express from "express";
 import session from "express-session";
 import { createOpenAPIBackend, createOpenAPIMiddleware } from "./api/openapi";
+import { config } from "./config";
 import { connectDB } from "./config/db";
-import { config, isProduction } from "./config/env";
 import authRouter from "./routes/auth";
 import { seedForges } from "./util/seedforges";
 
@@ -13,18 +13,17 @@ async function startServer() {
 	const app = express();
 	app.use(express.json());
 
-	const sessionCookieName = config.IS_PRODUCTION
-		? "__Host-SessionID"
-		: "sessionID";
+	const isProduction = config.node.env === "production";
+	const sessionCookieName = isProduction ? "__Host-SessionID" : "sessionID";
 
 	app.use(
 		session({
 			name: sessionCookieName,
-			secret: config.SESSION_SECRET,
+			secret: config.session.secret,
 			resave: false,
 			saveUninitialized: false,
 			cookie: {
-				secure: config.IS_PRODUCTION, // false in dev
+				secure: isProduction, // false in dev
 				httpOnly: true,
 				sameSite: "lax",
 				maxAge: 24 * 60 * 60 * 1000,
@@ -37,7 +36,7 @@ async function startServer() {
 	const openapi = createOpenAPIBackend();
 	app.use(createOpenAPIMiddleware(openapi));
 
-	const PORT = config.APP_PORT;
+	const PORT = config.app.port;
 	app.listen(PORT, () => {
 		console.log(
 			`Server running in ${isProduction ? "production" : "development"} mode on port ${PORT}`,

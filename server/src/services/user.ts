@@ -27,13 +27,13 @@ export const insertUser = (
 };
 
 export const getOrCreateUser = (
-	forgeType: string,
+	forgeId: number,
 	forgeUserId: string,
 	access_token?: string,
 	token_expires_at?: Date,
 ): Promise<User> => {
 	return userRepository.getOrCreateUser(
-		forgeType,
+		forgeId,
 		forgeUserId,
 		access_token,
 		token_expires_at,
