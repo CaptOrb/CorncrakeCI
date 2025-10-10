@@ -13,9 +13,9 @@ export async function listAvailableRepos(
 ): Promise<ExpressResponse> {
 	try {
 		const userId = req.session?.userId;
-		const forgeType = req.session?.forgeType;
+		const forgeId = req.session?.forgeId;
 
-		if (!userId || !forgeType) {
+		if (!userId || forgeId === undefined) {
 			return res.status(401).json({ error: "Not authenticated" });
 		}
 
@@ -24,7 +24,7 @@ export async function listAvailableRepos(
 			return res.status(401).json({ error: "Missing or expired access token" });
 		}
 
-		const forge = createForge(forgeType);
+		const forge = createForge(forgeId);
 		const repos = await forge.listRepositories(accessToken);
 
 		return res.json(repos);
