@@ -16,7 +16,10 @@
 		"enabled": true,
 		"includes": ["src/**", "!src/types/openapi.d.ts"],
 		"rules": {
-			"recommended": true
+			"recommended": true,
+			"style": {
+				"noNonNullAssertion": "off"
+			}
 		}
 	},
 	"javascript": {

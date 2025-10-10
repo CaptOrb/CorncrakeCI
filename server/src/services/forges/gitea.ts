@@ -1,24 +1,32 @@
 import * as arctic from "arctic";
-import { config } from "../../config/env";
+import type { ForgeInstanceConfig } from "../../config/schema";
 import type { Forge } from "../../types/forge";
 import type { ForgeUser } from "../../types/forgeuser";
 import type { GiteaRepo } from "../../types/gitearepo";
 import type { Repository } from "../../types/openapi";
-
 export class GiteaForge implements Forge {
 	private gitea: arctic.Gitea;
+	private forgeId: number;
+	private baseUrl: string;
 
-	constructor() {
-		if (!config.GITEA_CLIENT_ID || !config.GITEA_CLIENT_SECRET) {
+	constructor(forgeId: number, config: ForgeInstanceConfig) {
+		this.forgeId = forgeId;
+		this.baseUrl = config.url;
+
+		if (!config.clientid || !config.clientsecret) {
 			throw new Error("Gitea OAuth2 credentials not configured");
 		}
 
 		this.gitea = new arctic.Gitea(
-			config.GITEA_URL,
-			config.GITEA_CLIENT_ID,
-			config.GITEA_CLIENT_SECRET,
-			config.GITEA_REDIRECT_URI,
+			config.url,
+			config.clientid,
+			config.clientsecret,
+			config.redirecturi,
 		);
+	}
+
+	getForgeId(): number {
+		return this.forgeId;
 	}
 
 	getAuthorizationUrl() {
@@ -51,7 +59,7 @@ export class GiteaForge implements Forge {
 	}
 
 	async getUserInfo(accessToken: string): Promise<ForgeUser> {
-		const res = await fetch(`${config.GITEA_URL}/api/v1/user`, {
+		const res = await fetch(`${this.baseUrl}/api/v1/user`, {
 			headers: { Authorization: `token ${accessToken}` },
 		});
 		if (!res.ok) throw new Error(`Failed to fetch user: ${res.status}`);
@@ -60,7 +68,7 @@ export class GiteaForge implements Forge {
 	}
 
 	async listRepositories(accessToken: string): Promise<Repository[]> {
-		const res = await fetch(`${config.GITEA_URL}/api/v1/user/repos`, {
+		const res = await fetch(`${this.baseUrl}/api/v1/user/repos`, {
 			headers: { Authorization: `token ${accessToken}` },
 		});
 		if (!res.ok) {
