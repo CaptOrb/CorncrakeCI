@@ -3,6 +3,7 @@ import session from "express-session";
 import { createOpenAPIBackend, createOpenAPIMiddleware } from "./api/openapi";
 import { config } from "./config";
 import { connectDB } from "./config/db";
+import { runJobs } from "./jobs/graphile-worker";
 import authRouter from "./routes/auth";
 import { seedForges } from "./util/seedforges";
 
@@ -35,6 +36,8 @@ async function startServer() {
 
 	const openapi = createOpenAPIBackend();
 	app.use(createOpenAPIMiddleware(openapi));
+
+	runJobs();
 
 	const PORT = config.app.port;
 	app.listen(PORT, () => {

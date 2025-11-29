@@ -1,5 +1,5 @@
 import type { User } from "../db/models/user";
-import { userRepository } from "../db/repositories";
+import { userRepository } from "../db/stores";
 
 export const findUserById = (userId: number): Promise<User | null> => {
 	return userRepository.findUserById(userId);
