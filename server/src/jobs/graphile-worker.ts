@@ -1,8 +1,8 @@
-import { type Helpers, JobHelpers, run, TaskList } from "graphile-worker";
-import preset from "./graphile.config";
+import { type JobHelpers, run, type TaskList } from "graphile-worker";
+import { config } from "../config";
 
 const taskList: TaskList = {
-	setup_webhooks: async (payload: unknown, helpers : JobHelpers) => {
+	setup_webhooks: async (payload: unknown, helpers: JobHelpers) => {
 		const { repoId } = payload as { repoId: string; ownerId: string };
 		helpers.logger.info(`Setting up webhooks for repo ${repoId}`);
 	},
@@ -10,7 +10,12 @@ const taskList: TaskList = {
 
 export async function runJobs() {
 	const runner = await run({
-		...preset.worker,
+		connectionString: config.db.connectionString,
+		maxPoolSize: 10,
+		pollInterval: 2000,
+		noPreparedStatements: false,
+		schema: "graphile_worker",
+		concurrency: 5,
 		taskList,
 	});
 
