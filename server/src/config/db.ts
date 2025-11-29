@@ -3,12 +3,10 @@ import { config } from "./index";
 
 let pool: Pool;
 
+const connectionString = config.db.connectionString;
+
 pool = new Pool({
-	user: config.db.user,
-	host: config.db.host,
-	database: config.db.name,
-	password: config.db.password,
-	port: config.db.port,
+	connectionString,
 });
 
 const connectDB = async () => {
@@ -20,6 +18,10 @@ const connectDB = async () => {
 		const error = err as Error;
 		console.error("DB connection error:", error.stack || error.message);
 	}
+	const connectionString = config.db.connectionString;
+
+	console.log("Connection string:", connectionString); // Check what's actually there
+	console.log("DB config:", config.db); // See all db config values
 };
 
 export { pool, connectDB };

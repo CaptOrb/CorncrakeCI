@@ -19,6 +19,7 @@ const ForgesSchema = v.pipe(
 // All these database configuration fields are optional;
 // the Postgres client driver has defaults.
 const DatabaseConfigSchema = v.object({
+	connectionString: v.string(),
 	host: v.optional(v.string()),
 	port: v.optional(
 		v.pipe(v.string(), v.digits(), v.transform(Number), v.integer()),
