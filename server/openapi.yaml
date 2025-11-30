@@ -73,6 +73,40 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /repo:
+    post:
+      summary: Configure a new repository for MOLCI
+      operationId: configureRepo
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RepositoryConfigInput'
+      responses:
+        '200':
+          description: Repository configured successfully
+          
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorised
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /repo/{id}:
     get:
       summary: Get the configuration of a specific repository
@@ -117,8 +151,8 @@ paths:
                 $ref: '#/components/schemas/Error'
 
     put:
-      summary: Configure a repository for MOLCI
-      operationId: configureRepo
+      summary: Reconfigure a repository for MOLCI
+      operationId: reconfigureRepo
       parameters:
         - in: path
           name: id
@@ -134,7 +168,7 @@ paths:
               $ref: '#/components/schemas/RepositoryConfigInput'
       responses:
         '200':
-          description: Repository configured successfully
+          description: Repository reconfigured successfully
           content:
             application/json:
               schema:
