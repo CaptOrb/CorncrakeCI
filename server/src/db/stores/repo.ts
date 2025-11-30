@@ -1,5 +1,5 @@
 import type { PoolClient } from "pg";
-import type { Repository } from "../../types/openapi";
+import type { ForgeRepository } from "../../types/openapi";
 
 export class RepositoryStore {
 	constructor(private client: PoolClient) {}
@@ -14,7 +14,7 @@ export class RepositoryStore {
 		sshUrl: string | undefined,
 		htmlUrl: string | undefined,
 		isPrivate: boolean,
-	): Promise<Repository> {
+	): Promise<ForgeRepository> {
 		const result = await this.client.query(
 			`INSERT INTO repositories
        (forge_id, forge_repo_id, owner_id, repo_name, description, clone_url, ssh_url, html_url, is_private, default_branch)
