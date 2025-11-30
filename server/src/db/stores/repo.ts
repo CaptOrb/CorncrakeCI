@@ -4,7 +4,7 @@ import type { Repository } from "../../types/openapi";
 export class RepositoryStore {
 	constructor(private client: PoolClient) {}
 
-	async getOrCreateRepository(
+	async createOrUpdateRepository(
 		forgeId: number,
 		forgeRepoId: string,
 		ownerId: number,

@@ -3,7 +3,6 @@ import { config } from "../config";
 import { txn } from "../db/stores";
 import { createForge } from "../services/forges";
 import crypto from 'crypto';
-import { error } from "console";
 
 const taskList: TaskList = {
 	setup_webhooks: async (payload: unknown, helpers: JobHelpers) => {

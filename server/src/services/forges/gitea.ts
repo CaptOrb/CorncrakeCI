@@ -92,6 +92,19 @@ export class GiteaForge implements Forge {
 			},
 		}));
 	}
+	async getRepository(accessToken: string, repoId: string): Promise<GiteaRepo> {
+		const res = await fetch(`${this.baseUrl}/api/v1/repos/${repoId}`, {
+			headers: { Authorization: `token ${accessToken}` },
+		});
+		if (!res.ok) {
+			if (res.status === 401) throw new Error("Unauthorised");
+			if (res.status === 404) throw new Error("Repository not found");
+			throw new Error(`Failed to fetch repository: ${res.status}`);
+		}
+
+		return await res.json();
+	}
+
 	async validateToken(accessToken: string) {
 		try {
 			await this.getUserInfo(accessToken);
