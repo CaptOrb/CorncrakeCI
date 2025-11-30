@@ -51,9 +51,20 @@ declare namespace Components {
 }
 declare namespace Paths {
     namespace ConfigureRepo {
-        export type RequestBody = Components.Schemas.RepositoryConfigInput;
+        export interface RequestBody {
+            forge: number;
+            /**
+             * example:
+             * 12345
+             */
+            forge_repo_id: string;
+            settings: {
+                [name: string]: any;
+            };
+        }
         namespace Responses {
-            export type $200 = Components.Schemas.RepositoryConfig;
+            export interface $200 {
+            }
             export type $400 = Components.Schemas.Error;
             export type $401 = Components.Schemas.Error;
             export type $500 = Components.Schemas.Error;

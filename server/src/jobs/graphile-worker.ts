@@ -1,8 +1,8 @@
+import crypto from "crypto";
 import { type JobHelpers, run, type TaskList } from "graphile-worker";
 import { config } from "../config";
 import { txn } from "../db/stores";
 import { createForge } from "../services/forges";
-import crypto from 'crypto';
 
 const taskList: TaskList = {
 	setup_webhooks: async (payload: unknown, helpers: JobHelpers) => {
@@ -68,18 +68,17 @@ const taskList: TaskList = {
 			);
 
 			await txn(async (tx) => {
-			await tx.client.query(
-				`
+				await tx.client.query(
+					`
 				UPDATE repositories
 				SET webhook_secret = NULL,
 					updated_at = NOW()
 				WHERE repo_id = $1
 				`,
-				[repoId],
-			);
+					[repoId],
+				);
 			});
 			throw error; // so the graphile job system knows it failed and will retry it
-
 		}
 	},
 };
@@ -103,9 +102,10 @@ export async function runJobs() {
 }
 
 function secureRandomBase64Url(bytes = 32) {
-  return crypto.randomBytes(bytes)
-    .toString('base64')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '');
+	return crypto
+		.randomBytes(bytes)
+		.toString("base64")
+		.replace(/\+/g, "-")
+		.replace(/\//g, "_")
+		.replace(/=+$/, "");
 }

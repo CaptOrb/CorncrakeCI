@@ -3,9 +3,9 @@ import type {
 	Response as ExpressResponse,
 } from "express";
 import type { Context } from "openapi-backend";
+import { txn } from "../db/stores";
 import { createForge } from "../services/forges";
 import { getAccessToken } from "../services/user";
-import { txn } from "../db/stores";
 
 export async function listAvailableRepos(
 	_c: Context,
@@ -37,11 +37,11 @@ export async function listAvailableRepos(
 }
 
 export async function configureRepo(
-	c: Context,
+	_c: Context,
 	req: ExpressRequest,
 	res: ExpressResponse,
 ): Promise<ExpressResponse> {
-		try {
+	try {
 		const userId = req.session?.userId;
 
 		if (!userId) {
@@ -53,32 +53,33 @@ export async function configureRepo(
 			return res.status(401).json({ error: "Missing or expired access token" });
 		}
 
-		const repoId = c.request.params.id;
+		const { forge, forge_repo_id } = req.body;
 
-		//const forge = createForge(forgeId);
-		/*const repoDetails = await forge.getRepository(repoId, accessToken);
+		const forgeClient = createForge(forge);
+		const repoDetails = await forgeClient.getRepository(
+			forge_repo_id,
+			accessToken,
+		);
+
 		await txn(async (tx) => {
 			await tx.repositories.createOrUpdateRepository(
-				forgeId,
-				repoId,
+				forge,
+				forge_repo_id,
 				userId,
 				repoDetails.name,
 				repoDetails.description,
 				repoDetails.clone_url,
 				repoDetails.ssh_url,
 				repoDetails.html_url,
-				repoDetails.private
+				repoDetails.private,
 			);
-		});*/
+		});
 
-
-		// Basic implementation for testing
-		return res.status(200);
+		return res.status(200).json({ repo: repoDetails, configured_at: new Date().toISOString() });
 	} catch (err) {
-				console.error("Failed to configure repo:", err);
-				return res.status(500).json({ error: "Failed to configure repository" });
-			}
-
+		console.error("Failed to configure repo:", err);
+		return res.status(500).json({ error: "Failed to configure repository" });
+	}
 }
 
 
@@ -119,8 +120,6 @@ export async function reconfigureRepo(
 			);
 		});
 
-
-		// Basic implementation for testing
 		return res.status(200);
 	} catch (err) {
 				console.error("Failed to configure repo:", err);

@@ -25,6 +25,6 @@ export interface Forge {
 		accessToken: string,
 		forgeRepoId: string,
 		webhookUrl: string,
-		webhookSecret: string
+		webhookSecret: string,
 	): Promise<{ id: string; url: string }>;
 }
