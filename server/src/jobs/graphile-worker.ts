@@ -3,6 +3,7 @@ import { config } from "../config";
 import { txn } from "../db/stores";
 import { createForge } from "../services/forges";
 import crypto from 'crypto';
+import { error } from "console";
 
 const taskList: TaskList = {
 	setup_webhooks: async (payload: unknown, helpers: JobHelpers) => {
@@ -67,18 +68,19 @@ const taskList: TaskList = {
 				`Failed to setup webhook for repo ${repoId}: ${error}`,
 			);
 
-			/*await txn(async (tx) => {
-				await tx.client.query(
-					`
+			await txn(async (tx) => {
+			await tx.client.query(
+				`
 				UPDATE repositories
-				SET webhook_setup = FALSE,
+				SET webhook_secret = NULL,
 					updated_at = NOW()
 				WHERE repo_id = $1
 				`,
-					[repoId],
-				);
-			});*/
+				[repoId],
+			);
+			});
 		}
+		throw error;
 	},
 };
 
