@@ -100,4 +100,49 @@ export class GiteaForge implements Forge {
 			return false;
 		}
 	}
+
+	async createWebhook(
+		accessToken: string,
+		forgeRepoId: string,
+		webhookUrl: string,
+	): Promise<{ id: string; url: string }> {
+		const webhookEvents = [
+			"push",
+			"pull_request",
+			"create", // as far as I can tell, this will work for Tag/ branch creation
+			"release",
+		];
+
+		const [owner, repo] = forgeRepoId.split("/");
+		const res = await fetch(
+			`${this.baseUrl}/api/v1/repos/${owner}/${repo}/hooks`,
+			{
+				method: "POST",
+				headers: {
+					Authorization: `token ${accessToken}`,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					type: "gitea",
+					config: {
+						url: webhookUrl,
+						content_type: "json",
+					},
+					events: webhookEvents,
+					active: true,
+				}),
+			},
+		);
+
+		if (!res.ok) {
+			const error = await res.text();
+			throw new Error(`Failed to create webhook: ${res.status} - ${error}`);
+		}
+
+		const webhook = await res.json();
+		return {
+			id: webhook.id.toString(),
+			url: webhook.config.url,
+		};
+	}
 }

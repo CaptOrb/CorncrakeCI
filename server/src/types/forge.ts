@@ -17,4 +17,10 @@ export interface Forge {
 	listRepositories(accessToken: string): Promise<Repository[]>;
 
 	validateToken(accessToken: string): Promise<boolean>;
+
+	createWebhook(
+		accessToken: string,
+		forgeRepoId: string,
+		webhookUrl: string,
+	): Promise<{ id: string; url: string }>;
 }
