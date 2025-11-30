@@ -202,7 +202,7 @@ components:
       type: object
       properties:
         forge_repo_id:
-          type: integer
+          type: string
         name:
           type: string
           example: "molci"
