@@ -1,4 +1,2 @@
 ALTER TABLE repositories
-    ADD COLUMN webhook_setup BOOLEAN DEFAULT FALSE,
-    ADD COLUMN webhook_url TEXT,
-    ADD COLUMN webhook_id TEXT;
+    ADD COLUMN webhook_secret TEXT NOT NULL;
