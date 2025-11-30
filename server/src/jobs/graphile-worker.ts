@@ -79,8 +79,9 @@ const taskList: TaskList = {
 				[repoId],
 			);
 			});
+			throw error; // so the graphile job system knows it failed and will retry it
+
 		}
-		throw error;
 	},
 };
 
