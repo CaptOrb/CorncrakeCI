@@ -27,7 +27,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Repository'
+                  $ref: '#/components/schemas/ForgeRepository'
         '401':
           description: Unauthorised
           content:
@@ -198,10 +198,10 @@ components:
         - error
         - code
 
-    Repository:
+    ForgeRepository:
       type: object
       properties:
-        id:
+        forge_repo_id:
           type: integer
         name:
           type: string
@@ -215,12 +215,10 @@ components:
       type: object
       properties:
         repo:
-          $ref: '#/components/schemas/Repository'
+          $ref: '#/components/schemas/ForgeRepository'
         configured_at:
           type: string
           format: date-time
-        webhook_id:
-          type: string
 
     RepositoryConfigInput:
       type: object

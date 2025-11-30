@@ -3,7 +3,7 @@ import type { ForgeInstanceConfig } from "../../config/schema";
 import type { Forge } from "../../types/forge";
 import type { ForgeUser } from "../../types/forgeuser";
 import type { GiteaRepo } from "../../types/gitearepo";
-import type { Repository } from "../../types/openapi";
+import type { ForgeRepository } from "../../types/openapi";
 export class GiteaForge implements Forge {
 	private gitea: arctic.Gitea;
 	private forgeId: number;
@@ -67,7 +67,7 @@ export class GiteaForge implements Forge {
 		return { id: user.id, login: user.login, avatar_url: user.avatar_url };
 	}
 
-	async listRepositories(accessToken: string): Promise<Repository[]> {
+	async listRepositories(accessToken: string): Promise<ForgeRepository[]> {
 		const res = await fetch(`${this.baseUrl}/api/v1/user/repos`, {
 			headers: { Authorization: `token ${accessToken}` },
 		});
