@@ -18,12 +18,9 @@ export const insertUser = (
 	access_token?: string,
 	token_expires_at?: Date,
 ): Promise<User> => {
-	return txn((tx) => tx.users.insertUser(
-		forgeId,
-		forgeUserId,
-		access_token,
-		token_expires_at,
-	));
+	return txn((tx) =>
+		tx.users.insertUser(forgeId, forgeUserId, access_token, token_expires_at),
+	);
 };
 
 export const getOrCreateUser = (
@@ -32,12 +29,14 @@ export const getOrCreateUser = (
 	access_token?: string,
 	token_expires_at?: Date,
 ): Promise<User> => {
-	return txn((tx) => tx.users.getOrCreateUser(
-		forgeId,
-		forgeUserId,
-		access_token,
-		token_expires_at,
-	));
+	return txn((tx) =>
+		tx.users.getOrCreateUser(
+			forgeId,
+			forgeUserId,
+			access_token,
+			token_expires_at,
+		),
+	);
 };
 
 export const getAccessToken = (userId: number): Promise<string | null> => {
