@@ -3,7 +3,7 @@ import type {
 	Response as ExpressResponse,
 } from "express";
 import { OpenAPIBackend, type Request } from "openapi-backend";
-import { listAvailableRepos } from "./repositories";
+import { listAvailableRepos, configureRepo } from "./repositories";
 
 export function createOpenAPIBackend(): OpenAPIBackend {
 	const api = new OpenAPIBackend({
@@ -12,7 +12,7 @@ export function createOpenAPIBackend(): OpenAPIBackend {
 	});
 	api.register({
 		listAvailableRepos,
-
+		configureRepo,
 		notFound: (_c, _req, res) => res.status(404).json({ err: "not found" }),
 		validationFail: (c, _req, res) =>
 			res.status(400).json({ err: c.validation.errors }),
