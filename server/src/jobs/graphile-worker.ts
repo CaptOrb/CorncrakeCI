@@ -10,7 +10,7 @@ const taskList: TaskList = {
 
 export async function runJobs() {
 	const runner = await run({
-		connectionString: config.db.connectionString,
+		connectionString: config.db.connectionuri,
 		maxPoolSize: 10,
 		pollInterval: 2000,
 		noPreparedStatements: false,

@@ -3,7 +3,7 @@ import { config } from "./index";
 
 let pool: Pool;
 
-const connectionString = config.db.connectionString;
+const connectionString = config.db.connectionuri;
 
 pool = new Pool({
 	connectionString,
@@ -18,7 +18,6 @@ const connectDB = async () => {
 		const error = err as Error;
 		console.error("DB connection error:", error.stack || error.message);
 	}
-	const connectionString = config.db.connectionString;
 
 	console.log("Connection string:", connectionString); // Check what's actually there
 	console.log("DB config:", config.db); // See all db config values
