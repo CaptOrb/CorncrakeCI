@@ -35,7 +35,7 @@ export class RepositoryStore {
 				forgeRepoId,
 				ownerId,
 				repoName,
-				description,
+				description ?? null, // gitea doesn't mandate it?
 				cloneUrl,
 				sshUrl,
 				htmlUrl,

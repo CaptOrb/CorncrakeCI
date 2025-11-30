@@ -17,7 +17,7 @@ export interface Forge {
 
 	listRepositories(accessToken: string): Promise<ForgeRepository[]>;
 
-	getRepository(accessToken: string, repoId: string): Promise<GiteaRepo>;
+	getRepository(repoId: string, accessToken: string): Promise<GiteaRepo>;
 
 	validateToken(accessToken: string): Promise<boolean>;
 

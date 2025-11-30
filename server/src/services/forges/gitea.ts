@@ -32,7 +32,7 @@ export class GiteaForge implements Forge {
 	getAuthorizationUrl() {
 		const state = arctic.generateState();
 		const codeVerifier = arctic.generateCodeVerifier();
-		const scopes = ["read:user", "repo"];
+		const scopes = ["read:user", "repo", "write:repository"];
 		const url = this.gitea.createAuthorizationURL(state, codeVerifier, scopes);
 
 		return { url: url.toString(), state, codeVerifier };
@@ -92,7 +92,7 @@ export class GiteaForge implements Forge {
 			},
 		}));
 	}
-	async getRepository(accessToken: string, repoId: string): Promise<GiteaRepo> {
+	async getRepository(repoId: string, accessToken: string): Promise<GiteaRepo> {
 		const res = await fetch(`${this.baseUrl}/api/v1/repos/${repoId}`, {
 			headers: { Authorization: `token ${accessToken}` },
 		});
