@@ -83,7 +83,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RepositoryConfigInput'
+              type: object
+              allOf:
+                - type: object
+                  properties:
+                    forge:
+                      type: integer
+                    forge_repo_id:
+                      type: string
+                      example: "12345"
+                  required: [forge, forge_repo_id]
+                - $ref: '#/components/schemas/RepositoryConfigInput'
+
       responses:
         '200':
           description: Repository configured successfully

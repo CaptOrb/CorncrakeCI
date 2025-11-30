@@ -3,7 +3,11 @@ import type {
 	Response as ExpressResponse,
 } from "express";
 import { OpenAPIBackend, type Request } from "openapi-backend";
-import { listAvailableRepos, configureRepo, reconfigureRepo } from "./repositories";
+import {
+	configureRepo,
+	listAvailableRepos,
+	reconfigureRepo,
+} from "./repositories";
 
 export function createOpenAPIBackend(): OpenAPIBackend {
 	const api = new OpenAPIBackend({
