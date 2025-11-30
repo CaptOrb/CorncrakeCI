@@ -26,7 +26,7 @@ declare namespace Components {
             };
         }
         export interface ForgeRepository {
-            forge_repo_id?: number;
+            forge_repo_id?: string;
             /**
              * example:
              * molci
