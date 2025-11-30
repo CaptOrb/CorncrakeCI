@@ -51,18 +51,11 @@ declare namespace Components {
 }
 declare namespace Paths {
     namespace ConfigureRepo {
-        namespace Parameters {
-            export type Id = number;
-        }
-        export interface PathParameters {
-            id: Parameters.Id;
-        }
         export type RequestBody = Components.Schemas.RepositoryConfigInput;
         namespace Responses {
             export type $200 = Components.Schemas.RepositoryConfig;
             export type $400 = Components.Schemas.Error;
             export type $401 = Components.Schemas.Error;
-            export type $404 = Components.Schemas.Error;
             export type $500 = Components.Schemas.Error;
         }
     }
@@ -96,6 +89,22 @@ declare namespace Paths {
             export type $500 = Components.Schemas.Error;
         }
     }
+    namespace ReconfigureRepo {
+        namespace Parameters {
+            export type Id = number;
+        }
+        export interface PathParameters {
+            id: Parameters.Id;
+        }
+        export type RequestBody = Components.Schemas.RepositoryConfigInput;
+        namespace Responses {
+            export type $200 = Components.Schemas.RepositoryConfig;
+            export type $400 = Components.Schemas.Error;
+            export type $401 = Components.Schemas.Error;
+            export type $404 = Components.Schemas.Error;
+            export type $500 = Components.Schemas.Error;
+        }
+    }
 }
 
 
@@ -125,6 +134,18 @@ export interface Operations {
     response: Paths.ListConfiguredRepos.Responses.$200 | Paths.ListConfiguredRepos.Responses.$401 | Paths.ListConfiguredRepos.Responses.$500;
   }
   /**
+   * POST /repo
+   */
+  ['configureRepo']: {
+    requestBody: Paths.ConfigureRepo.RequestBody;
+    params: UnknownParams;
+    query: UnknownParams;
+    headers: UnknownParams;
+    cookies: UnknownParams;
+    context: Context<Paths.ConfigureRepo.RequestBody, UnknownParams, UnknownParams, UnknownParams, UnknownParams>;
+    response: Paths.ConfigureRepo.Responses.$200 | Paths.ConfigureRepo.Responses.$400 | Paths.ConfigureRepo.Responses.$401 | Paths.ConfigureRepo.Responses.$500;
+  }
+  /**
    * GET /repo/{id}
    */
   ['getRepo']: {
@@ -139,14 +160,14 @@ export interface Operations {
   /**
    * PUT /repo/{id}
    */
-  ['configureRepo']: {
-    requestBody: Paths.ConfigureRepo.RequestBody;
-    params: Paths.ConfigureRepo.PathParameters;
+  ['reconfigureRepo']: {
+    requestBody: Paths.ReconfigureRepo.RequestBody;
+    params: Paths.ReconfigureRepo.PathParameters;
     query: UnknownParams;
     headers: UnknownParams;
     cookies: UnknownParams;
-    context: Context<Paths.ConfigureRepo.RequestBody, Paths.ConfigureRepo.PathParameters, UnknownParams, UnknownParams, UnknownParams>;
-    response: Paths.ConfigureRepo.Responses.$200 | Paths.ConfigureRepo.Responses.$400 | Paths.ConfigureRepo.Responses.$401 | Paths.ConfigureRepo.Responses.$404 | Paths.ConfigureRepo.Responses.$500;
+    context: Context<Paths.ReconfigureRepo.RequestBody, Paths.ReconfigureRepo.PathParameters, UnknownParams, UnknownParams, UnknownParams>;
+    response: Paths.ReconfigureRepo.Responses.$200 | Paths.ReconfigureRepo.Responses.$400 | Paths.ReconfigureRepo.Responses.$401 | Paths.ReconfigureRepo.Responses.$404 | Paths.ReconfigureRepo.Responses.$500;
   }
 }
 
