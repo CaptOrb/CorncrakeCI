@@ -105,6 +105,7 @@ export class GiteaForge implements Forge {
 		accessToken: string,
 		forgeRepoId: string,
 		webhookUrl: string,
+		webhookSecret: string
 	): Promise<{ id: string; url: string }> {
 		const webhookEvents = [
 			"push",
@@ -126,6 +127,7 @@ export class GiteaForge implements Forge {
 					type: "gitea",
 					config: {
 						url: webhookUrl,
+						webhookSecret: webhookSecret,
 						content_type: "json",
 					},
 					events: webhookEvents,
@@ -141,8 +143,8 @@ export class GiteaForge implements Forge {
 
 		const webhook = await res.json();
 		return {
-			id: webhook.id.toString(),
-			url: webhook.config.url,
-		};
-	}
-}
+					id: webhook.id.toString(),
+					url: webhook.config.url,
+				};
+			}
+		}

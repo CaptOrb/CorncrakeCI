@@ -2,6 +2,7 @@ import { type JobHelpers, run, type TaskList } from "graphile-worker";
 import { config } from "../config";
 import { txn } from "../db/stores";
 import { createForge } from "../services/forges";
+import crypto from 'crypto';
 
 const taskList: TaskList = {
 	setup_webhooks: async (payload: unknown, helpers: JobHelpers) => {
@@ -36,10 +37,13 @@ const taskList: TaskList = {
 
 			const webhookUrl = `${repoResult.base_url.replace("/api/v1", "")}/webhooks/gitea`;
 
+			const webhookSecret = secureRandomBase64Url();
+
 			const webhook = await forge.createWebhook(
 				accessToken,
 				repoResult.forge_repo_id,
 				webhookUrl,
+				webhookSecret,
 			);
 
 			await txn(async (tx) => {
@@ -47,13 +51,11 @@ const taskList: TaskList = {
 					`
 					UPDATE repositories
 					SET
-						webhook_setup = TRUE,
-						webhook_url   = $1,
-						webhook_id    = $2,
+						webhook_secret = $1,
 						updated_at    = NOW()
-					WHERE repo_id = $3
+					WHERE repo_id = $2
 					`,
-					[webhook.url, webhook.id, repoId],
+					[webhookSecret, repoId],
 				);
 			});
 
@@ -65,7 +67,7 @@ const taskList: TaskList = {
 				`Failed to setup webhook for repo ${repoId}: ${error}`,
 			);
 
-			await txn(async (tx) => {
+			/*await txn(async (tx) => {
 				await tx.client.query(
 					`
 				UPDATE repositories
@@ -75,7 +77,7 @@ const taskList: TaskList = {
 				`,
 					[repoId],
 				);
-			});
+			});*/
 		}
 	},
 };
@@ -96,4 +98,12 @@ export async function runJobs() {
 	});
 
 	await runner.promise;
+}
+
+function secureRandomBase64Url(bytes = 32) {
+  return crypto.randomBytes(bytes)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
 }
