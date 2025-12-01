@@ -1,15 +1,15 @@
 import type { User } from "../db/models/user";
-import { txn } from "../db/stores";
+import { transaction } from "../db/stores";
 
 export const findUserById = (userId: number): Promise<User | null> => {
-	return txn((tx) => tx.users.findUserById(userId));
+	return transaction((txn) => txn.users.findUserById(userId));
 };
 
 export const findUserByForge = (
 	forgeId: number,
 	forgeUserId: string,
 ): Promise<User | null> => {
-	return txn((tx) => tx.users.findUserByForge(forgeId, forgeUserId));
+	return transaction((txn) => txn.users.findUserByForge(forgeId, forgeUserId));
 };
 
 export const insertUser = (
@@ -18,8 +18,8 @@ export const insertUser = (
 	access_token?: string,
 	token_expires_at?: Date,
 ): Promise<User> => {
-	return txn((tx) =>
-		tx.users.insertUser(forgeId, forgeUserId, access_token, token_expires_at),
+	return transaction((txn) =>
+		txn.users.insertUser(forgeId, forgeUserId, access_token, token_expires_at),
 	);
 };
 
@@ -29,8 +29,8 @@ export const getOrCreateUser = (
 	access_token?: string,
 	token_expires_at?: Date,
 ): Promise<User> => {
-	return txn((tx) =>
-		tx.users.getOrCreateUser(
+	return transaction((txn) =>
+		txn.users.getOrCreateUser(
 			forgeId,
 			forgeUserId,
 			access_token,
@@ -40,5 +40,5 @@ export const getOrCreateUser = (
 };
 
 export const getAccessToken = (userId: number): Promise<string | null> => {
-	return txn((tx) => tx.users.getAccessToken(userId));
+	return transaction((txn) => txn.users.getAccessToken(userId));
 };

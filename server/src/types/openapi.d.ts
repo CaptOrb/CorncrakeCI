@@ -110,7 +110,7 @@ declare namespace Paths {
 		export interface PathParameters {
 			id: Parameters.Id;
 		}
-		export type RequestBody = Components.Schemas.RepositoryConfigInput;
+		export interface RequestBody {}
 		namespace Responses {
 			export type $200 = Components.Schemas.RepositoryConfig;
 			export type $400 = Components.Schemas.Error;

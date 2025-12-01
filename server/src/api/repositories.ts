@@ -3,7 +3,7 @@ import type {
 	Response as ExpressResponse,
 } from "express";
 import type { Context } from "openapi-backend";
-import { txn } from "../db/stores";
+import { transaction } from "../db/stores";
 import { createForge } from "../services/forges";
 import { getAccessToken } from "../services/user";
 
@@ -60,8 +60,8 @@ export async function configureRepo(
 			accessToken,
 		);
 
-		await txn(async (tx) => {
-			await tx.repositories.createOrUpdateRepository(
+		await transaction(async (txn) => {
+			await txn.repositories.createOrUpdateRepository(
 				forge,
 				forge_repo_id,
 				userId,
@@ -107,8 +107,8 @@ export async function listConfiguredRepos(
 			return res.status(401).json({ error: "Not authenticated" });
 		}
 
-		const configuredRepos = await txn(async (tx) => {
-			return tx.repositories.listConfiguredRepositories(userId);
+		const configuredRepos = await transaction(async (txn) => {
+			return txn.repositories.listConfiguredRepositories(userId);
 		});
 
 		return res.json(configuredRepos);
@@ -142,8 +142,8 @@ export async function reconfigureRepo(
 
 		const forge = createForge(forgeId);
 		const repoDetails = await forge.getRepository(repoId, accessToken);
-		await txn(async (tx) => {
-			await tx.repositories.createOrUpdateRepository(
+		await transaction(async (txn) => {
+			await txn.repositories.createOrUpdateRepository(
 				forgeId,
 				repoId,
 				userId,
