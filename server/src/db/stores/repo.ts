@@ -14,6 +14,7 @@ export class RepositoryStore {
 		sshUrl: string | undefined,
 		htmlUrl: string | undefined,
 		isPrivate: boolean,
+		defaultBranch: string,
 	): Promise<ForgeRepository> {
 		const result = await this.client.query(
 			`INSERT INTO repositories
@@ -40,8 +41,8 @@ export class RepositoryStore {
 				sshUrl,
 				htmlUrl,
 				isPrivate,
-				"main",
-			], // or default branch
+				defaultBranch,
+			],
 		);
 
 		const repository = result.rows[0];
@@ -53,11 +54,11 @@ export class RepositoryStore {
 				`SELECT graphile_worker.add_job(
            'setup_webhooks',
            json_build_object(
-             'repoId', $1,
-             'ownerId', $2
+             'repoId', $1::text, // explicit types needed here?
+             'ownerId', $2::text
            )
          )`,
-				[repository.repo_id.toString(), repository.owner_id.toString()],
+				[repository.repo_id, repository.owner_id],
 			);
 		}
 
