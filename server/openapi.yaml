@@ -98,7 +98,17 @@ paths:
       responses:
         '200':
           description: Repository configured successfully
-          
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - repository_id
+                properties:
+                  repository_id:
+                    type: integer
+                    description: ID for the configured repository
+                    example: 1
         '400':
           description: Bad Request
           content:
@@ -179,7 +189,6 @@ paths:
               $ref: '#/components/schemas/RepositoryConfigInput'
       responses:
         '200':
-          description: Repository reconfigured successfully
           content:
             application/json:
               schema:

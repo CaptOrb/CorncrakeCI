@@ -60,7 +60,14 @@ declare namespace Paths {
 			};
 		}
 		namespace Responses {
-			export interface $200 {}
+			export interface $200 {
+				/**
+				 * ID for the configured repository
+				 * example:
+				 * 1
+				 */
+				repository_id: number;
+			}
 			export type $400 = Components.Schemas.Error;
 			export type $401 = Components.Schemas.Error;
 			export type $500 = Components.Schemas.Error;
