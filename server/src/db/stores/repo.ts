@@ -64,4 +64,24 @@ export class RepositoryStore {
 
 		return repository;
 	}
+
+	async listConfiguredRepositories(
+		ownerId: number,
+	): Promise<
+		{ repo: { forge_repo_id: string; name: string; forge: string } }[]
+	> {
+		const result = await this.client.query(
+			`SELECT forge_repo_id, repo_name, forge_id, description 
+			 FROM repositories
+			 WHERE owner_id = $1 AND webhook_secret IS NOT NULL`,
+			[ownerId],
+		);
+		return result.rows.map((row) => ({
+			repo: {
+				forge_repo_id: row.forge_repo_id,
+				name: row.repo_name,
+				forge: row.forge_name,
+			},
+		}));
+	}
 }

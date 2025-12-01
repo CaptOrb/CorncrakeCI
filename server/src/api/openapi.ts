@@ -6,6 +6,7 @@ import { OpenAPIBackend, type Request } from "openapi-backend";
 import {
 	configureRepo,
 	listAvailableRepos,
+	listConfiguredRepos,
 	reconfigureRepo,
 } from "./repositories";
 
@@ -16,6 +17,7 @@ export function createOpenAPIBackend(): OpenAPIBackend {
 	});
 	api.register({
 		listAvailableRepos,
+		listConfiguredRepos,
 		configureRepo,
 		reconfigureRepo,
 		notFound: (_c, _req, res) => res.status(404).json({ err: "not found" }),
