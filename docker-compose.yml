@@ -1,33 +1,50 @@
 services:
-  postgres:
+  molci-db:
     image: postgres:17
     container_name: molci-db
     restart: unless-stopped
     env_file:
       - ./server/.env
     environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${MOLCI_DB_USER}
+      POSTGRES_PASSWORD: ${MOLCI_DB_PASSWORD}
+      POSTGRES_DB: ${MOLCI_DB_NAME}
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - molci_postgres_data:/var/lib/postgresql/data
+
+  gitea-db:
+    image: postgres:17
+    container_name: gitea-db
+    restart: unless-stopped
+    env_file:
+      - ./server/.env
+    environment:
+      POSTGRES_USER: ${GITEA_DB_USER}
+      POSTGRES_PASSWORD: ${GITEA_DB_PASSWORD}
+      POSTGRES_DB: ${GITEA_DB_NAME}
+    ports:
+      - "5433:5432"
+    volumes:
+      - gitea_postgres_data:/var/lib/postgresql/data
 
   gitea:
     image: docker.gitea.com/gitea:1.24.5
     container_name: gitea
     depends_on:
-      - postgres
+      - gitea-db
     restart: unless-stopped
+    env_file:
+      - ./server/.env
     environment:
       USER_UID: 1000
       USER_GID: 1000
-      DB_TYPE: postgres
-      DB_HOST: postgres:5432
-      DB_NAME: ${DB_NAME}
-      DB_USER: ${DB_USER}
-      DB_PASSWD: ${DB_PASSWORD}
+      GITEA__database__DB_TYPE: postgres
+      GITEA__database__HOST: gitea-db:5432
+      GITEA__database__NAME: ${GITEA_DB_NAME}
+      GITEA__database__USER: ${GITEA_DB_USER}
+      GITEA__database__PASSWORD: ${GITEA_DB_PASSWORD}
     ports:
       - "3001:3000"
       - "222:22"
@@ -38,4 +55,5 @@ services:
 
 
 volumes:
-  postgres_data:
+  molci_postgres_data:
+  gitea_postgres_data:

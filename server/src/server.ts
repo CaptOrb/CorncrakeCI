@@ -1,8 +1,10 @@
+import pgSimple from "connect-pg-simple";
 import express from "express";
 import session from "express-session";
 import { createOpenAPIBackend, createOpenAPIMiddleware } from "./api/openapi";
 import { config } from "./config";
-import { connectDB } from "./config/db";
+import { connectDB, pool } from "./config/db";
+import { runJobs } from "./jobs/graphile-worker";
 import authRouter from "./routes/auth";
 import { seedForges } from "./util/seedforges";
 
@@ -16,12 +18,17 @@ async function startServer() {
 	const isProduction = config.node.env === "production";
 	const sessionCookieName = isProduction ? "__Host-SessionID" : "sessionID";
 
+	const PgSession = pgSimple(session);
 	app.use(
 		session({
 			name: sessionCookieName,
 			secret: config.session.secret,
 			resave: false,
 			saveUninitialized: false,
+			store: new PgSession({
+				pool: pool,
+				createTableIfMissing: true,
+			}),
 			cookie: {
 				secure: isProduction, // false in dev
 				httpOnly: true,
@@ -35,6 +42,8 @@ async function startServer() {
 
 	const openapi = createOpenAPIBackend();
 	app.use(createOpenAPIMiddleware(openapi));
+
+	runJobs();
 
 	const PORT = config.app.port;
 	app.listen(PORT, () => {

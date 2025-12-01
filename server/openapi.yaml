@@ -27,7 +27,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Repository'
+                  $ref: '#/components/schemas/ForgeRepository'
         '401':
           description: Unauthorised
           content:
@@ -60,6 +60,61 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/RepositoryConfig'
+        '401':
+          description: Unauthorised
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /repo:
+    post:
+      summary: Configure a new repository for MOLCI
+      operationId: configureRepo
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              allOf:
+                - type: object
+                  properties:
+                    forge:
+                      type: integer
+                    forge_repo_id:
+                      type: string
+                      example: "12345"
+                  required: [forge, forge_repo_id]
+                - $ref: '#/components/schemas/RepositoryConfigInput'
+
+      responses:
+        '200':
+          description: Repository configured successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - repository_id
+                properties:
+                  repository_id:
+                    type: integer
+                    description: ID for the configured repository
+                    example: 1
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '401':
           description: Unauthorised
           content:
@@ -117,8 +172,8 @@ paths:
                 $ref: '#/components/schemas/Error'
 
     put:
-      summary: Configure a repository for MOLCI
-      operationId: configureRepo
+      summary: Reconfigure a repository for MOLCI
+      operationId: reconfigureRepo
       parameters:
         - in: path
           name: id
@@ -131,10 +186,10 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RepositoryConfigInput'
+              type: object
       responses:
         '200':
-          description: Repository configured successfully
+          description: The repo configuration was updated
           content:
             application/json:
               schema:
@@ -198,11 +253,11 @@ components:
         - error
         - code
 
-    Repository:
+    ForgeRepository:
       type: object
       properties:
-        id:
-          type: integer
+        forge_repo_id:
+          type: string
         name:
           type: string
           example: "molci"
@@ -215,12 +270,10 @@ components:
       type: object
       properties:
         repo:
-          $ref: '#/components/schemas/Repository'
+          $ref: '#/components/schemas/ForgeRepository'
         configured_at:
           type: string
           format: date-time
-        webhook_id:
-          type: string
 
     RepositoryConfigInput:
       type: object
