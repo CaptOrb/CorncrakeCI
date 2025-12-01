@@ -22,7 +22,7 @@
 		"skipLibCheck": true,
 		"forceConsistentCasingInFileNames": true
 	},
-	"include": ["src", "src/jobs/graphile.config.ts"],
+	"include": ["src"],
 	"exclude": ["node_modules", "dist"],
 	"$schema": "https://json.schemastore.org/tsconfig",
 	"_version": "2.0.0"
