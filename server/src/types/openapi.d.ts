@@ -22,8 +22,8 @@ declare namespace Components {
 				[name: string]: any;
 			};
 		}
-		export interface Repository {
-			id?: number;
+		export interface ForgeRepository {
+			forge_repo_id?: string;
 			/**
 			 * example:
 			 * molci
@@ -36,9 +36,8 @@ declare namespace Components {
 			forge?: "gitea";
 		}
 		export interface RepositoryConfig {
-			repo?: Repository;
+			repo?: ForgeRepository;
 			configured_at?: string; // date-time
-			webhook_id?: string;
 		}
 		export interface RepositoryConfigInput {
 			settings: {
@@ -49,18 +48,28 @@ declare namespace Components {
 }
 declare namespace Paths {
 	namespace ConfigureRepo {
-		namespace Parameters {
-			export type Id = number;
+		export interface RequestBody {
+			forge: number;
+			/**
+			 * example:
+			 * 12345
+			 */
+			forge_repo_id: string;
+			settings: {
+				[name: string]: any;
+			};
 		}
-		export interface PathParameters {
-			id: Parameters.Id;
-		}
-		export type RequestBody = Components.Schemas.RepositoryConfigInput;
 		namespace Responses {
-			export type $200 = Components.Schemas.RepositoryConfig;
+			export interface $200 {
+				/**
+				 * ID for the configured repository
+				 * example:
+				 * 1
+				 */
+				repository_id: number;
+			}
 			export type $400 = Components.Schemas.Error;
 			export type $401 = Components.Schemas.Error;
-			export type $404 = Components.Schemas.Error;
 			export type $500 = Components.Schemas.Error;
 		}
 	}
@@ -81,7 +90,7 @@ declare namespace Paths {
 	}
 	namespace ListAvailableRepos {
 		namespace Responses {
-			export type $200 = Components.Schemas.Repository[];
+			export type $200 = Components.Schemas.ForgeRepository[];
 			export type $401 = Components.Schemas.Error;
 			export type $403 = Components.Schemas.Error;
 			export type $500 = Components.Schemas.Error;
@@ -91,6 +100,22 @@ declare namespace Paths {
 		namespace Responses {
 			export type $200 = Components.Schemas.RepositoryConfig[];
 			export type $401 = Components.Schemas.Error;
+			export type $500 = Components.Schemas.Error;
+		}
+	}
+	namespace ReconfigureRepo {
+		namespace Parameters {
+			export type Id = number;
+		}
+		export interface PathParameters {
+			id: Parameters.Id;
+		}
+		export interface RequestBody {}
+		namespace Responses {
+			export type $200 = Components.Schemas.RepositoryConfig;
+			export type $400 = Components.Schemas.Error;
+			export type $401 = Components.Schemas.Error;
+			export type $404 = Components.Schemas.Error;
 			export type $500 = Components.Schemas.Error;
 		}
 	}
@@ -141,6 +166,28 @@ export interface Operations {
 			| Paths.ListConfiguredRepos.Responses.$500;
 	};
 	/**
+	 * POST /repo
+	 */
+	["configureRepo"]: {
+		requestBody: Paths.ConfigureRepo.RequestBody;
+		params: UnknownParams;
+		query: UnknownParams;
+		headers: UnknownParams;
+		cookies: UnknownParams;
+		context: Context<
+			Paths.ConfigureRepo.RequestBody,
+			UnknownParams,
+			UnknownParams,
+			UnknownParams,
+			UnknownParams
+		>;
+		response:
+			| Paths.ConfigureRepo.Responses.$200
+			| Paths.ConfigureRepo.Responses.$400
+			| Paths.ConfigureRepo.Responses.$401
+			| Paths.ConfigureRepo.Responses.$500;
+	};
+	/**
 	 * GET /repo/{id}
 	 */
 	["getRepo"]: {
@@ -166,25 +213,25 @@ export interface Operations {
 	/**
 	 * PUT /repo/{id}
 	 */
-	["configureRepo"]: {
-		requestBody: Paths.ConfigureRepo.RequestBody;
-		params: Paths.ConfigureRepo.PathParameters;
+	["reconfigureRepo"]: {
+		requestBody: Paths.ReconfigureRepo.RequestBody;
+		params: Paths.ReconfigureRepo.PathParameters;
 		query: UnknownParams;
 		headers: UnknownParams;
 		cookies: UnknownParams;
 		context: Context<
-			Paths.ConfigureRepo.RequestBody,
-			Paths.ConfigureRepo.PathParameters,
+			Paths.ReconfigureRepo.RequestBody,
+			Paths.ReconfigureRepo.PathParameters,
 			UnknownParams,
 			UnknownParams,
 			UnknownParams
 		>;
 		response:
-			| Paths.ConfigureRepo.Responses.$200
-			| Paths.ConfigureRepo.Responses.$400
-			| Paths.ConfigureRepo.Responses.$401
-			| Paths.ConfigureRepo.Responses.$404
-			| Paths.ConfigureRepo.Responses.$500;
+			| Paths.ReconfigureRepo.Responses.$200
+			| Paths.ReconfigureRepo.Responses.$400
+			| Paths.ReconfigureRepo.Responses.$401
+			| Paths.ReconfigureRepo.Responses.$404
+			| Paths.ReconfigureRepo.Responses.$500;
 	};
 }
 
@@ -206,6 +253,6 @@ export type OperationHandler<
 ) => Promise<OperationHandlerResponse<operationId>>;
 
 export type Error = Components.Schemas.Error;
-export type Repository = Components.Schemas.Repository;
+export type ForgeRepository = Components.Schemas.ForgeRepository;
 export type RepositoryConfig = Components.Schemas.RepositoryConfig;
 export type RepositoryConfigInput = Components.Schemas.RepositoryConfigInput;
