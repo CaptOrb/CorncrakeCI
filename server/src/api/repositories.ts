@@ -33,7 +33,6 @@ export async function listAvailableRepos(
 		console.error("Failed to fetch repos:", err);
 		return res.status(500).json({ error: "Failed to list repositories" });
 	}
-
 }
 
 export async function configureRepo(
@@ -84,8 +83,6 @@ export async function configureRepo(
 		return res.status(500).json({ error: "Failed to configure repository" });
 	}
 }
-
-
 
 export async function reconfigureRepo(
 	c: Context,
