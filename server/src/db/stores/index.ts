@@ -1,14 +1,16 @@
 import { pool } from "../../config/db";
 import { Transaction } from "./transaction";
 
-export async function txn<T>(fn: (tx: Transaction) => Promise<T>): Promise<T> {
+export async function transaction<T>(
+	fn: (txn: Transaction) => Promise<T>,
+): Promise<T> {
 	const client = await pool.connect();
 
 	try {
 		await client.query("BEGIN");
 
-		const tx = new Transaction(client);
-		const result = await fn(tx);
+		const txn = new Transaction(client);
+		const result = await fn(txn);
 
 		await client.query("COMMIT");
 

@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import { type JobHelpers, run, type TaskList } from "graphile-worker";
 import { config } from "../config";
-import { txn } from "../db/stores";
+import { transaction } from "../db/stores";
 import { createForge } from "../services/forges";
 
 const taskList: TaskList = {
@@ -10,8 +10,8 @@ const taskList: TaskList = {
 		helpers.logger.info(`Setting up webhooks for repo ${repoId}`);
 
 		try {
-			const repoResult = await txn(async (tx) => {
-				const result = await tx.client.query(
+			const repoResult = await transaction(async (txn) => {
+				const result = await txn.client.query(
 					`SELECT r.forge_id, r.forge_repo_id, u.forge_user_id, u.access_token, f.base_url
 					FROM repositories r
 					JOIN users u ON r.owner_id = u.user_id
@@ -46,8 +46,8 @@ const taskList: TaskList = {
 				webhookSecret,
 			);
 
-			await txn(async (tx) => {
-				await tx.client.query(
+			await transaction(async (txn) => {
+				await txn.client.query(
 					`
 					UPDATE repositories
 					SET
@@ -67,8 +67,8 @@ const taskList: TaskList = {
 				`Failed to setup webhook for repo ${repoId}: ${error}`,
 			);
 
-			await txn(async (tx) => {
-				await tx.client.query(
+			await transaction(async (txn) => {
+				await txn.client.query(
 					`
 				UPDATE repositories
 				SET webhook_secret = NULL,

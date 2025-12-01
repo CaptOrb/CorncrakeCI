@@ -186,9 +186,10 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RepositoryConfigInput'
+              type: object
       responses:
         '200':
+          description: The repo configuration was updated
           content:
             application/json:
               schema:
