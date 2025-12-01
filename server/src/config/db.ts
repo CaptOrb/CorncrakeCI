@@ -3,7 +3,7 @@ import { config } from "./index";
 
 let pool: Pool;
 
-const connectionString = config.db.connectionuri;
+const connectionString = config.db.uri;
 
 pool = new Pool({
 	connectionString,

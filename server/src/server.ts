@@ -26,7 +26,7 @@ async function startServer() {
 			resave: false,
 			saveUninitialized: false,
 			store: new PgSession({
-				conString: config.db.connectionuri,
+				conString: config.db.uri,
 			}),
 			cookie: {
 				secure: isProduction, // false in dev
