@@ -95,6 +95,31 @@ export async function configureRepo(
 	}
 }
 
+export async function listConfiguredRepos(
+	_c: Context,
+	req: ExpressRequest,
+	res: ExpressResponse,
+): Promise<ExpressResponse> {
+	try {
+		const userId = req.session?.userId;
+
+		if (!userId) {
+			return res.status(401).json({ error: "Not authenticated" });
+		}
+
+		const configuredRepos = await txn(async (tx) => {
+			return tx.repositories.listConfiguredRepositories(userId);
+		});
+
+		return res.json(configuredRepos);
+	} catch (err) {
+		console.error("Failed to list configured repos:", err);
+		return res
+			.status(500)
+			.json({ error: "Failed to list configured repositories" });
+	}
+}
+
 export async function reconfigureRepo(
 	c: Context,
 	req: ExpressRequest,
