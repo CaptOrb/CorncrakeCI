@@ -30,7 +30,7 @@ export class RepositoryStore {
          is_private = EXCLUDED.is_private,
          default_branch = EXCLUDED.default_branch,
          updated_at = NOW()
-       RETURNING *`,
+        RETURNING repo_id, created_at, updated_at`,
 			[
 				forgeId,
 				forgeRepoId,
