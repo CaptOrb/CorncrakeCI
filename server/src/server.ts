@@ -1,6 +1,6 @@
+import pgSimple from "connect-pg-simple";
 import express from "express";
 import session from "express-session";
-import pgSimple from "connect-pg-simple";
 import { createOpenAPIBackend, createOpenAPIMiddleware } from "./api/openapi";
 import { config } from "./config";
 import { connectDB, pool } from "./config/db";
@@ -27,6 +27,7 @@ async function startServer() {
 			saveUninitialized: false,
 			store: new PgSession({
 				pool: pool,
+				createTableIfMissing: true,
 			}),
 			cookie: {
 				secure: isProduction, // false in dev
