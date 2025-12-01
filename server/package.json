@@ -30,8 +30,10 @@
 		"typescript": "^5.9.2"
 	},
 	"dependencies": {
+		"@types/connect-pg-simple": "^7.0.3",
 		"arctic": "^3.7.0",
 		"axios": "^1.7.9",
+		"connect-pg-simple": "^10.0.0",
 		"express": "^5.1.0",
 		"express-session": "^1.18.0",
 		"graphile-worker": "^0.16.6",

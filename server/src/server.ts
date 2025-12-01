@@ -1,5 +1,6 @@
 import express from "express";
 import session from "express-session";
+import pgSimple from "connect-pg-simple";
 import { createOpenAPIBackend, createOpenAPIMiddleware } from "./api/openapi";
 import { config } from "./config";
 import { connectDB } from "./config/db";
@@ -17,12 +18,16 @@ async function startServer() {
 	const isProduction = config.node.env === "production";
 	const sessionCookieName = isProduction ? "__Host-SessionID" : "sessionID";
 
+	const PgSession = pgSimple(session);
 	app.use(
 		session({
 			name: sessionCookieName,
 			secret: config.session.secret,
 			resave: false,
 			saveUninitialized: false,
+			store: new PgSession({
+				conString: config.db.connectionuri,
+			}),
 			cookie: {
 				secure: isProduction, // false in dev
 				httpOnly: true,
