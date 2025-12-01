@@ -54,11 +54,11 @@ export class RepositoryStore {
 				`SELECT graphile_worker.add_job(
            'setup_webhooks',
            json_build_object(
-             'repoId', $1::text, // explicit types needed here?
+             'repoId', $1::text,
              'ownerId', $2::text
            )
          )`,
-				[repository.repo_id, repository.owner_id],
+				[repository.repo_id.toString(), repository.owner_id.toString()],
 			);
 		}
 
