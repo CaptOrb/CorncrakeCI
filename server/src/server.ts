@@ -3,7 +3,7 @@ import session from "express-session";
 import pgSimple from "connect-pg-simple";
 import { createOpenAPIBackend, createOpenAPIMiddleware } from "./api/openapi";
 import { config } from "./config";
-import { connectDB } from "./config/db";
+import { connectDB, pool } from "./config/db";
 import { runJobs } from "./jobs/graphile-worker";
 import authRouter from "./routes/auth";
 import { seedForges } from "./util/seedforges";
@@ -26,7 +26,7 @@ async function startServer() {
 			resave: false,
 			saveUninitialized: false,
 			store: new PgSession({
-				conString: config.db.uri,
+				pool: pool,
 			}),
 			cookie: {
 				secure: isProduction, // false in dev
