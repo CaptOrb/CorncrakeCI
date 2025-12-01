@@ -1,4 +1,4 @@
-import crypto from "crypto";
+import crypto from "node:crypto";
 import { type JobHelpers, run, type TaskList } from "graphile-worker";
 import { config } from "../config";
 import { txn } from "../db/stores";

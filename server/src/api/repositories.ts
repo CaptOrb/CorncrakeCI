@@ -72,10 +72,13 @@ export async function configureRepo(
 				repoDetails.ssh_url,
 				repoDetails.html_url,
 				repoDetails.private,
+				req.body.settings?.branch || "main",
 			);
 		});
 
-		return res.status(200).json({ repo: repoDetails, configured_at: new Date().toISOString() });
+		return res
+			.status(200)
+			.json({ repo: repoDetails, configured_at: new Date().toISOString() });
 	} catch (err) {
 		console.error("Failed to configure repo:", err);
 		return res.status(500).json({ error: "Failed to configure repository" });
@@ -116,14 +119,14 @@ export async function reconfigureRepo(
 				repoDetails.clone_url,
 				repoDetails.ssh_url,
 				repoDetails.html_url,
-				repoDetails.private
+				repoDetails.private,
+				"main", // for now
 			);
 		});
 
 		return res.status(200);
 	} catch (err) {
-				console.error("Failed to configure repo:", err);
-				return res.status(500).json({ error: "Failed to configure repository" });
-			}
-
+		console.error("Failed to configure repo:", err);
+		return res.status(500).json({ error: "Failed to configure repository" });
+	}
 }
