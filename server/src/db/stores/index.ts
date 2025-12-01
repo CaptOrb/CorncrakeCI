@@ -1,6 +1,13 @@
 import { pool } from "../../config/db";
 import { Transaction } from "./transaction";
 
+/**
+ * Executes a function within a database transaction.
+ *
+ * Automatically handles transaction: begins the transaction, executes the
+ * provided function, commits on success, and rolls back on error
+ *
+ */
 export async function transaction<T>(
 	fn: (txn: Transaction) => Promise<T>,
 ): Promise<T> {
