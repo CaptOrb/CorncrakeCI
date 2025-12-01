@@ -75,9 +75,20 @@ export async function configureRepo(
 			);
 		});
 
-		return res
-			.status(200)
-			.json({ repo: repoDetails, configured_at: new Date().toISOString() });
+		return res.status(200).json({
+			repo: {
+				id: repoDetails.id,
+				name: repoDetails.name,
+				full_name: repoDetails.full_name,
+				description: repoDetails.description,
+				private: repoDetails.private,
+				html_url: repoDetails.html_url,
+				clone_url: repoDetails.clone_url,
+				ssh_url: repoDetails.ssh_url,
+				default_branch: req.body.settings?.branch,
+			},
+			configured_at: new Date().toISOString(),
+		});
 	} catch (err) {
 		console.error("Failed to configure repo:", err);
 		return res.status(500).json({ error: "Failed to configure repository" });
