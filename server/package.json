@@ -9,6 +9,7 @@
     "check": "tsc --noEmit",
     "build": "tsc --project tsconfig.build.json",
     "test": "$npm_execpath run check; jest",
+    "test-win": "npx pnpm run check && jest",
     "migrate": "tsx --env-file .env migrations/runMigrations.ts",
     "generate-types": "npx openapicmd typegen --backend ./openapi.yaml > src/types/openapi.d.ts"
   },
