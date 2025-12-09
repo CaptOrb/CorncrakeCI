@@ -1,6 +1,6 @@
-import { Client, Pool, type PoolClient } from 'pg';
-import crypto from 'crypto';
-import { Transaction } from '../src/db/stores/transaction';
+import { Client, Pool, type PoolClient } from "pg";
+import crypto from "crypto";
+import { Transaction } from "../src/db/stores/transaction";
 
 interface DbConfig {
 	host: string;
@@ -31,14 +31,17 @@ export interface SetupDbResult {
 
 export async function setupDb(): Promise<SetupDbResult> {
 	// Generate a unique DB name
-	const dbName = `molci_test_${crypto.randomBytes(6).toString('hex')}`;
+	const dbName = `molci_test_${crypto.randomBytes(6).toString("hex")}`;
 
 	const config: DbConfig = {
-		host: process.env['PG_HOST'] || 'localhost',
-		port: Number(process.env['PG_PORT'] || 5432),
-		user: process.env['MOLCI_DB_USER'] || process.env['PG_USER'] || 'postgres',
-		password: process.env['MOLCI_DB_PASSWORD'] || process.env['PG_PASSWORD'] || 'postgres',
-		template: process.env['PG_TEMPLATE_DB'] || 'molci_test_template', // migrated template DB
+		host: process.env["PG_HOST"] || "localhost",
+		port: Number(process.env["PG_PORT"] || 5432),
+		user: process.env["MOLCI_DB_USER"] || process.env["PG_USER"] || "postgres",
+		password:
+			process.env["MOLCI_DB_PASSWORD"] ||
+			process.env["PG_PASSWORD"] ||
+			"postgres",
+		template: process.env["PG_TEMPLATE_DB"] || "molci_test_template", // migrated template DB
 	};
 
 	let adminClient: Client | null = null;
@@ -47,29 +50,31 @@ export async function setupDb(): Promise<SetupDbResult> {
 	try {
 		// Connect to Postgres (template DB) to create the new DB
 		adminClient = new Client({ ...config, database: config.template });
-		
+
 		try {
 			await adminClient.connect();
 		} catch (connectError) {
 			const error = connectError as Error;
 			if (
-				error.message.includes('ECONNREFUSED') ||
-				error.message.includes('connect') ||
-				error.message.includes('timeout')
+				error.message.includes("ECONNREFUSED") ||
+				error.message.includes("connect") ||
+				error.message.includes("timeout")
 			) {
 				throw new Error(
 					`Cannot connect to PostgreSQL at ${config.host}:${config.port}. ` +
-					`Make sure your Docker container is running: ` +
-					`\`docker compose up -d molci-db\` or ` +
-					`\`docker compose up -d\`\n` +
-					`Original error: ${error.message}`,
+						`Make sure your Docker container is running: ` +
+						`\`docker compose up -d molci-db\` or ` +
+						`\`docker compose up -d\`\n` +
+						`Original error: ${error.message}`,
 				);
 			}
 			throw error;
 		}
 
 		// Create new DB from template (fast - just copies the template)
-		await adminClient.query(`CREATE DATABASE "${dbName}" WITH TEMPLATE "${config.template}"`);
+		await adminClient.query(
+			`CREATE DATABASE "${dbName}" WITH TEMPLATE "${config.template}"`,
+		);
 		await adminClient.end();
 		adminClient = null;
 
@@ -152,32 +157,35 @@ export async function setupDb(): Promise<SetupDbResult> {
 		}
 
 		const errorMessage = error instanceof Error ? error.message : String(error);
-		
+
 		// Provide helpful hints for common errors
-		if (errorMessage.includes('ECONNREFUSED') || errorMessage.includes('connect')) {
+		if (
+			errorMessage.includes("ECONNREFUSED") ||
+			errorMessage.includes("connect")
+		) {
 			throw new Error(
 				`Failed to setup test database: ${errorMessage}\n` +
-				`\n💡 Tip: Make sure your Docker container is running:\n` +
-				`   docker compose up -d molci-db\n` +
-				`   Or start all services: docker compose up -d`,
+					`\n💡 Tip: Make sure your Docker container is running:\n` +
+					`   docker compose up -d molci-db\n` +
+					`   Or start all services: docker compose up -d`,
 			);
 		}
-		
-		if (errorMessage.includes('password authentication failed')) {
+
+		if (errorMessage.includes("password authentication failed")) {
 			throw new Error(
 				`Failed to setup test database: ${errorMessage}\n` +
-				`\n💡 Tip: Check your database credentials in .env file or environment variables.`,
+					`\n💡 Tip: Check your database credentials in .env file or environment variables.`,
 			);
 		}
-		
-		if (errorMessage.includes('does not exist')) {
+
+		if (errorMessage.includes("does not exist")) {
 			throw new Error(
 				`Failed to setup test database: ${errorMessage}\n` +
-				`\n💡 Tip: The template database "${config.template}" may not exist. ` +
-				`Make sure jest.setup.ts has run successfully to create it.`,
+					`\n💡 Tip: The template database "${config.template}" may not exist. ` +
+					`Make sure jest.setup.ts has run successfully to create it.`,
 			);
 		}
-		
+
 		throw new Error(`Failed to setup test database: ${errorMessage}`);
 	}
 }
@@ -227,20 +235,19 @@ export function createTestTransaction(pool: Pool) {
 		const client: PoolClient = await pool.connect();
 
 		try {
-			await client.query('BEGIN');
+			await client.query("BEGIN");
 
 			const txn = new Transaction(client);
 			const result = await fn(txn);
 
-			await client.query('COMMIT');
+			await client.query("COMMIT");
 
 			return result;
 		} catch (e) {
-			await client.query('ROLLBACK');
+			await client.query("ROLLBACK");
 			throw e;
 		} finally {
 			client.release();
 		}
 	};
 }
-
