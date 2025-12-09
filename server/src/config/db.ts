@@ -24,3 +24,10 @@ export async function connectDB(newPool: Pool): Promise<void> {
 		console.error("DB connection error:", error.stack || error.message);
 	}
 }
+
+/**
+ * Sets the database connection pool forcefully, for use in test setup.
+ */
+export async function _setPool(newPool: Pool): Promise<void> {
+	pool = newPool;
+}

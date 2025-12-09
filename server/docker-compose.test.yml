@@ -1,0 +1,21 @@
+# Compose file to launch the necessary services for running the MOLCI test suite.
+
+services:
+  molci-test-postgres:
+    image: postgres:17
+
+    # Turn off crash-safety features (for speed)
+    command: "postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off"
+
+    # Don't persist the data (for speed)
+    tmpfs:
+      - /var/lib/postgresql/data
+
+    environment:
+      POSTGRES_USER: molcitest
+      POSTGRES_PASSWORD: molcitest
+      POSTGRES_DB: molcitest
+
+    ports:
+      # Remap port to 15432 to not conflict with other database.
+      - "15432:5432"
