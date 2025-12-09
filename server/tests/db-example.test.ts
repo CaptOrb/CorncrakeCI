@@ -1,35 +1,12 @@
-import { Pool } from "pg";
-import { setupDb, createTestTransaction } from "./jest-db-helper";
+import { _setPool } from "../src/config/db";
+import { transaction } from "../src/db/stores";
+import { databaseHelper } from "./helpers/database";
 
 /**
  * Example test demonstrating the per-test database pattern.
- *
- * This pattern:
- * - Creates a unique database for each test suite (via setupDb)
- * - Clones from a template database (fast - migrations already applied)
- * - Provides perfect isolation - each test suite has its own database
- * - Database is automatically dropped after tests complete
- *
- *  Prerequisites: Docker container must be running (`docker compose up -d molci-db`)
  */
 describe("Database tests with per-test database", () => {
-	let pool: Pool;
-	let transaction: ReturnType<typeof createTestTransaction>;
-	let cleanup: () => Promise<void>;
-
-	beforeAll(async () => {
-		// Create a unique test database from template
-		const result = await setupDb();
-		pool = result.pool;
-		cleanup = result.cleanup;
-
-		transaction = createTestTransaction(pool);
-	});
-
-	afterAll(async () => {
-		// Clean up: drops the database and closes the pool
-		await cleanup();
-	});
+	databaseHelper();
 
 	it("should test database connection", async () => {
 		// Simple connection test
