@@ -3,13 +3,15 @@ import express from "express";
 import session from "express-session";
 import { createOpenAPIBackend, createOpenAPIMiddleware } from "./api/openapi";
 import { config } from "./config";
-import { connectDB, pool } from "./config/db";
+import { connectDB } from "./config/db";
 import { runJobs } from "./jobs/graphile-worker";
 import authRouter from "./routes/auth";
 import { seedForges } from "./util/seedforges";
+import { Pool } from "pg";
 
 async function startServer() {
-	await connectDB();
+	const pool = new Pool({ connectionString: config.db.uri });
+	await connectDB(pool);
 	await seedForges();
 
 	const app = express();
@@ -26,7 +28,7 @@ async function startServer() {
 			resave: false,
 			saveUninitialized: false,
 			store: new PgSession({
-				pool: pool,
+				pool,
 				createTableIfMissing: true,
 			}),
 			cookie: {
