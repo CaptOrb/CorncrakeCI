@@ -1,26 +1,26 @@
-import { Pool } from "pg";
-import { config } from "./index";
+import type { Pool } from "pg";
 
-let pool: Pool;
+export let pool: Pool | null = null;
 
-const connectionString = config.db.uri;
+/**
+ * Sets the database connection pool and makes a test connection to ensure it works.
+ *
+ * Will fail if a pool has already been set.
+ */
+export async function connectDB(newPool: Pool): Promise<void> {
+	if (pool !== null) {
+		throw new Error("Database already connected");
+	}
 
-pool = new Pool({
-	connectionString,
-});
+	pool = newPool;
 
-const connectDB = async () => {
+	// Check the connection upfront
 	try {
 		const client = await pool.connect();
-		console.log("PostgreSQL DATABASE connected");
+		console.log("PostgreSQL Database connected");
 		client.release();
 	} catch (err) {
 		const error = err as Error;
 		console.error("DB connection error:", error.stack || error.message);
 	}
-
-	console.log("Connection string:", connectionString); // Check what's actually there
-	console.log("DB config:", config.db); // See all db config values
-};
-
-export { pool, connectDB };
+}
