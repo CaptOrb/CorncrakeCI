@@ -176,7 +176,7 @@ async function setupTemplate(adminClient: ClientBase) {
 
 		try {
 			await migrate({ client: templateClient }, "./migrations", {
-				logger: (msg) => console.log(`[Test Setup Migration] ${msg}`),
+				// logger: (msg) => console.log(`[Test Setup Migration] ${msg}`),
 			});
 			console.log(
 				`Template database ${TEMPLATE_DB_NAME} is ready with migrations`,
