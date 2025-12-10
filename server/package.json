@@ -7,9 +7,10 @@
 		"dev": "tsx --watch --env-file .env src/server.ts",
 		"watch": "tsx watch src/server.ts",
 		"check": "tsc --noEmit",
-		"build": "tsc",
-		"test": "echo \"Error: no test specified\" && exit 1",
-		"migrate": "tsx --env-file .env migrations/runMigrations.ts",
+		"build": "tsc --project tsconfig.build.json",
+		"test": "$npm_execpath run check; vitest",
+		"test-win": "npx pnpm run check && vitest",
+		"migrate": "tsx --env-file .env src/server.ts migrate",
 		"generate-types": "npx openapicmd typegen --backend ./openapi.yaml > src/types/openapi.d.ts"
 	},
 	"keywords": [],
@@ -19,18 +20,19 @@
 	"devDependencies": {
 		"@biomejs/biome": "2.2.3",
 		"@tsconfig/strictest": "^2.0.8",
+		"@types/connect-pg-simple": "^7.0.3",
 		"@types/express": "^5.0.6",
 		"@types/express-session": "^1.18.2",
-		"@types/jest": "^30.0.0",
 		"@types/node": "^24.10.1",
 		"@types/pg": "^8.15.6",
-		"jest": "^30.2.0",
-		"ts-jest": "^29.4.6",
+		"@types/supertest": "^6.0.3",
+		"pg-connection-string": "^2.9.1",
+		"supertest": "^7.1.4",
 		"tsx": "^4.21.0",
-		"typescript": "^5.9.3"
+		"typescript": "^5.9.3",
+		"vitest": "^4.0.15"
 	},
 	"dependencies": {
-		"@types/connect-pg-simple": "^7.0.3",
 		"arctic": "^3.7.0",
 		"axios": "^1.13.2",
 		"connect-pg-simple": "^10.0.0",
