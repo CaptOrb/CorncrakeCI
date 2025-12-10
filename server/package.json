@@ -20,6 +20,7 @@
 	"devDependencies": {
 		"@biomejs/biome": "2.2.3",
 		"@tsconfig/strictest": "^2.0.8",
+		"@types/connect-pg-simple": "^7.0.3",
 		"@types/express": "^5.0.6",
 		"@types/express-session": "^1.18.2",
 		"@types/jest": "^30.0.0",
@@ -27,13 +28,13 @@
 		"@types/pg": "^8.15.6",
 		"@types/supertest": "^6.0.3",
 		"jest": "^30.2.0",
+		"pg-connection-string": "^2.9.1",
 		"supertest": "^7.1.4",
 		"ts-jest": "^29.4.6",
 		"tsx": "^4.21.0",
 		"typescript": "^5.9.3"
 	},
 	"dependencies": {
-		"@types/connect-pg-simple": "^7.0.3",
 		"arctic": "^3.7.0",
 		"axios": "^1.13.2",
 		"connect-pg-simple": "^10.0.0",
