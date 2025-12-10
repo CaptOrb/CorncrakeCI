@@ -1,9 +1,10 @@
 import crypto from "node:crypto";
 import type { JobHelpers } from "graphile-worker";
 import * as v from "valibot";
+import { config } from "../config";
 import { transaction } from "../db/stores";
-import { createForge } from "../services/forges";
-import { config } from "../config"; 
+import { mustGetForge } from "../services/forges";
+
 export const SetupWebhooksJobPayload = v.object({
 	repoId: v.number(),
 });
@@ -44,9 +45,9 @@ export async function setup_webhooks(payload: unknown, helpers: JobHelpers) {
 			return;
 		}
 
-		const forge = createForge(repoResult.forge_id);
+		const forge = mustGetForge(repoResult.forge_id);
 
-		const webhookUrl = `${config.app.baseUrl}/webhooks/gitea/${repoId}`; 
+		const webhookUrl = `${config.app.baseUrl}/webhooks/gitea/${repoId}`;
 
 		const webhookSecret = secureRandomBase64Url();
 

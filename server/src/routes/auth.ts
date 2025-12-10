@@ -1,7 +1,7 @@
 /** biome-ignore-all lint/complexity/useLiteralKeys: <oli said it was ok> */
 import { type Request, type Response, Router } from "express";
 import { config } from "../config";
-import { createForge, listAvailableForgeIds } from "../services/forges";
+import { listAvailableForgeIds, mustGetForge } from "../services/forges";
 import { getOrCreateUser } from "../services/user";
 
 const authRouter = Router();
@@ -26,7 +26,7 @@ authRouter.get("/login/:forgeId", (req: Request, res: Response) => {
 	const isProduction = config.node.env === "production";
 
 	try {
-		const forge = createForge(forgeId);
+		const forge = mustGetForge(forgeId);
 		const authData = forge.getAuthorizationUrl();
 
 		req.session.codeVerifier = authData.codeVerifier;
@@ -72,7 +72,7 @@ authRouter.get("/callback", async (req: Request, res: Response) => {
 	}
 
 	try {
-		const forge = createForge(forgeId);
+		const forge = mustGetForge(forgeId);
 		const { accessToken, accessTokenExpiresAt } =
 			await forge.exchangeCodeForToken(code, codeVerifier);
 

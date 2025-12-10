@@ -74,6 +74,7 @@ async function startServer() {
 	const pool = new Pool({ connectionString: config.db.uri });
 	await connectDB(pool);
 	await runMigrations(pool);
+	createForgesFromConfig();
 	await seedForges();
 
 	const isProduction = config.node.env === "production";
