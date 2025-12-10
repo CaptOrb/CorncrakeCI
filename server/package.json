@@ -8,8 +8,8 @@
 		"watch": "tsx watch src/server.ts",
 		"check": "tsc --noEmit",
 		"build": "tsc --project tsconfig.build.json",
-		"test": "$npm_execpath run check; jest",
-		"test-win": "npx pnpm run check && jest",
+		"test": "$npm_execpath run check; vitest",
+		"test-win": "npx pnpm run check && vitest",
 		"migrate": "tsx --env-file .env src/server.ts migrate",
 		"generate-types": "npx openapicmd typegen --backend ./openapi.yaml > src/types/openapi.d.ts"
 	},
