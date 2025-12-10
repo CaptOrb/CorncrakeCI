@@ -2,8 +2,7 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
 	test: {
-		// enables describe, it, expect without imports
-		globals: true,
+		globals: false,
 		environment: "node",
 		globalSetup: "./tests/setup.ts",
 	},

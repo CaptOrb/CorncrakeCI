@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { parseIntoClientConfig } from "pg-connection-string";
 import { migrate } from "postgres-migrations";
 import { _setPool } from "../../src/config/db";
+import { afterEach, beforeEach } from "vitest";
 
 const TEMPLATE_DB_NAME = "molci_test_template";
 
