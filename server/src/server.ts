@@ -1,15 +1,22 @@
+import { resolve } from "node:path";
 import pgSimple from "connect-pg-simple";
 import express from "express";
 import session from "express-session";
-import { createOpenAPIBackend, createOpenAPIMiddleware } from "./api/openapi";
+import { Pool } from "pg";
+import { migrate } from "postgres-migrations";
+import {
+	configureRepo,
+	getRepo,
+	listAvailableRepos,
+	listConfiguredRepos,
+	reconfigureRepo,
+} from "./api/repositories";
 import { config } from "./config";
 import { connectDB } from "./config/db";
+import { createRouter } from "./generated/server/generated";
 import { runJobs } from "./jobs/graphile-worker";
 import authRouter from "./routes/auth";
 import { seedForges } from "./util/seedforges";
-import { Pool } from "pg";
-import { migrate } from "postgres-migrations";
-import { resolve } from "path";
 
 async function startServer() {
 	const pool = new Pool({ connectionString: config.db.uri });
@@ -43,11 +50,19 @@ async function startServer() {
 			},
 		}),
 	);
+
+	app.use(
+		"/",
+		createRouter({
+			listAvailableRepos,
+			listConfiguredRepos,
+			getRepo,
+			configureRepo,
+			reconfigureRepo,
+		}),
+	);
+
 	app.use("/auth", authRouter);
-
-	const openapi = createOpenAPIBackend();
-	app.use(createOpenAPIMiddleware(openapi));
-
 	runJobs();
 
 	const PORT = config.app.port;

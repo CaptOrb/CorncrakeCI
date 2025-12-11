@@ -18,6 +18,11 @@ MolCI is an in progress self hosted CI system
    then
 
    ```
+   pnpm generate-types
+   ```
+   then
+
+   ```
    pnpm migrate
    ```
    then

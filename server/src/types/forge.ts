@@ -1,4 +1,4 @@
-import type { ForgeRepository } from "../types/openapi";
+import type { t_ForgeRepository } from "../generated/server/models";
 import type { ForgeUser } from "./forgeuser";
 import type { GiteaRepo } from "./gitearepo";
 
@@ -15,7 +15,7 @@ export interface Forge {
 
 	getUserInfo(accessToken: string): Promise<ForgeUser>;
 
-	listRepositories(accessToken: string): Promise<ForgeRepository[]>;
+	listRepositories(accessToken: string): Promise<t_ForgeRepository[]>;
 
 	getRepository(repoId: string, accessToken: string): Promise<GiteaRepo>;
 

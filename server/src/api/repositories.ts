@@ -1,58 +1,62 @@
-import type {
-	Request as ExpressRequest,
-	Response as ExpressResponse,
-} from "express";
-import type { Context } from "openapi-backend";
 import { transaction } from "../db/stores";
+import type {
+	ConfigureRepo,
+	GetRepo,
+	ListAvailableRepos,
+	ListConfiguredRepos,
+	ReconfigureRepo,
+} from "../generated/server/generated";
+import type { t_ConfigureRepoRequestBodySchema } from "../generated/server/models";
 import { createForge } from "../services/forges";
 import { getAccessToken } from "../services/user";
 
-export async function listAvailableRepos(
-	_c: Context,
-	req: ExpressRequest,
-	res: ExpressResponse,
-): Promise<ExpressResponse> {
+export const listAvailableRepos: ListAvailableRepos = async (
+	_params,
+	respond,
+	req,
+) => {
 	try {
 		const userId = req.session?.userId;
 		const forgeId = req.session?.forgeId;
 
 		if (!userId || forgeId === undefined) {
-			return res.status(401).json({ error: "Not authenticated" });
+			return respond.with401().body({ error: "Not authenticated" });
 		}
 
 		const accessToken = await getAccessToken(userId);
 		if (!accessToken) {
-			return res.status(401).json({ error: "Missing or expired access token" });
+			return respond
+				.with401()
+				.body({ error: "Missing or expired access token" });
 		}
 
 		const forge = createForge(forgeId);
 		const repos = await forge.listRepositories(accessToken);
 
-		return res.json(repos);
+		return respond.with200().body(repos);
 	} catch (err) {
 		console.error("Failed to fetch repos:", err);
-		return res.status(500).json({ error: "Failed to list repositories" });
+		return respond.with500().body({ error: "Failed to list repositories" });
 	}
-}
+};
 
-export async function configureRepo(
-	_c: Context,
-	req: ExpressRequest,
-	res: ExpressResponse,
-): Promise<ExpressResponse> {
+export const configureRepo: ConfigureRepo = async (_params, respond, req) => {
 	try {
 		const userId = req.session?.userId;
 
 		if (!userId) {
-			return res.status(401).json({ error: "Not authenticated" });
+			return respond.with401().body({ error: "Not authenticated" });
 		}
 
 		const accessToken = await getAccessToken(userId);
 		if (!accessToken) {
-			return res.status(401).json({ error: "Missing or expired access token" });
+			return respond
+				.with401()
+				.body({ error: "Missing or expired access token" });
 		}
 
-		const { forge, forge_repo_id } = req.body;
+		const { forge, forge_repo_id } =
+			req.body as t_ConfigureRepoRequestBodySchema;
 
 		const forgeClient = createForge(forge);
 		const repoDetails = await forgeClient.getRepository(
@@ -60,12 +64,12 @@ export async function configureRepo(
 			accessToken,
 		);
 
-		await transaction(async (txn) => {
-			await txn.repositories.createOrUpdateRepository(
+		const repository = await transaction(async (txn) => {
+			return await txn.repositories.createOrUpdateRepository(
 				forge,
 				forge_repo_id,
 				userId,
-				repoDetails.name,
+				repoDetails.full_name,
 				repoDetails.description,
 				repoDetails.clone_url,
 				repoDetails.ssh_url,
@@ -75,70 +79,64 @@ export async function configureRepo(
 			);
 		});
 
-		return res.status(200).json({
-			repo: {
-				id: repoDetails.id,
-				name: repoDetails.name,
-				full_name: repoDetails.full_name,
-				description: repoDetails.description,
-				private: repoDetails.private,
-				html_url: repoDetails.html_url,
-				clone_url: repoDetails.clone_url,
-				ssh_url: repoDetails.ssh_url,
-				default_branch: req.body.settings?.branch,
-			},
-			configured_at: new Date().toISOString(),
-		});
+		return respond.with200().body({ repository_id: repository.repository_id });
 	} catch (err) {
 		console.error("Failed to configure repo:", err);
-		return res.status(500).json({ error: "Failed to configure repository" });
+		return respond.with500().body({ error: "Failed to configure repository" });
 	}
-}
+};
 
-export async function listConfiguredRepos(
-	_c: Context,
-	req: ExpressRequest,
-	res: ExpressResponse,
-): Promise<ExpressResponse> {
+export const listConfiguredRepos: ListConfiguredRepos = async (
+	_params,
+	respond,
+	req,
+) => {
 	try {
 		const userId = req.session?.userId;
 
 		if (!userId) {
-			return res.status(401).json({ error: "Not authenticated" });
+			return respond.with401().body({ error: "Not authenticated" });
 		}
 
 		const configuredRepos = await transaction(async (txn) => {
-			return txn.repositories.listConfiguredRepositories(userId);
+			const repos = await txn.repositories.listConfiguredRepositories(userId);
+
+			return repos.map((r) => ({
+				repo: r.repo,
+				configured_at: r.configured_at,
+			}));
 		});
 
-		return res.json(configuredRepos);
+		return respond.with200().body(configuredRepos);
 	} catch (err) {
 		console.error("Failed to list configured repos:", err);
-		return res
-			.status(500)
-			.json({ error: "Failed to list configured repositories" });
+		return respond.with500().body({
+			error: "Failed to list configured repositories",
+		});
 	}
-}
+};
 
-export async function reconfigureRepo(
-	c: Context,
-	req: ExpressRequest,
-	res: ExpressResponse,
-): Promise<ExpressResponse> {
-	try {
+export const reconfigureRepo: ReconfigureRepo = async (
+	{ params: _params },
+	_respond,
+	_req,
+) => {
+	throw new Error("TODO BROKEN");
+	/*try {
 		const userId = req.session?.userId;
 		const forgeId = req.session?.forgeId;
 
 		if (!userId || forgeId === undefined) {
-			return res.status(401).json({ error: "Not authenticated" });
+			return respond.with401().body({ error: "Not authenticated" });
 		}
 
 		const accessToken = await getAccessToken(userId);
 		if (!accessToken) {
-			return res.status(401).json({ error: "Missing or expired access token" });
+			return respond
+				.with401()
+				.body({ error: "Missing or expired access token" });
 		}
-
-		const repoId = c.request.params.id;
+		const repoId = _params.id;
 
 		const forge = createForge(forgeId);
 		const repoDetails = await forge.getRepository(repoId, accessToken);
@@ -157,9 +155,53 @@ export async function reconfigureRepo(
 			);
 		});
 
-		return res.status(200);
+		return respond.with200();
 	} catch (err) {
 		console.error("Failed to configure repo:", err);
-		return res.status(500).json({ error: "Failed to configure repository" });
+		return respond.with500().body({ error: "Failed to configure repository" });
+	}*/
+};
+
+export const getRepo: GetRepo = async (
+	{ params },
+	respond,
+	req,
+	_res,
+	_next,
+) => {
+	try {
+		const userId = req.session?.userId;
+
+		if (!userId) {
+			return respond.with401().body({ error: "Not authenticated" });
+		}
+
+		const molciRepoId = params.id;
+
+		const repository = await transaction(async (txn) => {
+			return txn.repositories.getRepositoryById(molciRepoId, userId);
+		});
+
+		if (!repository) {
+			return respond.with404().body({ error: "Repository not found" });
+		}
+
+		return respond.with200().body({
+			repo: {
+				forge_repo_id: repository.forge_repo_id,
+				full_name: repository.repo_name,
+				forge: {
+					id: repository.forge_id,
+					name: repository.forge_display_name,
+					domain: "TODOexample.org",
+				},
+				private: false,
+				url: repository.clone_url,
+			},
+			configured_at: repository.created_at.toISOString(),
+		});
+	} catch (err) {
+		console.error("Failed to get repo:", err);
+		return respond.with500().body({ error: "Failed to get repository" });
 	}
-}
+};
