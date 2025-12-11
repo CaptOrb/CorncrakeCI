@@ -11,7 +11,8 @@
 		"test": "$npm_execpath run check; vitest",
 		"test-win": "npx pnpm run check && vitest",
 		"migrate": "tsx --env-file .env src/server.ts migrate",
-		"generate-types": "npx openapicmd typegen --backend ./openapi.yaml > src/types/openapi.d.ts"
+		"generate-types": "pnpm exec openapi-code-generator   --input ./api.tsp   --input-type typespec   --output ./src/generated/server   --template typescript-express",
+		"lint": "pnpm exec biome check --write"
 	},
 	"keywords": [],
 	"author": "",
@@ -19,6 +20,7 @@
 	"packageManager": "pnpm@10.16.0",
 	"devDependencies": {
 		"@biomejs/biome": "2.2.3",
+		"@nahkies/openapi-code-generator": "^0.22.0",
 		"@tsconfig/strictest": "^2.0.8",
 		"@types/connect-pg-simple": "^7.0.3",
 		"@types/express": "^5.0.6",
@@ -26,6 +28,11 @@
 		"@types/node": "^24.10.1",
 		"@types/pg": "^8.15.6",
 		"@types/supertest": "^6.0.3",
+		"@typespec/compiler": "^1.7.0",
+		"@typespec/http": "^1.7.0",
+		"@typespec/openapi": "^1.7.0",
+		"@typespec/openapi3": "^1.2.0",
+		"@typespec/versioning": "^0.72.1",
 		"pg-connection-string": "^2.9.1",
 		"supertest": "^7.1.4",
 		"tsx": "^4.21.0",
@@ -33,15 +40,18 @@
 		"vitest": "^4.0.15"
 	},
 	"dependencies": {
+		"@nahkies/typescript-express-runtime": "^0.22.0",
+		"@nahkies/typescript-fetch-runtime": "^0.22.0",
 		"arctic": "^3.7.0",
 		"axios": "^1.13.2",
 		"connect-pg-simple": "^10.0.0",
+		"cors": "^2.8.5",
 		"express": "^5.2.1",
 		"express-session": "^1.18.2",
 		"graphile-worker": "^0.16.6",
-		"openapi-backend": "^5.15.0",
 		"pg": "^8.16.3",
 		"postgres-migrations": "^5.3.0",
-		"valibot": "^1.2.0"
+		"valibot": "^1.2.0",
+		"zod": "^4.1.13"
 	}
 }

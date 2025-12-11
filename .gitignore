@@ -145,3 +145,7 @@ dist
 *.vsix
 
 gitea/
+
+.pre-commit-config.yaml
+
+server/src/generated/

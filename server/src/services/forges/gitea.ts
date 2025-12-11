@@ -1,9 +1,10 @@
 import * as arctic from "arctic";
 import type { ForgeInstanceConfig } from "../../config/schema";
+import type { t_ForgeRepository } from "../../generated/server/models";
 import type { Forge } from "../../types/forge";
 import type { ForgeUser } from "../../types/forgeuser";
 import type { GiteaRepo } from "../../types/gitearepo";
-import type { ForgeRepository } from "../../types/openapi";
+
 export class GiteaForge implements Forge {
 	private gitea: arctic.Gitea;
 	private forgeId: number;
@@ -67,7 +68,7 @@ export class GiteaForge implements Forge {
 		return { id: user.id, login: user.login, avatar_url: user.avatar_url };
 	}
 
-	async listRepositories(accessToken: string): Promise<ForgeRepository[]> {
+	async listRepositories(accessToken: string): Promise<t_ForgeRepository[]> {
 		const res = await fetch(`${this.baseUrl}/api/v1/user/repos`, {
 			headers: { Authorization: `token ${accessToken}` },
 		});
@@ -78,22 +79,24 @@ export class GiteaForge implements Forge {
 
 		const repos: GiteaRepo[] = await res.json();
 
-		return repos.map((repo) => ({
-			id: repo.id,
-			name: repo.name,
-			full_name: repo.full_name,
-			private: repo.private,
-			url: repo.html_url,
-			description: repo.description,
-			owner: {
-				id: repo.owner.id,
-				login: repo.owner.login,
-				avatar_url: repo.owner.avatar_url,
-			},
-		}));
+		return repos.map((repo) => {
+			const result: t_ForgeRepository = {
+				forge_repo_id: String(repo.id),
+				full_name: repo.full_name,
+				private: repo.private,
+				url: repo.html_url,
+				description: repo.description,
+				forge: {
+					domain: "http://mol.com",
+					id: this.forgeId,
+					name: "not implemented",
+				},
+			};
+			return result;
+		});
 	}
 	async getRepository(repoId: string, accessToken: string): Promise<GiteaRepo> {
-		const res = await fetch(`${this.baseUrl}/api/v1/repos/${repoId}`, {
+		const res = await fetch(`${this.baseUrl}/api/v1/repositories/${repoId}`, {
 			headers: { Authorization: `token ${accessToken}` },
 		});
 		if (!res.ok) {
@@ -114,6 +117,14 @@ export class GiteaForge implements Forge {
 		}
 	}
 
+	private async getRepoBaseUrl(
+		forgeRepoId: string,
+		accessToken: string,
+	): Promise<string> {
+		const repo = await this.getRepository(forgeRepoId, accessToken);
+		return repo.url;
+	}
+
 	async createWebhook(
 		accessToken: string,
 		forgeRepoId: string,
@@ -127,27 +138,25 @@ export class GiteaForge implements Forge {
 			"release",
 		];
 
-		const [owner, repo] = forgeRepoId.split("/");
-		const res = await fetch(
-			`${this.baseUrl}/api/v1/repos/${owner}/${repo}/hooks`,
-			{
-				method: "POST",
-				headers: {
-					Authorization: `token ${accessToken}`,
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					type: "gitea",
-					config: {
-						url: webhookUrl,
-						webhookSecret: webhookSecret,
-						content_type: "json",
-					},
-					events: webhookEvents,
-					active: true,
-				}),
+		const repoBaseUrl = await this.getRepoBaseUrl(forgeRepoId, accessToken);
+
+		const res = await fetch(`${repoBaseUrl}/hooks`, {
+			method: "POST",
+			headers: {
+				Authorization: `token ${accessToken}`,
+				"Content-Type": "application/json",
 			},
-		);
+			body: JSON.stringify({
+				type: "gitea",
+				config: {
+					url: webhookUrl,
+					webhookSecret: webhookSecret,
+					content_type: "json",
+				},
+				events: webhookEvents,
+				active: true,
+			}),
+		});
 
 		if (!res.ok) {
 			const error = await res.text();
