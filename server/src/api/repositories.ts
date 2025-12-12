@@ -7,7 +7,7 @@ import type {
 	ReconfigureRepo,
 } from "../generated/server/generated";
 import type { t_ConfigureRepoRequestBodySchema } from "../generated/server/models";
-import { createForge } from "../services/forges";
+import { mustGetForge } from "../services/forges";
 import { getAccessToken } from "../services/user";
 
 export const listAvailableRepos: ListAvailableRepos = async (
@@ -30,7 +30,7 @@ export const listAvailableRepos: ListAvailableRepos = async (
 				.body({ error: "Missing or expired access token" });
 		}
 
-		const forge = createForge(forgeId);
+		const forge = mustGetForge(forgeId);
 		const repos = await forge.listRepositories(accessToken);
 
 		return respond.with200().body(repos);
@@ -58,7 +58,7 @@ export const configureRepo: ConfigureRepo = async (_params, respond, req) => {
 		const { forge, forge_repo_id } =
 			req.body as t_ConfigureRepoRequestBodySchema;
 
-		const forgeClient = createForge(forge);
+		const forgeClient = mustGetForge(forge);
 		const repoDetails = await forgeClient.getRepository(
 			forge_repo_id,
 			accessToken,
@@ -132,7 +132,7 @@ export const reconfigureRepo: ReconfigureRepo = async (
 		}
 		const repoId = _params.id;
 
-		const forge = createForge(forgeId);
+		const forge = mustGetForge(forgeId);
 		const repoDetails = await forge.getRepository(repoId, accessToken);
 		await transaction(async (txn) => {
 			await txn.repositories.createOrUpdateRepository(
