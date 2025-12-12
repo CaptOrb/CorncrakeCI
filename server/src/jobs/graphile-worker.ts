@@ -18,18 +18,18 @@ export async function runJobs() {
 			concurrency: 5,
 			taskList,
 		});
+
+		runner.events.on("job:success", ({ worker, job }) => {
+			console.log(`Worker ${worker.workerId} completed job ${job.id}`);
+		});
+
+		runner.events.on("job:error", ({ worker, job, error }) => {
+			console.error(`Worker ${worker.workerId} failed job ${job.id}:`, error);
+		});
+
+		await runner.promise;
 	} catch (err) {
-		console.error("Failed to start Graphile Worker:", err);
+		console.error("Graphile Worker error: ", err);
 		return;
 	}
-
-	runner.events.on("job:success", ({ worker, job }) => {
-		console.log(`Worker ${worker.workerId} completed job ${job.id}`);
-	});
-
-	runner.events.on("job:error", ({ worker, job, error }) => {
-		console.error(`Worker ${worker.workerId} failed job ${job.id}:`, error);
-	});
-
-	await runner.promise;
 }

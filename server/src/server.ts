@@ -86,11 +86,7 @@ async function startServer(): Promise<void> {
 	// We don't care about Swagger in tests so mount it here
 	app.use("/swagger", swaggerUi.serve, swaggerUi.setup(apiOpenapi));
 
-	try {
-		runJobs();
-	} catch (err) {
-		console.error("Failed to start job worker:", err);
-	}
+	runJobs();
 
 	const PORT = config.app.port;
 	app.listen(PORT, () => {
