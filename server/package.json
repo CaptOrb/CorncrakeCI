@@ -10,7 +10,9 @@
 		"build": "tsc --project tsconfig.build.json",
 		"test": "pnpm run check && vitest",
 		"migrate": "tsx --env-file .env src/server.ts migrate",
-		"generate-types": "pnpm exec openapi-code-generator   --input ./api.tsp   --input-type typespec   --output ./src/generated/server   --template typescript-express",
+		"generate": "pnpm run '/^generate:/'",
+		"generate:openapi": "tsp compile api.tsp --emit @typespec/openapi3 --options @typespec/openapi3.output-file=openapi.json --output-dir src/generated/api",
+		"generate:types": "openapi-code-generator --input ./api.tsp --input-type typespec --output ./src/generated/server --template typescript-express",
 		"lint": "pnpm exec biome check --write"
 	},
 	"keywords": [],
@@ -41,6 +43,7 @@
 	"dependencies": {
 		"@nahkies/typescript-express-runtime": "^0.22.0",
 		"@nahkies/typescript-fetch-runtime": "^0.22.0",
+		"@types/swagger-ui-express": "^4.1.8",
 		"arctic": "^3.7.0",
 		"axios": "^1.13.2",
 		"connect-pg-simple": "^10.0.0",
@@ -50,6 +53,7 @@
 		"graphile-worker": "^0.16.6",
 		"pg": "^8.16.3",
 		"postgres-migrations": "^5.3.0",
+		"swagger-ui-express": "^5.0.1",
 		"valibot": "^1.2.0",
 		"zod": "^4.1.13"
 	}

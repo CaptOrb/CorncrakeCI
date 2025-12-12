@@ -4,6 +4,7 @@ import express from "express";
 import session from "express-session";
 import { Pool } from "pg";
 import { migrate } from "postgres-migrations";
+import swaggerUi from "swagger-ui-express";
 import {
 	configureRepo,
 	getRepo,
@@ -13,6 +14,7 @@ import {
 } from "./api/repositories";
 import { config } from "./config";
 import { connectDB } from "./config/db";
+import apiOpenapi from "./generated/api/@typespec/openapi3/openapi.json";
 import { createRouter } from "./generated/server/generated";
 import { runJobs } from "./jobs/graphile-worker";
 import authRouter from "./routes/auth";
@@ -63,6 +65,9 @@ async function startServer() {
 	);
 
 	app.use("/auth", authRouter);
+
+	app.use("/swagger", swaggerUi.serve, swaggerUi.setup(apiOpenapi));
+
 	runJobs();
 
 	const PORT = config.app.port;
