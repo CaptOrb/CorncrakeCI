@@ -1,10 +1,18 @@
 import crypto from "node:crypto";
 import type { JobHelpers } from "graphile-worker";
+import * as v from "valibot";
 import { transaction } from "../db/stores";
 import { createForge } from "../services/forges";
 
+export const SetupWebhooksJobPayload = v.object({
+	repoId: v.string(),
+});
+export type SetupWebhooksJobPayload = v.InferOutput<
+	typeof SetupWebhooksJobPayload
+>;
+
 export async function setup_webhooks(payload: unknown, helpers: JobHelpers) {
-	const { repoId } = payload as { repoId: string; ownerId: string };
+	const { repoId } = v.parse(SetupWebhooksJobPayload, payload);
 	helpers.logger.info(`Setting up webhooks for repo ${repoId}`);
 
 	try {

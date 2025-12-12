@@ -1,5 +1,6 @@
 import type { PoolClient } from "pg";
 import type { t_RepositoryConfig } from "../../generated/server/models";
+import type { SetupWebhooksJobPayload } from "../../jobs/setup-webhooks";
 
 type RepositoryCreateResponse = {
 	repo_id: number;
@@ -33,13 +34,13 @@ export class RepositoryStore {
 		if (newlyCreated) {
 			await this.client.query(
 				`SELECT graphile_worker.add_job(
-           'setup_webhooks',
-           json_build_object(
-             'repoId', $1::Integer,
-             'ownerId', $2::Integer
-           )
+           'setup_webhooks', $1
          )`,
-				[repository.repo_id, repository.owner_id],
+				[
+					{
+						repoId: repository.repo_id,
+					} satisfies SetupWebhooksJobPayload,
+				],
 			);
 		}
 
