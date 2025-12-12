@@ -46,12 +46,12 @@ const AppConfigSchema = v.object({
 		v.transform(Number),
 		v.integer(),
 	),
-	baseUrl: v.pipe(
+	baseurl: v.pipe(
 		v.string(),
 		v.nonEmpty(),
 		v.url(),
-		v.check(s => !s.endsWith('/'), 'Must not end with /')
-	)
+		v.check((s) => !s.endsWith("/"), "Must not end with /"),
+	),
 });
 
 const SessionConfigSchema = v.object({
