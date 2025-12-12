@@ -1,12 +1,30 @@
 import * as v from "valibot";
 
-const ForgeInstanceSchema = v.object({
-	type: v.picklist(["gitea", "github", "gitlab"]),
-	url: v.string(),
-	clientid: v.string(),
-	clientsecret: v.string(),
-	redirecturi: v.string(),
-});
+const ALL_FORGE_TYPES = ["gitea", "github", "gitlab"] as const;
+
+type AllForgeTypes = (typeof ALL_FORGE_TYPES)[number];
+
+const DEFAULT_FORGE_NAMES: Record<AllForgeTypes, string> = {
+	gitea: "Gitea",
+	github: "GitHub",
+	gitlab: "GitLab",
+};
+
+const ForgeInstanceSchema = v.pipe(
+	v.object({
+		type: v.picklist(ALL_FORGE_TYPES),
+		name: v.optional(v.string()),
+		url: v.string(),
+		clientid: v.string(),
+		clientsecret: v.string(),
+		redirecturi: v.string(),
+	}),
+	v.transform((input) => ({
+		...input,
+		// If no name is supplied, default to the type's default name
+		name: input.name ?? DEFAULT_FORGE_NAMES[input.type],
+	})),
+);
 
 // Convert `{"1": {...}, "2": {...}}` to a `Map<number, { ... }>`
 const ForgesSchema = v.pipe(

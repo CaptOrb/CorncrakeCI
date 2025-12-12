@@ -1,7 +1,10 @@
+-- A forge is a service where repositories are stored.
 CREATE TABLE forges (
+	-- A unique ID that represents this forge in this installation.
     forge_id INTEGER PRIMARY KEY NOT NULL,
-    display_name TEXT NOT NULL,          -- e.g gitea
-    base_url TEXT NOT NULL               -- API base URL
+    -- A human-readable name for the forge.
+    -- e.g. 'Gitea'
+    display_name TEXT NOT NULL
 );
 
 
