@@ -1,6 +1,5 @@
 import type { t_ForgeRepository } from "../generated/server/models";
 import type { ForgeUser } from "./forgeuser";
-import type { GiteaRepo } from "./gitearepo";
 
 export interface Forge {
 	getAuthorizationUrl(): { url: string; state: string; codeVerifier: string };
@@ -17,7 +16,10 @@ export interface Forge {
 
 	listRepositories(accessToken: string): Promise<t_ForgeRepository[]>;
 
-	getRepository(repoId: string, accessToken: string): Promise<GiteaRepo>;
+	getRepository(
+		repoId: string,
+		accessToken: string,
+	): Promise<t_ForgeRepository>;
 
 	validateToken(accessToken: string): Promise<boolean>;
 
