@@ -3,7 +3,7 @@ import type { JobHelpers } from "graphile-worker";
 import * as v from "valibot";
 import { transaction } from "../db/stores";
 import { createForge } from "../services/forges";
-
+import { config } from "../config"; 
 export const SetupWebhooksJobPayload = v.object({
 	repoId: v.number(),
 });
@@ -46,8 +46,7 @@ export async function setup_webhooks(payload: unknown, helpers: JobHelpers) {
 
 		const forge = createForge(repoResult.forge_id);
 
-		// TODO Expose and calculate the real base URL for MOLCI
-		const webhookUrl = `http://ci.example.org/webhooks/gitea/${repoId}`;
+		const webhookUrl = `${config.app.baseUrl}/webhooks/gitea/${repoId}`; 
 
 		const webhookSecret = secureRandomBase64Url();
 
