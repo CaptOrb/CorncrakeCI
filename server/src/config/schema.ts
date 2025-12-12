@@ -46,7 +46,7 @@ const AppConfigSchema = v.object({
 		v.transform(Number),
 		v.integer(),
 	),
-	baseUrl: v.pipe(
+	baseurl: v.pipe(
 		v.string(),
 		v.nonEmpty(),
 		v.url(),

@@ -47,7 +47,7 @@ export async function setup_webhooks(payload: unknown, helpers: JobHelpers) {
 
 		const forge = mustGetForge(repoResult.forge_id);
 
-		const webhookUrl = `${config.app.baseUrl}/webhooks/gitea/${repoId}`;
+		const webhookUrl = `${config.app.baseurl}/webhooks/gitea/${repoId}`;
 
 		const webhookSecret = secureRandomBase64Url();
 
