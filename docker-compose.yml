@@ -47,10 +47,8 @@ services:
       GITEA__database__PASSWORD: ${GITEA_DB_PASSWORD}
     ports:
       - "3001:3000"
-      - "222:22"
     volumes:
       - ./gitea:/data
-      - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
 
 

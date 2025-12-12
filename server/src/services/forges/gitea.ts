@@ -7,11 +7,12 @@ import type { GiteaRepo } from "../../types/gitearepo";
 
 export class GiteaForge implements Forge {
 	private gitea: arctic.Gitea;
-	private forgeId: number;
 	private baseUrl: string;
 
-	constructor(forgeId: number, config: ForgeInstanceConfig) {
-		this.forgeId = forgeId;
+	constructor(
+		private forgeId: number,
+		private config: ForgeInstanceConfig,
+	) {
 		this.baseUrl = config.url;
 
 		if (!config.clientid || !config.clientsecret) {
@@ -83,13 +84,9 @@ export class GiteaForge implements Forge {
 			const result: t_ForgeRepository = {
 				forge_repo_id: String(repo.id),
 				full_name: repo.full_name,
-				private: repo.private,
-				url: repo.html_url,
-				description: repo.description,
 				forge: {
-					domain: "http://mol.com",
 					id: this.forgeId,
-					name: "not implemented",
+					name: this.config.name,
 				},
 			};
 			return result;

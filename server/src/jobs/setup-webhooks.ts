@@ -1,16 +1,29 @@
 import crypto from "node:crypto";
 import type { JobHelpers } from "graphile-worker";
+import * as v from "valibot";
 import { transaction } from "../db/stores";
 import { createForge } from "../services/forges";
 
+export const SetupWebhooksJobPayload = v.object({
+	repoId: v.number(),
+});
+export type SetupWebhooksJobPayload = v.InferOutput<
+	typeof SetupWebhooksJobPayload
+>;
+
 export async function setup_webhooks(payload: unknown, helpers: JobHelpers) {
-	const { repoId } = payload as { repoId: string; ownerId: string };
+	const { repoId } = v.parse(SetupWebhooksJobPayload, payload);
 	helpers.logger.info(`Setting up webhooks for repo ${repoId}`);
 
 	try {
-		const repoResult = await transaction(async (txn) => {
+		const repoResult: {
+			forge_id: number;
+			forge_repo_id: string;
+			forge_user_id: string;
+			access_token: string;
+		} = await transaction(async (txn) => {
 			const result = await txn.client.query(
-				`SELECT r.forge_id, r.forge_repo_id, u.forge_user_id, u.access_token, f.base_url
+				`SELECT r.forge_id, r.forge_repo_id, u.forge_user_id, u.access_token
 				FROM repositories r
 				JOIN users u ON r.owner_id = u.user_id
 				JOIN forges f ON u.forge_id = f.forge_id
@@ -33,7 +46,8 @@ export async function setup_webhooks(payload: unknown, helpers: JobHelpers) {
 
 		const forge = createForge(repoResult.forge_id);
 
-		const webhookUrl = `${repoResult.base_url.replace("/api/v1", "")}/webhooks/gitea`;
+		// TODO Expose and calculate the real base URL for MOLCI
+		const webhookUrl = `http://ci.example.org/webhooks/gitea/${repoId}`;
 
 		const webhookSecret = secureRandomBase64Url();
 

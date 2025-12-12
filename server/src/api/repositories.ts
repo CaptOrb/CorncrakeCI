@@ -70,16 +70,10 @@ export const configureRepo: ConfigureRepo = async (_params, respond, req) => {
 				forge_repo_id,
 				userId,
 				repoDetails.full_name,
-				repoDetails.description,
-				repoDetails.clone_url,
-				repoDetails.ssh_url,
-				repoDetails.html_url,
-				repoDetails.private,
-				req.body.settings?.branch || "main",
 			);
 		});
 
-		return respond.with200().body({ repository_id: repository.repository_id });
+		return respond.with200().body({ repo_id: repository.repo_id });
 	} catch (err) {
 		console.error("Failed to configure repo:", err);
 		return respond.with500().body({ error: "Failed to configure repository" });
@@ -193,10 +187,7 @@ export const getRepo: GetRepo = async (
 				forge: {
 					id: repository.forge_id,
 					name: repository.forge_display_name,
-					domain: "TODOexample.org",
 				},
-				private: false,
-				url: repository.clone_url,
 			},
 			configured_at: repository.created_at.toISOString(),
 		});
