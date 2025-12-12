@@ -27,7 +27,12 @@ export class RepositoryStore {
 			[forgeId, forgeRepoId, ownerId, repoName],
 		);
 
-		const repository = result.rows[0];
+		const repository: {
+			repo_id: number;
+			owner_id: number;
+			created_at: Date;
+			updated_at: Date;
+		} = result.rows[0];
 		const newlyCreated =
 			repository.created_at.getTime() === repository.updated_at.getTime();
 
