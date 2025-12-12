@@ -70,7 +70,7 @@ async function createWebServer({
 	return app;
 }
 
-async function startServer() {
+async function startServer(): Promise<void> {
 	const pool = new Pool({ connectionString: config.db.uri });
 	await connectDB(pool);
 	await runMigrations(pool);
@@ -86,7 +86,11 @@ async function startServer() {
 	// We don't care about Swagger in tests so mount it here
 	app.use("/swagger", swaggerUi.serve, swaggerUi.setup(apiOpenapi));
 
-	runJobs();
+	try {
+		runJobs();
+	} catch (err) {
+		console.error("Failed to start job worker:", err);
+	}
 
 	const PORT = config.app.port;
 	app.listen(PORT, () => {
@@ -105,6 +109,7 @@ async function runMigrations(pool: Pool): Promise<void> {
 		});
 	} catch (err) {
 		console.error("Migration failed:", err);
+		throw err;
 	} finally {
 		client.release();
 	}
