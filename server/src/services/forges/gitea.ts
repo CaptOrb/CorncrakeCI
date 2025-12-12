@@ -92,10 +92,17 @@ export class GiteaForge implements Forge {
 			return result;
 		});
 	}
-	async getRepository(repoId: string, accessToken: string): Promise<GiteaRepo> {
-		const res = await fetch(`${this.baseUrl}/api/v1/repositories/${repoId}`, {
-			headers: { Authorization: `token ${accessToken}` },
-		});
+
+	async getRawGiteaRepository(
+		forgeRepoId: string,
+		accessToken: string,
+	): Promise<GiteaRepo> {
+		const res = await fetch(
+			`${this.baseUrl}/api/v1/repositories/${forgeRepoId}`,
+			{
+				headers: { Authorization: `token ${accessToken}` },
+			},
+		);
 		if (!res.ok) {
 			if (res.status === 401) throw new Error("Unauthorised");
 			if (res.status === 404) throw new Error("Repository not found");
@@ -103,6 +110,22 @@ export class GiteaForge implements Forge {
 		}
 
 		return await res.json();
+	}
+
+	async getRepository(
+		forgeRepoId: string,
+		accessToken: string,
+	): Promise<t_ForgeRepository> {
+		const repo = await this.getRawGiteaRepository(forgeRepoId, accessToken);
+
+		return {
+			forge: {
+				id: this.forgeId,
+				name: this.config.name,
+			},
+			forge_repo_id: String(repo.id),
+			full_name: repo.full_name,
+		};
 	}
 
 	async validateToken(accessToken: string) {
@@ -118,7 +141,7 @@ export class GiteaForge implements Forge {
 		forgeRepoId: string,
 		accessToken: string,
 	): Promise<string> {
-		const repo = await this.getRepository(forgeRepoId, accessToken);
+		const repo = await this.getRawGiteaRepository(forgeRepoId, accessToken);
 		return repo.url;
 	}
 
