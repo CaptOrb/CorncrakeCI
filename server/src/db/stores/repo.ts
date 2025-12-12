@@ -18,7 +18,7 @@ export class RepositoryStore {
 		const result = await this.client.query(
 			`INSERT INTO repositories
        (forge_id, forge_repo_id, owner_id, repo_name)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+       VALUES ($1,$2,$3,$4)
        ON CONFLICT (forge_id, forge_repo_id)
        DO UPDATE SET
          repo_name = EXCLUDED.repo_name,
