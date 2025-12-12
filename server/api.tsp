@@ -28,16 +28,12 @@ model Error {
 model ForgeRepository {
   forge_repo_id: string;
   full_name: string;
-  description?: string;
   forge: ForgeSummary;
-  private: boolean;
-  url: string;
 }
 
 model ForgeSummary {
   id: integer;
   name: string;
-  domain: string;
 }
 
 model RepositoryConfig {
