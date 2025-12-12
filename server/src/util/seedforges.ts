@@ -6,15 +6,20 @@ export async function seedForges(): Promise<void> {
 		for (const [forgeId, forgeConfig] of config.forges) {
 			try {
 				await txn.client.query(
-					`INSERT INTO forges (forge_id, display_name, base_url)
-					VALUES ($1, $2, $3)
+					`INSERT INTO forges (forge_id, display_name)
+					VALUES ($1, $2)
 					ON CONFLICT (forge_id)
-					DO UPDATE SET base_url = EXCLUDED.base_url`,
-					[forgeId, forgeConfig.type, forgeConfig.url],
+					DO UPDATE SET display_name = EXCLUDED.display_name`,
+					[forgeId, forgeConfig.name],
 				);
-				console.log(`Forge seeded: ${forgeConfig.type} (${forgeConfig.url})`);
+				console.log(
+					`Forge seeded: ${forgeConfig.name} (${forgeId}, ${forgeConfig.type}) (${forgeConfig.url})`,
+				);
 			} catch (err) {
-				console.error(`Failed to seed forge ${forgeConfig.type}:`, err);
+				console.error(
+					`Failed to seed forge ${forgeConfig.name} (${forgeId}, ${forgeConfig.type}):`,
+					err,
+				);
 				throw err;
 			}
 		}
