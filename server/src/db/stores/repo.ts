@@ -2,7 +2,7 @@ import type { PoolClient } from "pg";
 import type { t_RepositoryConfig } from "../../generated/server/models";
 
 type RepositoryCreateResponse = {
-	repository_id: number;
+	repo_id: number;
 };
 
 export class RepositoryStore {
@@ -43,7 +43,7 @@ export class RepositoryStore {
 			);
 		}
 
-		return { repository_id: repository.repo_id };
+		return { repo_id: repository.repo_id };
 	}
 
 	async listConfiguredRepositories(

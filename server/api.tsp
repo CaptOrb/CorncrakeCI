@@ -75,7 +75,7 @@ op configureRepo(
   },
 ):
   | Body<{
-      repository_id: integer;
+      repo_id: integer;
     }>
   | (BadRequestResponse & Error)
   | (UnauthorizedResponse & Error)

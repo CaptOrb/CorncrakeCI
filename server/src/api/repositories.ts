@@ -73,7 +73,7 @@ export const configureRepo: ConfigureRepo = async (_params, respond, req) => {
 			);
 		});
 
-		return respond.with200().body({ repository_id: repository.repository_id });
+		return respond.with200().body({ repo_id: repository.repo_id });
 	} catch (err) {
 		console.error("Failed to configure repo:", err);
 		return respond.with500().body({ error: "Failed to configure repository" });
