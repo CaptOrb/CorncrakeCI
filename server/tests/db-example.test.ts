@@ -21,10 +21,10 @@ describe("Database tests with per-test database", () => {
 		// First, create a forge (required foreign key)
 		await transaction(async (txn) => {
 			await txn.client.query(
-				`INSERT INTO forges (forge_id, display_name, base_url)
-				VALUES ($1, $2, $3)
+				`INSERT INTO forges (forge_id, display_name)
+				VALUES ($1, $2)
 				ON CONFLICT (forge_id) DO NOTHING`,
-				[1, "gitea", "http://localhost:3001"],
+				[1, "gitea"],
 			);
 		});
 
@@ -56,10 +56,10 @@ describe("Database tests with per-test database", () => {
 		// Ensure forge exists first
 		await transaction(async (txn) => {
 			await txn.client.query(
-				`INSERT INTO forges (forge_id, display_name, base_url)
-				VALUES ($1, $2, $3)
+				`INSERT INTO forges (forge_id, display_name)
+				VALUES ($1, $2)
 				ON CONFLICT (forge_id) DO NOTHING`,
-				[1, "gitea", "http://localhost:3001"],
+				[1, "gitea"],
 			);
 		});
 
