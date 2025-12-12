@@ -8,8 +8,7 @@
 		"watch": "tsx watch src/server.ts",
 		"check": "tsc --noEmit",
 		"build": "tsc --project tsconfig.build.json",
-		"test": "$npm_execpath run check; vitest",
-		"test-win": "npx pnpm run check && vitest",
+		"test": "pnpm run check && vitest",
 		"migrate": "tsx --env-file .env src/server.ts migrate",
 		"generate-types": "pnpm exec openapi-code-generator   --input ./api.tsp   --input-type typespec   --output ./src/generated/server   --template typescript-express",
 		"lint": "pnpm exec biome check --write"
