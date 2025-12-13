@@ -1,5 +1,5 @@
-import crypto from "crypto";
-import { Client, ClientBase, ClientConfig, Pool } from "pg";
+import crypto from "node:crypto";
+import { Client, type ClientBase, type ClientConfig, Pool } from "pg";
 import { parseIntoClientConfig } from "pg-connection-string";
 import { migrate } from "postgres-migrations";
 import { afterEach, beforeEach } from "vitest";
@@ -26,6 +26,7 @@ function getBaseDbConfig(): ClientConfig {
 	if (!Object.hasOwn(process.env, "DB_URI")) {
 		throw new Error("DB_URI env var must be set for database tests");
 	}
+	// biome-ignore lint/complexity/useLiteralKeys: needed for env
 	return parseIntoClientConfig(process.env["DB_URI"]!);
 }
 

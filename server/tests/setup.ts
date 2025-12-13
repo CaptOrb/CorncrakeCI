@@ -1,5 +1,5 @@
-import { resolve } from "path";
-import { loadEnvFile } from "process";
+import { resolve } from "node:path";
+import { loadEnvFile } from "node:process";
 
 function findAndLoadEnvFiles() {
 	// Note: Earlier env files win
