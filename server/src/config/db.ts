@@ -22,6 +22,7 @@ export async function connectDB(newPool: Pool): Promise<void> {
 	} catch (err) {
 		const error = err as Error;
 		console.error("DB connection error:", error.stack || error.message);
+		throw error;
 	}
 }
 
