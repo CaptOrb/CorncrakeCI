@@ -12,19 +12,19 @@ export interface Forge {
 		accessTokenExpiresAt?: Date;
 	}>;
 
-	getUserInfo(accessToken: string): Promise<ForgeUser>;
+	withUser(accessToken: string): ForgeWithUser;
+}
 
-	listRepositories(accessToken: string): Promise<t_ForgeRepository[]>;
+export interface ForgeWithUser {
+	getUserInfo(): Promise<ForgeUser>;
 
-	getRepository(
-		repoId: string,
-		accessToken: string,
-	): Promise<t_ForgeRepository>;
+	listRepositories(): Promise<t_ForgeRepository[]>;
 
-	validateToken(accessToken: string): Promise<boolean>;
+	getRepository(repoId: string): Promise<t_ForgeRepository>;
+
+	validateToken(): Promise<boolean>;
 
 	createWebhook(
-		accessToken: string,
 		forgeRepoId: string,
 		webhookUrl: string,
 		webhookSecret: string,

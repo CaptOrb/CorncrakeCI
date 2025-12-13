@@ -1,8 +1,8 @@
 import { afterEach, beforeEach } from "vitest";
-import { t_ForgeRepository } from "../../src/generated/server/models";
+import type { t_ForgeRepository } from "../../src/generated/server/models";
 import { _forgeMap } from "../../src/services/forges";
-import { Forge } from "../../src/types/forge";
-import { ForgeUser } from "../../src/types/forgeuser";
+import type { Forge, ForgeWithUser } from "../../src/types/forge";
+import type { ForgeUser } from "../../src/types/forgeuser";
 
 /**
  * Sets up a fresh test forge with ID 1 and registers it, for every test.
@@ -11,7 +11,7 @@ import { ForgeUser } from "../../src/types/forgeuser";
  */
 export function testForgeHelper(): { controller?: TestForgeController } {
 	const forgeId = 1;
-	let out: { controller?: TestForgeController } = {};
+	const out: { controller?: TestForgeController } = {};
 
 	beforeEach(async () => {
 		const controller = new TestForgeController();
@@ -55,24 +55,40 @@ export class TestForge implements Forge {
 		throw new Error("invalid auth");
 	}
 
-	async getUserInfo(accessToken: string): Promise<ForgeUser> {
-		if (accessToken === "testAccessToken") {
-			return {
-				id: 1,
-				login: "testuser",
-			};
+	withUser(accessToken: string): ForgeWithUser {
+		function getUser(): ForgeUser | null {
+			if (accessToken === "testAccessToken") {
+				return {
+					id: 1,
+					login: "testuser",
+				};
+			}
+			return null;
 		}
 
-		throw new Error("invalid access token");
+		return new TestForgeWithUser(this.forgeId, this.controller, getUser());
+	}
+}
+
+class TestForgeWithUser implements ForgeWithUser {
+	constructor(
+		private forgeId: number,
+		private controller: TestForgeController,
+		private user: ForgeUser | null,
+	) {}
+
+	async getUserInfo(): Promise<ForgeUser> {
+		if (!this.user) throw new Error("invalid access token");
+		return this.user;
 	}
 
-	async listRepositories(accessToken: string): Promise<t_ForgeRepository[]> {
-		const userId = (await this.getUserInfo(accessToken)).id;
+	async listRepositories(): Promise<t_ForgeRepository[]> {
+		if (!this.user) throw new Error("invalid access token");
 
 		const out: t_ForgeRepository[] = [];
 
-		for (let [repoId, repo] of this.controller.repositories.entries()) {
-			if (repo.owner !== userId) continue;
+		for (const [repoId, repo] of this.controller.repositories.entries()) {
+			if (repo.owner !== this.user.id) continue;
 			out.push({
 				forge: {
 					id: this.forgeId,
@@ -86,17 +102,14 @@ export class TestForge implements Forge {
 		return out;
 	}
 
-	async getRepository(
-		repoId: string,
-		accessToken: string,
-	): Promise<t_ForgeRepository> {
-		const userId = (await this.getUserInfo(accessToken)).id;
+	async getRepository(repoId: string): Promise<t_ForgeRepository> {
+		if (!this.user) throw new Error("invalid access token");
 
 		const repo = this.controller.repositories.get(repoId);
 
 		if (!repo) throw new Error("Repository not found");
 
-		if (repo.owner !== userId)
+		if (repo.owner !== this.user.id)
 			throw new Error("Repository not owned by this user");
 
 		return {
@@ -109,9 +122,9 @@ export class TestForge implements Forge {
 		};
 	}
 
-	async validateToken(accessToken: string): Promise<boolean> {
+	async validateToken(): Promise<boolean> {
 		try {
-			await this.getUserInfo(accessToken);
+			await this.getUserInfo();
 			return true;
 		} catch (_) {
 			return false;
@@ -119,11 +132,12 @@ export class TestForge implements Forge {
 	}
 
 	async createWebhook(
-		_accessToken: string,
 		_forgeRepoId: string,
 		_webhookUrl: string,
 		_webhookSecret: string,
 	): Promise<{ id: string }> {
+		if (!this.user) throw new Error("invalid access token");
+
 		return {
 			id: "some-webhook-id",
 		};
