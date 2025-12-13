@@ -30,8 +30,8 @@ export const listAvailableRepos: ListAvailableRepos = async (
 				.body({ error: "Missing or expired access token" });
 		}
 
-		const forge = mustGetForge(forgeId);
-		const repos = await forge.listRepositories(accessToken);
+		const forge = mustGetForge(forgeId).withUser(accessToken);
+		const repos = await forge.listRepositories();
 
 		return respond.with200().body(repos);
 	} catch (err) {
@@ -58,11 +58,8 @@ export const configureRepo: ConfigureRepo = async (_params, respond, req) => {
 		const { forge, forge_repo_id } =
 			req.body as t_ConfigureRepoRequestBodySchema;
 
-		const forgeClient = mustGetForge(forge);
-		const repoDetails = await forgeClient.getRepository(
-			forge_repo_id,
-			accessToken,
-		);
+		const forgeClient = mustGetForge(forge).withUser(accessToken);
+		const repoDetails = await forgeClient.getRepository(forge_repo_id);
 
 		const repository = await transaction(async (txn) => {
 			return await txn.repositories.createOrUpdateRepository(
