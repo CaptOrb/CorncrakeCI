@@ -1,4 +1,5 @@
-/** biome-ignore-all lint/complexity/useLiteralKeys: <oli said it was ok> */
+// biome-ignore-all lint/complexity/useLiteralKeys: without adding types,
+//   we can't remove literal keys from a few areas in this file
 import { type Request, type Response, Router } from "express";
 import { config } from "../config";
 import { listAvailableForgeIds, mustGetForge } from "../services/forges";
@@ -75,8 +76,8 @@ authRouter.get("/callback", async (req: Request, res: Response) => {
 		const forge = mustGetForge(forgeId);
 		const { accessToken, accessTokenExpiresAt } =
 			await forge.exchangeCodeForToken(code, codeVerifier);
-
-		const forgeUser = await forge.getUserInfo(accessToken);
+		const forgeWithUser = forge.withUser(accessToken);
+		const forgeUser = await forgeWithUser.getUserInfo();
 
 		const internalUser = await getOrCreateUser(
 			forgeId,

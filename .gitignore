@@ -149,3 +149,4 @@ gitea/
 .pre-commit-config.yaml
 
 server/src/generated/
+/server/schemas/gitea.openapi3.yaml
