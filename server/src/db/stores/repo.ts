@@ -57,21 +57,21 @@ export class RepositoryStore {
 	): Promise<t_RepositoryConfig[]> {
 		const result = await this.client.query(
 			`
-    SELECT
-      r.forge_repo_id,
-      r.repo_name,
-      r.created_at,
+	    SELECT
+	      r.forge_repo_id,
+	      r.repo_name,
+	      r.created_at,
 
-      f.forge_id,
-      f.display_name,
+	      f.forge_id,
+	      f.display_name,
 
-      u.forge_user_id
-    FROM repositories r
-    JOIN forges f ON r.forge_id = f.forge_id
-    JOIN users u ON r.owner_id = u.user_id
-    WHERE r.owner_id = $1
-      AND r.webhook_secret IS NOT NULL;
-    `,
+	      u.forge_user_id
+	    FROM repositories r
+	    JOIN forges f ON r.forge_id = f.forge_id
+	    JOIN users u ON r.owner_id = u.user_id
+	    WHERE r.owner_id = $1
+	      AND r.webhook_secret IS NOT NULL;
+	    `,
 			[ownerId],
 		);
 
@@ -93,7 +93,7 @@ export class RepositoryStore {
 				},
 			},
 
-			configured_at: row.created_at?.toISOString(),
+			configured_at: row.created_at.toISOString(),
 		}));
 	}
 

@@ -38,7 +38,7 @@ model ForgeSummary {
 
 model RepositoryConfig {
   repo: ForgeRepository;
-  configured_at?: utcDateTime;
+  configured_at: utcDateTime;
 }
 
 model RepositoryConfigInput {
