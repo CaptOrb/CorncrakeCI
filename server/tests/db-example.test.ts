@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { _setPool } from "../src/config/db";
 import { transaction } from "../src/db/stores";
 import { databaseHelper } from "./helpers/database";
 

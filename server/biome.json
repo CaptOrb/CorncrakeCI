@@ -6,7 +6,8 @@
 		"useIgnoreFile": false
 	},
 	"files": {
-		"ignoreUnknown": false
+		"ignoreUnknown": false,
+		"includes": ["**", "!dist"]
 	},
 	"formatter": {
 		"enabled": true,
@@ -14,11 +15,19 @@
 	},
 	"linter": {
 		"enabled": true,
-		"includes": ["src/**", "!src/types/openapi.d.ts"],
+		"includes": [
+			"src/**",
+			"tests/**",
+			"!src/types/openapi.d.ts",
+			"!src/generated/**"
+		],
 		"rules": {
 			"recommended": true,
 			"style": {
 				"noNonNullAssertion": "off"
+			},
+			"nursery": {
+				"noFloatingPromises": "error"
 			}
 		}
 	},

@@ -28,6 +28,6 @@ export async function connectDB(newPool: Pool): Promise<void> {
 /**
  * Sets the database connection pool forcefully, for use in test setup.
  */
-export async function _setPool(newPool: Pool): Promise<void> {
+export function _setPool(newPool: Pool): void {
 	pool = newPool;
 }
