@@ -171,33 +171,28 @@ export async function setupTemplate(adminClient: ClientBase) {
 
 	// Then run the migrations on the template database
 	try {
-		const templateClient = new Client({
+		const templatePool = new Pool({
 			...baseConfig,
 			database: TEMPLATE_DB_NAME,
 		});
-		await templateClient.connect();
 
 		try {
-			await migrate({ client: templateClient }, "./migrations", {
+			await migrate({ client: templatePool }, "./migrations", {
 				// logger: (msg) => console.log(`[Test Setup Migration] ${msg}`),
-			});
-			console.log(
-				`Template database ${TEMPLATE_DB_NAME} is ready with migrations`,
-			);
-
-			const graphilePool = new Pool({
-				...baseConfig,
-				database: TEMPLATE_DB_NAME,
 			});
 
 			await runMigrations({
-				pgPool: graphilePool,
+				pgPool: templatePool,
 				maxPoolSize: 10,
 				schema: "graphile_worker",
 				noPreparedStatements: false,
 			});
+
+			console.log(
+				`Template database ${TEMPLATE_DB_NAME} is ready with migrations`,
+			);
 		} finally {
-			await templateClient.end();
+			await templatePool.end();
 		}
 	} catch (error) {
 		console.error("Failed to setup template database:", error);
