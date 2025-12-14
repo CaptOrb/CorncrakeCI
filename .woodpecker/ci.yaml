@@ -9,8 +9,6 @@ labels:
 services:
   postgres:
     image: postgres:17
-    # Turn off crash-safety features for speed (same as docker-compose.test.yml)
-    command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off
     environment:
       POSTGRES_USER: molcitest
       POSTGRES_PASSWORD: molcitest
