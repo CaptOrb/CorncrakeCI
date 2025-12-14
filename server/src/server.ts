@@ -21,7 +21,7 @@ import authRouter from "./routes/auth";
 import { createForgesFromConfig } from "./services/forges";
 import { seedForges } from "./util/seedforges";
 
-async function createWebServer({
+export async function createWebServer({
 	isProduction,
 	pool,
 }: {
@@ -112,7 +112,7 @@ async function runMigrations(pool: Pool): Promise<void> {
 	}
 }
 
-async function main(): Promise<void> {
+export async function main(): Promise<void> {
 	// Only run migrations if `migrate` command used.
 	if (process.argv[2] === "migrate") {
 		const pool = new Pool({ connectionString: config.db.uri });
@@ -133,8 +133,3 @@ async function main(): Promise<void> {
 		process.exit(1);
 	}
 }
-
-main().catch((err) => {
-	console.error("Failed:", err);
-	process.exit(1);
-});
