@@ -1,5 +1,6 @@
 import { resolve } from "node:path";
 import pgSimple from "connect-pg-simple";
+import type { ErrorRequestHandler } from "express";
 import express, { type Application } from "express";
 import session from "express-session";
 import { Pool } from "pg";
@@ -21,7 +22,7 @@ import authRouter from "./routes/auth";
 import { createForgesFromConfig } from "./services/forges";
 import { seedForges } from "./util/seedforges";
 
-async function createWebServer({
+export async function createWebServer({
 	isProduction,
 	pool,
 }: {
@@ -66,6 +67,13 @@ async function createWebServer({
 	);
 
 	app.use("/auth", authRouter);
+
+	const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
+		console.error(err);
+		res.status(500).send("Internal Server Error");
+	};
+
+	app.use(errorHandler);
 
 	return app;
 }
@@ -112,7 +120,7 @@ async function runMigrations(pool: Pool): Promise<void> {
 	}
 }
 
-async function main(): Promise<void> {
+export async function main(): Promise<void> {
 	// Only run migrations if `migrate` command used.
 	if (process.argv[2] === "migrate") {
 		const pool = new Pool({ connectionString: config.db.uri });
@@ -133,8 +141,3 @@ async function main(): Promise<void> {
 		process.exit(1);
 	}
 }
-
-main().catch((err) => {
-	console.error("Failed:", err);
-	process.exit(1);
-});
