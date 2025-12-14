@@ -1,0 +1,78 @@
+when:
+  - event: push
+    branch: [main, dev]
+  - event: pull_request
+
+labels:
+  platform: linux/amd64
+
+services:
+  postgres:
+    image: postgres:17
+    # Turn off crash-safety features for speed (same as docker-compose.test.yml)
+    command: postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off
+    environment:
+      POSTGRES_USER: molcitest
+      POSTGRES_PASSWORD: molcitest
+      POSTGRES_DB: molcitest
+
+steps:
+  - name: server
+    image: node:22
+    environment:
+      NODE_ENV: test
+      DB_URI: postgresql://molcitest:molcitest@postgres:5432/molcitest
+      SESSION_SECRET: test-secret-key-for-ci-only
+      APP_BASEURL: http://localhost:3000
+    commands:
+      - npm install --global corepack@latest
+      - corepack use pnpm@latest-10
+      
+      - cd server
+      - pnpm install --frozen-lockfile
+
+      - pnpm run generate
+      
+      - touch .env
+
+      - pnpm run check
+      - pnpm run build
+
+      - pnpm exec biome check
+
+      - pnpm run test
+
+
+  # Additionally notify GitHub of the CI status (since our pipeline is wired up
+  # to Gitea, but the repo is mirrored to GitHub in realtime)
+  - name: notify-github-success
+    image: curlimages/curl:latest
+    commands:
+      - |
+        curl -L -X POST \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: Bearer $${GITHUB_TOKEN}" \
+          -H "X-GitHub-Api-Version: 2022-11-28" \
+          https://api.github.com/repos/CaptOrb/molci/statuses/$${CI_COMMIT_SHA} \
+          -d "{\"state\":\"success\",\"target_url\":\"$${CI_PIPELINE_URL}\",\"description\":\"All checks passed\",\"context\":\"Woodpecker CI\"}"
+    environment:
+      GITHUB_TOKEN:
+        from_secret: github_token
+    when:
+      status: [success]
+
+  - name: notify-github-failure
+    image: curlimages/curl:latest
+    commands:
+      - |
+        curl -L -X POST \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: Bearer $${GITHUB_TOKEN}" \
+          -H "X-GitHub-Api-Version: 2022-11-28" \
+          https://api.github.com/repos/CaptOrb/molci/statuses/$${CI_COMMIT_SHA} \
+          -d "{\"state\":\"failure\",\"target_url\":\"$${CI_PIPELINE_URL}\",\"description\":\"Build failed\",\"context\":\"Woodpecker CI\"}"
+    environment:
+      GITHUB_TOKEN:
+        from_secret: github_token
+    when:
+      status: [failure]
