@@ -18,7 +18,7 @@ export interface SetupDbResult {
 /**
  * Get the base database config, upon which new databases will be created.
  */
-function getBaseDbConfig(): ClientConfig {
+export function getBaseDbConfig(): ClientConfig {
 	// if (Object.hasOwn(process.env, "TEST_DB_URI")) {
 	//   return parseIntoClientConfig(process.env["TEST_DB_URI"]!);
 	// }
@@ -33,11 +33,11 @@ function getBaseDbConfig(): ClientConfig {
 /**
  * Sets up an isolated test database for a test.
  *
- * Will first set up the template database if it's not already, then copy it for each test.
  * Creates a new database from a template (which should have migrations already applied).
  *
  *  Prerequisites:
  * - Database server must be running, with a connection URL available on `DB_URI`
+ * - Template database must have been setup (this is done in globalSetup).
  * - Database user must have the rights to create new databases.
  *
  * @returns An object with the PostgreSQL Pool and a cleanup function.
@@ -47,7 +47,7 @@ export async function setupDb(): Promise<SetupDbResult> {
 	const adminClient = new Client(baseConfig);
 	await adminClient.connect();
 
-	await setupTemplate(adminClient);
+	// By this point, the template database must have already been setup.
 
 	// Generate a unique DB name
 	// ideally we'd base it off the test name, but those are quite verbose...
@@ -154,7 +154,7 @@ export async function setupDb(): Promise<SetupDbResult> {
 
 let templateSetupComplete: boolean = false;
 
-async function setupTemplate(adminClient: ClientBase) {
+export async function setupTemplate(adminClient: ClientBase) {
 	if (templateSetupComplete) {
 		return;
 	}

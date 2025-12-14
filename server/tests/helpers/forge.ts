@@ -1,4 +1,5 @@
 import { afterEach, beforeEach } from "vitest";
+import { transaction } from "../../src/db/stores";
 import type { t_ForgeRepository } from "../../src/generated/server/models";
 import { _forgeMap } from "../../src/services/forges";
 import type { Forge, ForgeWithUser } from "../../src/types/forge";
@@ -6,6 +7,7 @@ import type { ForgeUser } from "../../src/types/forgeuser";
 
 /**
  * Sets up a fresh test forge with ID 1 and registers it, for every test.
+ * Also inserts the forge into the database.
  *
  * Cleans up the database after the tests.
  */
@@ -17,6 +19,18 @@ export function testForgeHelper(): { controller?: TestForgeController } {
 		const controller = new TestForgeController();
 		out.controller = controller;
 		_forgeMap.set(forgeId, new TestForge(controller, forgeId));
+
+		try {
+			await transaction(async (txn) => {
+				await txn.client.query(
+					`INSERT INTO forges (forge_id, display_name)
+					VALUES ($1, $2)`,
+					[forgeId, "gitea"],
+				);
+			});
+		} catch {
+			// nop
+		}
 	});
 
 	afterEach(async () => {
