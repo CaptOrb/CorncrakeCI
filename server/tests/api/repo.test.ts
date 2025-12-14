@@ -3,9 +3,9 @@ import supertest from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { _setPool } from "../../src/config/db";
 import { createWebServer } from "../../src/server";
+import { createTestUser } from "../helpers/auth";
 import { setupDb } from "../helpers/database";
 import { testForgeHelper } from "../helpers/forge";
-import { createTestUser } from "../helpers/auth";
 
 describe("Repository API tests", () => {
 	let pool: Pool;
@@ -41,10 +41,9 @@ describe("Repository API tests", () => {
 		// Make the request with the session cookie
 		const response = await request
 			.get(`/repo/1`)
-            .set("Cookie", `sessionID=${testData.session_id}`)
+			.set("Cookie", `sessionID=${testData.session_id}`)
 			.expect(200);
 
 		expect(response.body.repo).not.toBeNull();
-	
 	});
 });
