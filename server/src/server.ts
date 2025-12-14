@@ -1,5 +1,6 @@
 import { resolve } from "node:path";
 import pgSimple from "connect-pg-simple";
+import type { ErrorRequestHandler } from "express";
 import express, { type Application } from "express";
 import session from "express-session";
 import { Pool } from "pg";
@@ -66,6 +67,13 @@ export async function createWebServer({
 	);
 
 	app.use("/auth", authRouter);
+
+	const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
+		console.error(err);
+		res.status(500).send("Internal Server Error");
+	};
+
+	app.use(errorHandler);
 
 	return app;
 }
