@@ -38,6 +38,19 @@ describe("Repository API tests", () => {
 		// Set up test user, repository, and session
 		const testData = await createTestUser(app);
 
+		const payload = {
+			forge: 1,
+			forge_repo_id: "repo0001",
+			settings: { branch: "main" },
+		};
+
+		await request
+			.post(`/repo`)
+			.set("Content-Type", "application/json")
+			.set("Cookie", `sessionID=${testData.session_id}`)
+			.send(payload)
+			.expect(200);
+
 		// Make the request with the session cookie
 		const response = await request
 			.get(`/repo/1`)

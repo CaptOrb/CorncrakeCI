@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { runMigrations } from "graphile-worker";
 import { Client, type ClientBase, type ClientConfig, Pool } from "pg";
 import { parseIntoClientConfig } from "pg-connection-string";
 import { migrate } from "postgres-migrations";
@@ -183,6 +184,18 @@ export async function setupTemplate(adminClient: ClientBase) {
 			console.log(
 				`Template database ${TEMPLATE_DB_NAME} is ready with migrations`,
 			);
+
+			const graphilePool = new Pool({
+				...baseConfig,
+				database: TEMPLATE_DB_NAME,
+			});
+
+			await runMigrations({
+				pgPool: graphilePool,
+				maxPoolSize: 10,
+				schema: "graphile_worker",
+				noPreparedStatements: false,
+			});
 		} finally {
 			await templateClient.end();
 		}
