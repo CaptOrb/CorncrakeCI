@@ -149,3 +149,7 @@ gitea/
 .pre-commit-config.yaml
 
 server/src/generated/
+
+# Added by cargo
+
+/target
