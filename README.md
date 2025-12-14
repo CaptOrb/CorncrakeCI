@@ -1,12 +1,15 @@
 # MolCI
 
+[![CI status badge](https://ci.emunest.net/api/badges/5/status.svg)](https://ci.emunest.net/repos/5)
+
 ## About
 
-MolCI is an in progress self hosted CI system
+MolCI is an in-progress self-hosted CI system.
 
 ## Prerequisites
 * Docker
 * Node.js
+* [`pnpm` package manager](https://pnpm.io/)
 
 # Compiling and running code
 1. Clone the repository:
@@ -18,12 +21,7 @@ MolCI is an in progress self hosted CI system
    then
 
    ```
-   pnpm generate-types
-   ```
-   then
-
-   ```
-   pnpm migrate
+   pnpm generate
    ```
    then
 
@@ -35,4 +33,3 @@ MolCI is an in progress self hosted CI system
    ```sh
    pnpm run dev
    ```
-
