@@ -16,7 +16,7 @@ services:
 
 steps:
   - name: server
-    image: guergeiro/pnpm:20-10-slim
+    image: guergeiro/pnpm:22-10-slim
     environment:
       NODE_ENV: test
       DB_URI: postgresql://molcitest:molcitest@postgres:5432/molcitest
