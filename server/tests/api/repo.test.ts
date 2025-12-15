@@ -44,19 +44,28 @@ describe("Repository API tests", () => {
 			settings: { branch: "main" },
 		};
 
-		await request
-			.post(`/repo`)
+		const createResponse = await request
+			.post("/repo")
 			.set("Content-Type", "application/json")
 			.set("Cookie", `sessionID=${testData.session_id}`)
 			.send(payload)
 			.expect(200);
 
-		// Make the request with the session cookie
-		const response = await request
-			.get(`/repo/1`)
+		expect(createResponse.body).toHaveProperty("repo_id");
+		expect(createResponse.body.repo_id).toBeTypeOf("number");
+
+		const repoId = createResponse.body.repo_id;
+
+		const fetchResponse = await request
+			.get(`/repo/${repoId}`)
 			.set("Cookie", `sessionID=${testData.session_id}`)
 			.expect(200);
 
-		expect(response.body.repo).not.toBeNull();
+		expect(fetchResponse.body.repo).toMatchObject({
+			forge_repo_id: "repo0001",
+			forge: {
+				id: 1,
+			},
+		});
 	});
 });
