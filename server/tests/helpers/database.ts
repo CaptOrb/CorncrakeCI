@@ -86,6 +86,23 @@ export async function setupDb(): Promise<SetupDbResult> {
 				}
 
 				try {
+					const res = await adminClient.query(
+						`
+					SELECT
+						pid,
+						state,
+						query,
+						query_start,
+						backend_start
+					FROM pg_stat_activity
+					WHERE datname = $1
+					AND pid <> pg_backend_pid()
+					`,
+						[dbName],
+					);
+
+					console.log("Connections to terminate:", res.rows);
+
 					// Terminate any remaining connections to allow dropping
 					// TODO This might not work...
 					await adminClient.query(
@@ -183,7 +200,6 @@ export async function setupTemplate(adminClient: ClientBase) {
 
 			await runMigrations({
 				pgPool: templatePool,
-				maxPoolSize: 10,
 				schema: "graphile_worker",
 				noPreparedStatements: false,
 			});

@@ -17,7 +17,7 @@ export async function createTestUser(
 		throw new Error(`Login unsuccessful: ${loginResponse.status}`);
 	}
 
-	const loginCookies = loginResponse.headers["set-cookie"];
+	const loginCookies = loginResponse.get("Set-Cookie"); // the types are broken, this is actually string[]
 	if (!loginCookies) {
 		throw new Error("No cookies set");
 	}
@@ -25,18 +25,6 @@ export async function createTestUser(
 	const cookieArray = Array.isArray(loginCookies)
 		? loginCookies
 		: [loginCookies];
-	const cookieHeader = cookieArray
-		.map((c: string) => c.split(";")[0])
-		.join("; ");
-
-	const callbackResponse = await request
-		.get("/auth/callback")
-		.query({ code: "testCode", state: "STATE" })
-		.set("Cookie", cookieHeader);
-
-	if (callbackResponse.status !== 200) {
-		throw new Error(`Callback failed`);
-	}
 
 	const sessionCookie = cookieArray.find((c: string) =>
 		c.startsWith("sessionID="),
@@ -44,10 +32,19 @@ export async function createTestUser(
 	if (!sessionCookie) {
 		throw new Error("No session cookie found");
 	}
-
 	const sessionIdMatch = sessionCookie.match(/sessionID=([^;]+)/);
 	if (!sessionIdMatch) {
 		throw new Error("Failed to parse session ID");
+	}
+
+	const callbackResponse = await request
+		.get("/auth/callback")
+		.query({ code: "testCode", state: "STATE" })
+		.set("Cookie", loginCookies);
+
+	if (callbackResponse.status !== 200) {
+		console.error(callbackResponse.error);
+		throw new Error(`Callback failed`);
 	}
 
 	const user = callbackResponse.body.user;
@@ -56,8 +53,6 @@ export async function createTestUser(
 		user_id: user.user_id,
 		forge_id: forgeId,
 		forge_user_id: user.forgeUserId.toString(),
-		access_token: "testAccessToken",
-		token_expires_at: new Date("2100-01-01T01:01:01"),
-		session_id: sessionIdMatch[1],
+		session_id: sessionIdMatch[1]!,
 	};
 }
