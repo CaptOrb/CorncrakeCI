@@ -128,7 +128,6 @@ describe("Repository API tests", () => {
 			.set("Cookie", `sessionID="invalidSessionID"`)
 
 			.expect(401);
-
 	});
 
 	it("getRepo returns 404 for non-existent repo ID", async () => {
