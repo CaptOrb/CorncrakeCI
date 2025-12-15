@@ -130,6 +130,15 @@ describe("Repository API tests", () => {
 			.expect(401);
 	});
 
+	it("getRepo returns 404 for non-existent repo ID", async () => {
+		const testData = await createTestUser(app);
+
+		await request
+			.get("/repo/999999")
+			.set("Cookie", `sessionID=${testData.session_id}`)
+			.expect(404);
+	});
+
 	it("listAvailableRepos returns 200 with repos for authenticated user", async () => {
 		const testUser = await createTestUser(app);
 
@@ -197,5 +206,14 @@ describe("Repository API tests", () => {
 				}),
 			]),
 		);
+	});
+
+	it("listConfiguredRepos returns 401 if not authenticated", async () => {
+		await request
+			.get("/repos/configured")
+			.expect(401)
+			.then((res) => {
+				expect(res.body).toEqual({ error: "Not authenticated" });
+			});
 	});
 });
