@@ -67,5 +67,34 @@ describe("Repository API tests", () => {
 				id: 1,
 			},
 		});
+
+		expect(fetchResponse.body).toHaveProperty("configured_at");
+	});
+
+
+	it("listAvailableRepos returns 200 with repos for authenticated user", async () => {
+		const testUser = await createTestUser(app);
+
+		const response = await request
+			.get("/repos/available")
+			.set("Cookie", `sessionID=${testUser.session_id}`)
+			.expect(200);
+
+		expect(response.body).toEqual([
+			{
+				forge: { id: 1, name: "TestForge" },
+				forge_repo_id: "repo0001",
+				full_name: "testuser/testrepo",
+			},
+		]);
+	});
+
+	it("listAvailableRepos returns 401 if not authenticated", async () => {
+		await request
+			.get("/repos/available")
+			.expect(401)
+			.then((res) => {
+				expect(res.body).toEqual({ error: "Not authenticated" });
+			});
 	});
 });
