@@ -1,17 +1,16 @@
 import { type Runner, run, type TaskList } from "graphile-worker";
-import { config } from "../config";
+import type { Pool } from "pg";
 import { setup_webhooks } from "./setup-webhooks";
 
 const taskList: TaskList = {
 	setup_webhooks,
 };
 
-export async function runJobs() {
+export async function runJobs(pgPool: Pool) {
 	let runner: Runner;
 	try {
 		runner = await run({
-			connectionString: config.db.uri,
-			maxPoolSize: 10,
+			pgPool,
 			pollInterval: 2000,
 			noPreparedStatements: false,
 			schema: "graphile_worker",
