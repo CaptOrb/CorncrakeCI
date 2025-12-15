@@ -87,7 +87,7 @@ async function startServer(): Promise<void> {
 	app.use("/swagger", swaggerUi.serve, swaggerUi.setup(apiOpenapi));
 
 	// Intentionally don't await
-	void runJobs();
+	void runJobs(pool);
 
 	const PORT = config.app.port;
 	app.listen(PORT, () => {
