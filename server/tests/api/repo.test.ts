@@ -3,12 +3,11 @@ import { runOnce } from "graphile-worker";
 import type { Pool } from "pg";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { _setPool } from "../../src/config/db";
+import { beforeEach, describe, expect, it } from "vitest";
 import { setup_webhooks } from "../../src/jobs/setup-webhooks";
 import { createWebServer } from "../../src/server";
 import { createTestUser } from "../helpers/auth";
-import { setupDb } from "../helpers/database";
+import { databaseHelper } from "../helpers/database";
 import { testForgeHelper } from "../helpers/forge";
 
 describe("Repository API tests", () => {
@@ -16,26 +15,19 @@ describe("Repository API tests", () => {
 	let app: Application;
 	let request: TestAgent;
 
+	databaseHelper((newPool) => {
+		pool = newPool;
+	});
+
 	testForgeHelper();
 
-	beforeAll(async () => {
-		const setupDbResult = await setupDb();
-		pool = setupDbResult.pool;
-		_setPool(pool);
-
+	beforeEach(async () => {
 		app = await createWebServer({
 			isProduction: false,
 			pool,
 		});
 
 		request = supertest(app);
-	});
-
-	afterAll(async () => {
-		// Clean up database connection
-		if (pool) {
-			await pool.end();
-		}
 	});
 
 	it("configureRepo returns 200 and creates new repository successfully", async () => {
