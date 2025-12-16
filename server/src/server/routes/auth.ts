@@ -1,9 +1,9 @@
 // biome-ignore-all lint/complexity/useLiteralKeys: without adding types,
 //   we can't remove literal keys from a few areas in this file
 import { type Request, type Response, Router } from "express";
-import { config } from "../config";
-import { listAvailableForgeIds, mustGetForge } from "../services/forges";
-import { getOrCreateUser } from "../services/user";
+import { config } from "../../config";
+import { listAvailableForgeIds, mustGetForge } from "../../services/forges";
+import { getOrCreateUser } from "../../services/user";
 
 const authRouter = Router();
 

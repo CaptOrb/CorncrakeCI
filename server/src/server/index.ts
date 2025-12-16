@@ -13,16 +13,16 @@ import { connectDB } from "../config/db";
 import apiOpenapi from "../generated/api/@typespec/openapi3/openapi.json";
 import { createRouter } from "../generated/server/generated";
 import { runJobs } from "../jobs/graphile-worker";
-import authRouter from "../routes/auth";
+import authRouter from "../server/routes/auth";
+import { createForgesFromConfig } from "../services/forges";
+import { seedForges } from "../util/seedforges";
 import {
 	configureRepo,
 	getRepo,
 	listAvailableRepos,
 	listConfiguredRepos,
 	reconfigureRepo,
-} from "../server/api/repositories";
-import { createForgesFromConfig } from "../services/forges";
-import { seedForges } from "../util/seedforges";
+} from "./api/repositories";
 
 export async function createWebServer({
 	isProduction,
