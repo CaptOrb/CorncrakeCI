@@ -86,33 +86,32 @@ export async function setupDb(): Promise<SetupDbResult> {
 				}
 
 				try {
-					const res = await adminClient.query(
-						`
-					SELECT
-						pid,
-						state,
-						query,
-						query_start,
-						backend_start
-					FROM pg_stat_activity
-					WHERE datname = $1
-					AND pid <> pg_backend_pid()
-					`,
-						[dbName],
-					);
-
-					console.log("Connections to terminate:", res.rows);
-
 					// Terminate any remaining connections to allow dropping
-					// TODO This might not work...
-					await adminClient.query(
+					// At the same time, get the information back on what we just
+					// terminated.
+					const { rows: terminatedConnections } = await adminClient.query(
 						`
-						SELECT pg_terminate_backend(pid)
+						SELECT pg_terminate_backend(pid),
+							pid,
+							NOW() - backend_start AS backend_time,
+							NOW() - xact_start AS xact_time,
+							NOW() - query_start AS query_time,
+							state,
+							query
 						FROM pg_stat_activity
 						WHERE datname = $1 AND pid <> pg_backend_pid()
 					`,
 						[dbName],
 					);
+
+					if (terminatedConnections.length > 0) {
+						// Log the PID of connections terminated; this helps to track down
+						// what the connection was doing and why it was overrunning the test.
+						console.error(
+							"Terminated overrunning connections!",
+							terminatedConnections,
+						);
+					}
 
 					await adminClient.query(`DROP DATABASE IF EXISTS "${dbName}"`);
 				} finally {

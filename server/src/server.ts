@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import { ExpressRuntimeError } from "@nahkies/typescript-express-runtime/errors";
 import pgSimple from "connect-pg-simple";
 import type { ErrorRequestHandler } from "express";
 import express, { type Application } from "express";
@@ -6,6 +7,7 @@ import session from "express-session";
 import { Pool } from "pg";
 import { migrate } from "postgres-migrations";
 import swaggerUi from "swagger-ui-express";
+import { ZodError } from "zod";
 import {
 	configureRepo,
 	getRepo,
@@ -68,22 +70,66 @@ export async function createWebServer({
 
 	app.use("/auth", authRouter);
 
-	const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
-		if (err?.phase === "request_validation") {
-			res.status(400).json({
-				error: "Invalid request",
-				details: err.cause,
-			});
-		}
-		const user = req.session?.userId ?? "-";
-		console.error(`Error on ${req.method} ${req.path} for user ${user}`, err);
-		res.status(500).send("Internal Server Error");
-	};
-
 	app.use(errorHandler);
 
 	return app;
 }
+
+/**
+ * Handles errors that occur whilst processing a request.
+ *
+ * Current rules:
+ * - Request validation errors (`ExpressRuntimeError` with cause of `ZodError` and phase of `request_validation`)
+ *   are converted to 400 Bad Request responses with clean details.
+ *   These are logged without stack trace.
+ * - Other errors give generic 500 responses (so as not to reveal potentially sensitive information)
+ *   but log the full error as normal.
+ */
+const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
+	let statusCode = 500;
+	let errorBody: {
+		error: string;
+		details?: Record<string, unknown> | unknown;
+	} = {
+		error: "Internal Server Error",
+	};
+	let toLog: (Error | string)[] = [err];
+	if (err instanceof ExpressRuntimeError) {
+		if (err.phase === "request_validation") {
+			const cause = err.cause;
+			if (cause instanceof ZodError) {
+				statusCode = 400;
+				// Clean up the error a bit so we don't return stringified JSON
+				errorBody = {
+					// the message will include which parser failed
+					error: `Invalid request (${err.message})`,
+					details: { issues: cause.issues },
+				};
+
+				// Also don't log the error itself, we don't want a stack trace,
+				// just a summary will do
+				const firstIssue = cause.issues[0]!;
+				const firstIssuePath = firstIssue.path.join(".");
+				const more =
+					cause.issues.length > 1 ? ` (& ${cause.issues.length - 1} more)` : "";
+				toLog = [`${firstIssue.message} (@${firstIssuePath})${more}`];
+			} else {
+				errorBody = {
+					// If we hit this point, we should add handling code to report a proper error
+					error: `Invalid request (unknown)`,
+				};
+				// Also make it clear that it's not properly handled
+				toLog = ["(unexpected kind)", ...toLog];
+			}
+		}
+	}
+	const user = req.session?.userId ?? "-";
+	console.error(
+		`Error ${statusCode} on ${req.method} ${req.path} for user ${user}:`,
+		...toLog,
+	);
+	res.status(statusCode).json(errorBody);
+};
 
 async function startServer(): Promise<void> {
 	const pool = new Pool({ connectionString: config.db.uri });
