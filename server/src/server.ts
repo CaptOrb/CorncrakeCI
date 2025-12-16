@@ -69,6 +69,12 @@ export async function createWebServer({
 	app.use("/auth", authRouter);
 
 	const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
+		if (err?.phase === "request_validation") {
+			res.status(400).json({
+				error: "Invalid request",
+				details: err.cause,
+			});
+		}
 		const user = req.session?.userId ?? "-";
 		console.error(`Error on ${req.method} ${req.path} for user ${user}`, err);
 		res.status(500).send("Internal Server Error");

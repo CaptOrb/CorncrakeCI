@@ -57,6 +57,13 @@ describe("Repository API tests", () => {
 			.expect(401);
 	});
 
+	it("configureRepo with missing forge_repo_id returns 400", async () => {
+		const res = await request.post("/repo").send({ forge: 1 }); // missing forge_repo_id
+		expect(res.status).toBe(400);
+		expect(res.body).toHaveProperty("error", "Invalid request");
+		expect(res.body).toHaveProperty("details");
+	});
+
 	it("getRepo returns 200 with repository for authenticated user", async () => {
 		// Set up test user, repository, and session
 		const testData = await createTestUser(app);
