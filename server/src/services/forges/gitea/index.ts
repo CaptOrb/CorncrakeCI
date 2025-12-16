@@ -1,11 +1,11 @@
 import type { Res, StatusCode } from "@nahkies/typescript-fetch-runtime/main";
 import * as arctic from "arctic";
-import type { ForgeInstanceConfig } from "../../config/schema";
-import { ApiClient } from "../../generated/gitea/client";
-import type { t_ForgeRepository } from "../../generated/server/models";
-import type { Forge, ForgeWithUser } from "../../types/forge";
-import type { ForgeUser } from "../../types/forgeuser";
-import { unwrap } from "../../util/typing";
+import type { ForgeInstanceConfig } from "../../../config/schema";
+import { ApiClient } from "../../../generated/gitea/client";
+import type { t_ForgeRepository } from "../../../generated/server/models";
+import { unwrap } from "../../../util/typing";
+import type { Forge, ForgeWithUser } from "./../forge";
+import type { ForgeUser } from "./../forgeuser";
 
 class HttpError extends Error {
 	constructor(

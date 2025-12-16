@@ -1,4 +1,4 @@
-import type { t_ForgeRepository } from "../generated/server/models";
+import type { t_ForgeRepository } from "../../generated/server/models";
 import type { ForgeUser } from "./forgeuser";
 
 export interface Forge {

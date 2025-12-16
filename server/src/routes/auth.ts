@@ -110,15 +110,19 @@ authRouter.get("/callback", async (req: Request, res: Response) => {
 });
 
 authRouter.post("/logout", (req: Request, res: Response) => {
+	const isProduction = config.node.env === "production";
+
 	req.session.destroy((err) => {
 		if (err) {
 			res.status(500).json({ error: "Failed to logout" });
 			return;
 		}
-		res.clearCookie("__Host-SessionID", { path: "/" });
-		const isProduction = config.node.env === "production";
-		const cookieName = isProduction ? "__Host-oauth_state" : "oauth_state";
-		res.clearCookie(cookieName, { path: "/" });
+		res.clearCookie(isProduction ? "__Host-SessionID" : "sessionID", {
+			path: "/",
+		});
+		res.clearCookie(isProduction ? "__Host-oauth_state" : "oauth_state", {
+			path: "/",
+		});
 		res.json({ success: true });
 	});
 });

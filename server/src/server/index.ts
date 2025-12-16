@@ -8,21 +8,21 @@ import { Pool } from "pg";
 import { migrate } from "postgres-migrations";
 import swaggerUi from "swagger-ui-express";
 import { ZodError } from "zod";
+import { config } from "../config";
+import { connectDB } from "../config/db";
+import apiOpenapi from "../generated/api/@typespec/openapi3/openapi.json";
+import { createRouter } from "../generated/server/generated";
+import { runJobs } from "../jobs/graphile-worker";
+import authRouter from "../routes/auth";
 import {
 	configureRepo,
 	getRepo,
 	listAvailableRepos,
 	listConfiguredRepos,
 	reconfigureRepo,
-} from "./api/repositories";
-import { config } from "./config";
-import { connectDB } from "./config/db";
-import apiOpenapi from "./generated/api/@typespec/openapi3/openapi.json";
-import { createRouter } from "./generated/server/generated";
-import { runJobs } from "./jobs/graphile-worker";
-import authRouter from "./routes/auth";
-import { createForgesFromConfig } from "./services/forges";
-import { seedForges } from "./util/seedforges";
+} from "../server/api/repositories";
+import { createForgesFromConfig } from "../services/forges";
+import { seedForges } from "../util/seedforges";
 
 export async function createWebServer({
 	isProduction,

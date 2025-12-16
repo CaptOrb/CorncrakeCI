@@ -2,8 +2,8 @@ import { afterEach, beforeEach } from "vitest";
 import { transaction } from "../../src/db/stores";
 import type { t_ForgeRepository } from "../../src/generated/server/models";
 import { _forgeMap } from "../../src/services/forges";
-import type { Forge, ForgeWithUser } from "../../src/types/forge";
-import type { ForgeUser } from "../../src/types/forgeuser";
+import type { Forge, ForgeWithUser } from "../../src/services/forges/forge";
+import type { ForgeUser } from "../../src/services/forges/forgeuser";
 
 /**
  * Sets up a fresh test forge with ID 1 and registers it, for every test.

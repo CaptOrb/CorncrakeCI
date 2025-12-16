@@ -1,6 +1,6 @@
 import { config } from "../../config";
 import type { ForgeInstanceConfig } from "../../config/schema";
-import type { Forge } from "../../types/forge";
+import type { Forge } from "./forge";
 import { GiteaForge } from "./gitea";
 
 /**

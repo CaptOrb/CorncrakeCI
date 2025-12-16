@@ -1,14 +1,14 @@
-import { transaction } from "../db/stores";
+import { transaction } from "../../db/stores";
 import type {
 	ConfigureRepo,
 	GetRepo,
 	ListAvailableRepos,
 	ListConfiguredRepos,
 	ReconfigureRepo,
-} from "../generated/server/generated";
-import type { t_ConfigureRepoRequestBodySchema } from "../generated/server/models";
-import { mustGetForge } from "../services/forges";
-import { getAccessToken } from "../services/user";
+} from "../../generated/server/generated";
+import type { t_ConfigureRepoRequestBodySchema } from "../../generated/server/models";
+import { mustGetForge } from "../../services/forges";
+import { getAccessToken } from "../../services/user";
 
 export const listAvailableRepos: ListAvailableRepos = async (
 	_params,

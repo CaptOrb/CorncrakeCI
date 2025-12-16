@@ -144,7 +144,8 @@ dist
 # Built Visual Studio Code Extensions
 *.vsix
 
-gitea/
+# the gitea container in our compose file stores some data here
+/gitea/
 
 .pre-commit-config.yaml
 
