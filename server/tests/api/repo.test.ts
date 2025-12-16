@@ -58,10 +58,22 @@ describe("Repository API tests", () => {
 	});
 
 	it("configureRepo with missing forge_repo_id returns 400", async () => {
-		const res = await request.post("/repo").send({ forge: 1 }); // missing forge_repo_id
+		const res = await request.post("/repo").send({ forge: 1, settings: {} }); // missing forge_repo_id
 		expect(res.status).toBe(400);
-		expect(res.body).toHaveProperty("error", "Invalid request");
-		expect(res.body).toHaveProperty("details");
+		expect(res.body).toHaveProperty(
+			"error",
+			"Invalid request (Request validation failed parsing request body)",
+		);
+		expect(res.body).toHaveProperty("details", {
+			issues: [
+				{
+					code: "invalid_type",
+					expected: "string",
+					message: "Invalid input: expected string, received undefined",
+					path: ["forge_repo_id"],
+				},
+			],
+		});
 	});
 
 	it("getRepo returns 200 with repository for authenticated user", async () => {
