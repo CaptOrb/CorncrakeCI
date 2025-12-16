@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { runMigrations } from "graphile-worker";
 import { Client, type ClientBase, type ClientConfig, Pool } from "pg";
 import { parseIntoClientConfig } from "pg-connection-string";
 import { migrate } from "postgres-migrations";
@@ -85,6 +86,23 @@ export async function setupDb(): Promise<SetupDbResult> {
 				}
 
 				try {
+					const res = await adminClient.query(
+						`
+					SELECT
+						pid,
+						state,
+						query,
+						query_start,
+						backend_start
+					FROM pg_stat_activity
+					WHERE datname = $1
+					AND pid <> pg_backend_pid()
+					`,
+						[dbName],
+					);
+
+					console.log("Connections to terminate:", res.rows);
+
 					// Terminate any remaining connections to allow dropping
 					// TODO This might not work...
 					await adminClient.query(
@@ -170,21 +188,27 @@ export async function setupTemplate(adminClient: ClientBase) {
 
 	// Then run the migrations on the template database
 	try {
-		const templateClient = new Client({
+		const templatePool = new Pool({
 			...baseConfig,
 			database: TEMPLATE_DB_NAME,
 		});
-		await templateClient.connect();
 
 		try {
-			await migrate({ client: templateClient }, "./migrations", {
+			await migrate({ client: templatePool }, "./migrations", {
 				// logger: (msg) => console.log(`[Test Setup Migration] ${msg}`),
 			});
+
+			await runMigrations({
+				pgPool: templatePool,
+				schema: "graphile_worker",
+				noPreparedStatements: false,
+			});
+
 			console.log(
 				`Template database ${TEMPLATE_DB_NAME} is ready with migrations`,
 			);
 		} finally {
-			await templateClient.end();
+			await templatePool.end();
 		}
 	} catch (error) {
 		console.error("Failed to setup template database:", error);
@@ -203,13 +227,19 @@ export async function setupTemplate(adminClient: ClientBase) {
  *
  * Cleans up the database after the test.
  */
-export function databaseHelper() {
+export function databaseHelper(
+	onPoolCreated?: (pool: Pool) => void | Promise<void>,
+) {
 	let cleanup: () => Promise<void>;
 	beforeEach(async () => {
 		const result = await setupDb();
 		cleanup = result.cleanup;
 
 		_setPool(result.pool);
+
+		if (onPoolCreated) {
+			await onPoolCreated(result.pool);
+		}
 	});
 
 	afterEach(async () => {
