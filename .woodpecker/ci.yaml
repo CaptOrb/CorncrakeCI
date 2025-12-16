@@ -16,15 +16,13 @@ services:
 
 steps:
   - name: server
-    image: node:22-slim
+    image: guergeiro/pnpm:22-10-slim
     environment:
       NODE_ENV: test
       DB_URI: postgresql://molcitest:molcitest@postgres:5432/molcitest
       SESSION_SECRET: test-secret-key-for-ci-only
       APP_BASEURL: http://localhost:3000
     commands:
-      - npm install --global corepack@latest
-      - corepack use pnpm@latest-10
       
       - cd server
       - pnpm install --frozen-lockfile
