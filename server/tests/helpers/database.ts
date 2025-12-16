@@ -227,13 +227,19 @@ export async function setupTemplate(adminClient: ClientBase) {
  *
  * Cleans up the database after the test.
  */
-export function databaseHelper() {
+export function databaseHelper(
+	onPoolCreated?: (pool: Pool) => void | Promise<void>,
+) {
 	let cleanup: () => Promise<void>;
 	beforeEach(async () => {
 		const result = await setupDb();
 		cleanup = result.cleanup;
 
 		_setPool(result.pool);
+
+		if (onPoolCreated) {
+			await onPoolCreated(result.pool);
+		}
 	});
 
 	afterEach(async () => {
