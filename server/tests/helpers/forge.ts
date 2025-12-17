@@ -43,9 +43,14 @@ export function testForgeHelper(): { controller?: TestForgeController } {
 
 export class TestForge implements Forge {
 	constructor(
-		private controller: TestForgeController,
+		private _controller: TestForgeController,
 		public forgeId: number,
 	) {}
+
+	// Expose controller publicly for tests
+	get controller(): TestForgeController {
+		return this._controller;
+	}
 
 	getAuthorizationUrl(): { url: string; state: string; codeVerifier: string } {
 		return {
