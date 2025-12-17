@@ -15,66 +15,51 @@ export const listAvailableRepos: ListAvailableRepos = async (
 	respond,
 	req,
 ) => {
-	try {
-		const userId = req.session?.userId;
-		const forgeId = req.session?.forgeId;
+	const userId = req.session?.userId;
+	const forgeId = req.session?.forgeId;
 
-		if (!userId || forgeId === undefined) {
-			return respond.with401().body({ error: "Not authenticated" });
-		}
-
-		const accessToken = await getAccessToken(userId);
-		if (!accessToken) {
-			return respond
-				.with401()
-				.body({ error: "Missing or expired access token" });
-		}
-
-		const forge = mustGetForge(forgeId).withUser(accessToken);
-		const repos = await forge.listRepositories();
-
-		return respond.with200().body(repos);
-	} catch (err) {
-		console.error("Failed to fetch repos:", err);
-		return respond.with500().body({ error: "Failed to list repositories" });
+	if (!userId || forgeId === undefined) {
+		return respond.with401().body({ error: "Not authenticated" });
 	}
+
+	const accessToken = await getAccessToken(userId);
+	if (!accessToken) {
+		return respond.with401().body({ error: "Missing or expired access token" });
+	}
+
+	const forge = mustGetForge(forgeId).withUser(accessToken);
+	const repos = await forge.listRepositories();
+
+	return respond.with200().body(repos);
 };
 
 export const configureRepo: ConfigureRepo = async (_params, respond, req) => {
-	try {
-		const userId = req.session?.userId;
+	const userId = req.session?.userId;
 
-		if (!userId) {
-			return respond.with401().body({ error: "Not authenticated" });
-		}
-
-		const accessToken = await getAccessToken(userId);
-		if (!accessToken) {
-			return respond
-				.with401()
-				.body({ error: "Missing or expired access token" });
-		}
-
-		const { forge, forge_repo_id } =
-			req.body as t_ConfigureRepoRequestBodySchema;
-
-		const forgeClient = mustGetForge(forge).withUser(accessToken);
-		const repoDetails = await forgeClient.getRepository(forge_repo_id);
-
-		const repository = await transaction(async (txn) => {
-			return await txn.repositories.createOrUpdateRepository(
-				forge,
-				forge_repo_id,
-				userId,
-				repoDetails.full_name,
-			);
-		});
-
-		return respond.with200().body({ repo_id: repository.repo_id });
-	} catch (err) {
-		console.error("Failed to configure repo:", err);
-		return respond.with500().body({ error: "Failed to configure repository" });
+	if (!userId) {
+		return respond.with401().body({ error: "Not authenticated" });
 	}
+
+	const accessToken = await getAccessToken(userId);
+	if (!accessToken) {
+		return respond.with401().body({ error: "Missing or expired access token" });
+	}
+
+	const { forge, forge_repo_id } = req.body as t_ConfigureRepoRequestBodySchema;
+
+	const forgeClient = mustGetForge(forge).withUser(accessToken);
+	const repoDetails = await forgeClient.getRepository(forge_repo_id);
+
+	const repository = await transaction(async (txn) => {
+		return await txn.repositories.createOrUpdateRepository(
+			forge,
+			forge_repo_id,
+			userId,
+			repoDetails.full_name,
+		);
+	});
+
+	return respond.with200().body({ repo_id: repository.repo_id });
 };
 
 export const listConfiguredRepos: ListConfiguredRepos = async (
@@ -82,75 +67,65 @@ export const listConfiguredRepos: ListConfiguredRepos = async (
 	respond,
 	req,
 ) => {
-	try {
-		const userId = req.session?.userId;
+	const userId = req.session?.userId;
 
-		if (!userId) {
-			return respond.with401().body({ error: "Not authenticated" });
-		}
-
-		const configuredRepos = await transaction(async (txn) => {
-			const repos = await txn.repositories.listConfiguredRepositories(userId);
-
-			return repos.map((r) => ({
-				repo: r.repo,
-				configured_at: r.configured_at,
-			}));
-		});
-
-		return respond.with200().body(configuredRepos);
-	} catch (err) {
-		console.error("Failed to list configured repos:", err);
-		return respond.with500().body({
-			error: "Failed to list configured repositories",
-		});
+	if (!userId) {
+		return respond.with401().body({ error: "Not authenticated" });
 	}
+
+	const configuredRepos = await transaction(async (txn) => {
+		const repos = await txn.repositories.listConfiguredRepositories(userId);
+
+		return repos.map((r) => ({
+			repo: r.repo,
+			configured_at: r.configured_at,
+		}));
+	});
+
+	return respond.with200().body(configuredRepos);
 };
 
 export const reconfigureRepo: ReconfigureRepo = async (
-	{ params: _params },
-	_respond,
-	_req,
+	{ params },
+	respond,
+	req,
 ) => {
-	throw new Error("TODO BROKEN");
-	/*try {
-		const userId = req.session?.userId;
-		const forgeId = req.session?.forgeId;
+	const userId = req.session?.userId;
 
-		if (!userId || forgeId === undefined) {
-			return respond.with401().body({ error: "Not authenticated" });
-		}
+	if (!userId) {
+		return respond.with401().body({ error: "Not authenticated" });
+	}
 
-		const accessToken = await getAccessToken(userId);
-		if (!accessToken) {
-			return respond
-				.with401()
-				.body({ error: "Missing or expired access token" });
-		}
-		const repoId = _params.id;
+	const repoId = params.id;
 
-		const forge = mustGetForge(forgeId);
-		const repoDetails = await forge.getRepository(repoId, accessToken);
-		await transaction(async (txn) => {
-			await txn.repositories.createOrUpdateRepository(
-				forgeId,
-				repoId,
-				userId,
-				repoDetails.name,
-				repoDetails.description,
-				repoDetails.clone_url,
-				repoDetails.ssh_url,
-				repoDetails.html_url,
-				repoDetails.private,
-				"main", // for now
-			);
-		});
+	// Fetch repo details from DB so we can get associated forge
+	const dbRepo = await transaction(async (txn) =>
+		txn.repositories.getRepositoryById(repoId, userId),
+	);
 
-		return respond.with200();
-	} catch (err) {
-		console.error("Failed to configure repo:", err);
-		return respond.with500().body({ error: "Failed to configure repository" });
-	}*/
+	if (!dbRepo) {
+		return respond.with404().body({ error: "Repository not found" });
+	}
+
+	const accessToken = await getAccessToken(userId);
+	if (!accessToken) {
+		return respond.with401().body({ error: "Missing or expired access token" });
+	}
+
+	const forge = mustGetForge(dbRepo.forge_id).withUser(accessToken);
+	const forgeRepo = await forge.getRepository(dbRepo.forge_repo_id);
+
+	// Update DB for the reconfiguredRepo
+	await transaction(async (txn) => {
+		await txn.repositories.createOrUpdateRepository(
+			dbRepo.forge_id,
+			dbRepo.forge_repo_id,
+			userId,
+			forgeRepo.full_name,
+		);
+	});
+
+	return respond.with200();
 };
 
 export const getRepo: GetRepo = async (
@@ -160,36 +135,31 @@ export const getRepo: GetRepo = async (
 	_res,
 	_next,
 ) => {
-	try {
-		const userId = req.session?.userId;
+	const userId = req.session?.userId;
 
-		if (!userId) {
-			return respond.with401().body({ error: "Not authenticated" });
-		}
-
-		const molciRepoId = params.id;
-
-		const repository = await transaction(async (txn) => {
-			return txn.repositories.getRepositoryById(molciRepoId, userId);
-		});
-
-		if (!repository) {
-			return respond.with404().body({ error: "Repository not found" });
-		}
-
-		return respond.with200().body({
-			repo: {
-				forge_repo_id: repository.forge_repo_id,
-				full_name: repository.repo_name,
-				forge: {
-					id: repository.forge_id,
-					name: repository.forge_display_name,
-				},
-			},
-			configured_at: repository.created_at.toISOString(),
-		});
-	} catch (err) {
-		console.error("Failed to get repo:", err);
-		return respond.with500().body({ error: "Failed to get repository" });
+	if (!userId) {
+		return respond.with401().body({ error: "Not authenticated" });
 	}
+
+	const molciRepoId = params.id;
+
+	const repository = await transaction(async (txn) => {
+		return txn.repositories.getRepositoryById(molciRepoId, userId);
+	});
+
+	if (!repository) {
+		return respond.with404().body({ error: "Repository not found" });
+	}
+
+	return respond.with200().body({
+		repo: {
+			forge_repo_id: repository.forge_repo_id,
+			full_name: repository.repo_name,
+			forge: {
+				id: repository.forge_id,
+				name: repository.forge_display_name,
+			},
+		},
+		configured_at: repository.created_at.toISOString(),
+	});
 };

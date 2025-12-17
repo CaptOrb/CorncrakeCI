@@ -4,11 +4,13 @@ import type { Pool } from "pg";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 import { beforeEach, describe, expect, it } from "vitest";
+import { transaction } from "../../src/db/stores";
 import { setup_webhooks } from "../../src/jobs/setup-webhooks";
 import { createWebServer } from "../../src/server";
+import { _forgeMap } from "../../src/services/forges";
 import { createTestUser } from "../helpers/auth";
 import { databaseHelper } from "../helpers/database";
-import { testForgeHelper } from "../helpers/forge";
+import { type TestForge, testForgeHelper } from "../helpers/forge";
 
 describe("Repository API tests", () => {
 	let pool: Pool;
@@ -39,7 +41,6 @@ describe("Repository API tests", () => {
 			.send({
 				forge: 1,
 				forge_repo_id: "repo0001",
-				settings: { branch: "main" },
 			})
 			.expect(200);
 
@@ -52,13 +53,12 @@ describe("Repository API tests", () => {
 			.send({
 				forge: 1,
 				forge_repo_id: "repo0001",
-				settings: { branch: "main" },
 			})
 			.expect(401);
 	});
 
 	it("configureRepo with missing forge_repo_id returns 400", async () => {
-		const res = await request.post("/repo").send({ forge: 1, settings: {} }); // missing forge_repo_id
+		const res = await request.post("/repo").send({ forge: 1 }); // missing forge_repo_id
 		expect(res.status).toBe(400);
 		expect(res.body).toHaveProperty(
 			"error",
@@ -76,6 +76,39 @@ describe("Repository API tests", () => {
 		});
 	});
 
+	it("reconfigureRepo updates repo data when forge repo changes", async () => {
+		const testData = await createTestUser(app);
+
+		// First, configure the repo
+		const initConfiguredRepo = await request
+			.post("/repo")
+			.set("Cookie", `sessionID=${testData.session_id}`)
+			.send({
+				forge: 1,
+				forge_repo_id: "repo0001",
+			})
+			.expect(200);
+
+		const repoId = initConfiguredRepo.body.repo_id;
+
+		const testForge = _forgeMap.get(1) as TestForge;
+		const repo = testForge.controller.repositories.get("repo0001");
+
+		// Reconfigure the repo
+		repo!.name = "testuser/updated-repo"; // changed repo name
+
+		await request
+			.put(`/repo/${repoId}`)
+			.set("Cookie", `sessionID=${testData.session_id}`)
+			.expect(200);
+
+		// Verify that the DB was updated
+		const updatedRepo = await transaction(async (txn) =>
+			txn.repositories.getRepositoryById(repoId, testData.user_id),
+		);
+		expect(updatedRepo!.repo_name).toBe("testuser/updated-repo");
+	});
+
 	it("getRepo returns 200 with repository for authenticated user", async () => {
 		// Set up test user, repository, and session
 		const testData = await createTestUser(app);
@@ -86,7 +119,6 @@ describe("Repository API tests", () => {
 			.send({
 				forge: 1,
 				forge_repo_id: "repo0001",
-				settings: { branch: "main" },
 			})
 			.expect(200);
 
@@ -120,7 +152,6 @@ describe("Repository API tests", () => {
 			.send({
 				forge: 1,
 				forge_repo_id: "repo0001",
-				settings: { branch: "main" },
 			})
 			.expect(200);
 
@@ -149,7 +180,6 @@ describe("Repository API tests", () => {
 			.send({
 				forge: 1,
 				forge_repo_id: "repo0001",
-				settings: { branch: "main" },
 			})
 			.expect(200);
 
@@ -212,7 +242,6 @@ describe("Repository API tests", () => {
 			.send({
 				forge: 1,
 				forge_repo_id: "repo0001",
-				settings: { branch: "main" },
 			})
 			.expect(200);
 

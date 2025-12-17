@@ -41,10 +41,6 @@ model RepositoryConfig {
   configured_at: utcDateTime;
 }
 
-model RepositoryConfigInput {
-  settings: {};
-}
-
 @route("/repos/available")
 @get
 @summary("List repositories available from the user's forge account")
@@ -60,7 +56,8 @@ op listAvailableRepos():
 @route("/repos/configured")
 @get
 @summary("List repositories already configured in MOLCI")
-op listConfiguredRepos(): Body<RepositoryConfig[]> | (UnauthorizedResponse & Error) | {
+op listConfiguredRepos(): Body<RepositoryConfig[]> | (UnauthorizedResponse &
+  Error) | {
   @statusCode statusCode: 500;
   @body body: Error;
 };
@@ -69,7 +66,7 @@ op listConfiguredRepos(): Body<RepositoryConfig[]> | (UnauthorizedResponse & Err
 @post
 @summary("Configure a new repository for MOLCI")
 op configureRepo(
-  @body body: RepositoryConfigInput & {
+  @body body: {
     forge: integer;
     forge_repo_id: string;
   },
