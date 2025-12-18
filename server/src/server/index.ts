@@ -161,7 +161,7 @@ async function startServer(): Promise<void> {
 async function runMigrations(pool: Pool): Promise<void> {
 	const client = await pool.connect();
 	try {
-		await migrate({ client }, resolve(__dirname, "../migrations"), {
+		await migrate({ client }, resolve(__dirname, "../../migrations"), {
 			// Enable logging to see which migrations are being applied
 			logger: (msg) => console.log(`[Migration] ${msg}`),
 		});
