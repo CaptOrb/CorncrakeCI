@@ -30,8 +30,10 @@ authRouter.get("/login/:forgeId", (req: Request, res: Response) => {
 		const forge = mustGetForge(forgeId);
 		const authData = forge.getAuthorizationUrl();
 
-		req.session.codeVerifier = authData.codeVerifier;
-		req.session.forgeId = forgeId;
+		req.session.incompleteLogin = {
+			forgeId,
+			codeVerifier: authData.codeVerifier,
+		};
 
 		const cookieName = isProduction ? "__Host-oauth_state" : "oauth_state";
 
@@ -52,8 +54,7 @@ authRouter.get("/login/:forgeId", (req: Request, res: Response) => {
 });
 
 authRouter.get("/callback", async (req: Request, res: Response) => {
-	const forgeId = req.session.forgeId;
-	const codeVerifier = req.session.codeVerifier;
+	const incompleteLogin = req.session.incompleteLogin;
 	const state = req.query["state"] as string;
 	const code = req.query["code"] as string;
 
@@ -62,10 +63,12 @@ authRouter.get("/callback", async (req: Request, res: Response) => {
 	const cookieName = isProduction ? "__Host-oauth_state" : "oauth_state";
 	const stateFromCookie = cookies[cookieName];
 
-	if (forgeId === undefined || !state || !code || !codeVerifier) {
+	if (!incompleteLogin || !state || !code) {
 		res.status(400).json({ error: "Missing OAuth callback parameters" });
 		return;
 	}
+
+	const { forgeId, codeVerifier } = incompleteLogin;
 
 	if (state !== stateFromCookie) {
 		res.status(400).json({ error: "Invalid OAuth state parameter" });
@@ -87,10 +90,9 @@ authRouter.get("/callback", async (req: Request, res: Response) => {
 		);
 
 		req.session.userId = internalUser.user_id;
-		req.session.forgeId = forgeId;
 
-		// Clear OAuth session data
-		delete req.session.codeVerifier;
+		// incomplete_login should not be reused
+		delete req.session.incompleteLogin;
 		res.clearCookie(cookieName, { path: "/" });
 
 		res.json({
