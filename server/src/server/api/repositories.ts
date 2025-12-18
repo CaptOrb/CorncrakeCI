@@ -8,7 +8,7 @@ import type {
 } from "../../generated/server/generated";
 import type { t_ConfigureRepoRequestBodySchema } from "../../generated/server/models";
 import { mustGetForge } from "../../services/forges";
-import { getAccessToken } from "../../services/user";
+import { getAccessToken, getForgeIdforUser } from "../../services/user";
 
 export const listAvailableRepos: ListAvailableRepos = async (
 	_params,
@@ -16,18 +16,21 @@ export const listAvailableRepos: ListAvailableRepos = async (
 	req,
 ) => {
 	const userId = req.session?.userId;
-	const forgeId = req.session?.forgeId;
 
-	if (!userId || forgeId === undefined) {
+	if (!userId) {
 		return respond.with401().body({ error: "Not authenticated" });
 	}
 
-	const accessToken = await getAccessToken(userId);
+	const [accessToken, forgeId] = await Promise.all([
+		getAccessToken(userId),
+		getForgeIdforUser(userId), // you login to one forge at a time, so we can get the forge id from the user
+	]);
+
 	if (!accessToken) {
 		return respond.with401().body({ error: "Missing or expired access token" });
 	}
 
-	const forge = mustGetForge(forgeId).withUser(accessToken);
+	const forge = mustGetForge(forgeId!).withUser(accessToken);
 	const repos = await forge.listRepositories();
 
 	return respond.with200().body(repos);

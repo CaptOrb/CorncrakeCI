@@ -42,3 +42,15 @@ export const getOrCreateUser = (
 export const getAccessToken = (userId: number): Promise<string | null> => {
 	return transaction((txn) => txn.users.getAccessToken(userId));
 };
+
+export const getForgeIdforUser = async (
+	userId: number,
+): Promise<number | null> => {
+	const user = await transaction((txn) => txn.users.findUserById(userId));
+
+	if (user == null) {
+		throw new Error("User not found");
+	}
+
+	return user.forge_id;
+};
