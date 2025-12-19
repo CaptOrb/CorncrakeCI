@@ -47,7 +47,7 @@ steps:
     environment:
       NODE_ENV: test
       DB_URI: postgresql://molcitest:molcitest@postgres:5432/molcitest
-      SESSION_SECRET: test-secret-key-for-ci-only
+      SESSION_SECRET: test-secret-key-for-ci-only-at-least-32-chars
       APP_BASEURL: http://localhost:3000
     commands:
       - cd server
