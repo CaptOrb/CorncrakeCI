@@ -18,6 +18,12 @@ const ForgeInstanceSchema = v.pipe(
 		clientid: v.string(),
 		clientsecret: v.string(),
 		redirecturi: v.string(),
+		// assumed refresh token lifetime in seconds (default: 730 hours = 2628000 seconds)
+		refreshtokenlifetime: v.pipe(
+			v.optional(v.string(), "2628000"),
+			v.transform(Number),
+			v.integer(),
+		),
 	}),
 	v.transform((input) => ({
 		...input,
@@ -51,6 +57,26 @@ const AppConfigSchema = v.object({
 		v.nonEmpty(),
 		v.url(),
 		v.check((s) => !s.endsWith("/"), "Must not end with /"),
+	),
+	encryptionkey: v.pipe(
+		v.string(),
+		v.hexadecimal(),
+		v.length(64),
+		v.transform((hex) => Buffer.from(hex, "hex")),
+	),
+	// Refresh token threshold in seconds (default: 14 days = 1209600 seconds)
+	// We will try to proactively refresh tokens when they are within this time period of expiry.
+	refreshtokenthreshold: v.pipe(
+		v.optional(v.string(), "1209600"),
+		v.transform(Number),
+		v.integer(),
+	),
+	// Access token threshold in seconds (default: 15 mins = 900 seconds)
+	// When using an access token, we will refresh it automatically when it has this lifetime or less.
+	accesstokenthreshold: v.pipe(
+		v.optional(v.string(), "900"),
+		v.transform(Number),
+		v.integer(),
 	),
 });
 

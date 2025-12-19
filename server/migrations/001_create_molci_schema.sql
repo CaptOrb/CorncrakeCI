@@ -16,13 +16,22 @@ CREATE TABLE users (
     -- The ID of the user *in the forge*.
     -- Since we can't assume an ID format, we store in text.
     forge_user_id TEXT NOT NULL,
-    -- The access token, used for making requests as this user to the forge.
-    access_token TEXT NOT NULL,
-    -- When the access token expires.
-    -- NULL means the access token is not valid.
-    token_expires_at TIMESTAMPTZ,
     -- Only one account per forge per user
     UNIQUE (forge_id, forge_user_id)
+);
+
+CREATE TABLE forge_access_tokens (
+    -- The user_id of the user the tokens belong to. Foreign key to user_id on usersw table.
+    user_id INT PRIMARY KEY
+        REFERENCES users(user_id) ON DELETE CASCADE,
+    -- The access token (stored encrypted), used for making requests as this user to the forge.
+    access_token BYTEA NOT NULL,
+    -- When the access token expires.
+    access_token_expires_at TIMESTAMPTZ NOT NULL,
+    -- The refresh token (stored encrypted), used for generating a new access token.
+    refresh_token BYTEA NOT NULL,
+    -- When the refresh token expires.
+    refresh_token_expires_at TIMESTAMPTZ NOT NULL
 );
 
 -- Repositories from forges that have been configured for CI in this installation.

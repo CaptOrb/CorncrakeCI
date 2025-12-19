@@ -9,16 +9,11 @@ describe("UserStore database tests", () => {
 
 	it("should insert a new user", async () => {
 		await transaction(async (txn) => {
-			const user = await txn.users.insertUser(
-				1,
-				"test_user_1",
-				"test_token_123",
-			);
+			const user = await txn.users.insertUser(1, "test_user_1");
 
 			expect(user.forge_user_id).toBe("test_user_1");
 			expect(user.forge_id).toBe(1);
 			expect(user.user_id).toBe(1);
-			expect(user.access_token).toBe("test_token_123");
 			expect(user.user_id).toBeDefined();
 			expect(typeof user.user_id).toBe("number");
 		});
@@ -28,7 +23,7 @@ describe("UserStore database tests", () => {
 		let userId: number;
 
 		await transaction(async (txn) => {
-			const user = await txn.users.insertUser(1, "find_by_id_user", "token");
+			const user = await txn.users.insertUser(1, "find_by_id_user");
 			userId = user.user_id;
 		});
 
@@ -43,7 +38,7 @@ describe("UserStore database tests", () => {
 
 	it("should find user by forge and forge_user_id", async () => {
 		await transaction(async (txn) => {
-			await txn.users.insertUser(1, "find_by_forge_user", "token");
+			await txn.users.insertUser(1, "find_by_forge_user");
 		});
 
 		await transaction(async (txn) => {
@@ -73,11 +68,14 @@ describe("UserStore database tests", () => {
 				1,
 				"get_or_create_user",
 				"new_token",
+				new Date("2100-01-01T00:00:00Z"),
 			);
 
 			expect(user.forge_user_id).toBe("get_or_create_user");
 			expect(user.forge_id).toBe(1);
-			expect(user.access_token).toBe("new_token");
+
+			const token = await txn.users.getAccessToken(user.user_id);
+			expect(token).toBe("new_token");
 		});
 	});
 
@@ -90,6 +88,7 @@ describe("UserStore database tests", () => {
 				1,
 				"existing_user",
 				"original_token",
+				new Date("2100-01-01T00:00:00Z"),
 			);
 			firstUserId = user.user_id;
 		});
@@ -100,12 +99,14 @@ describe("UserStore database tests", () => {
 				1,
 				"existing_user",
 				"updated_token",
+				new Date("2100-01-01T00:00:00Z"),
 			);
 
 			// Should return the same user ID
 			expect(user.user_id).toBe(firstUserId);
 			// Should update the access token
-			expect(user.access_token).toBe("updated_token");
+			const token = await txn.users.getAccessToken(user.user_id);
+			expect(token).toBe("updated_token");
 		});
 	});
 
@@ -113,7 +114,12 @@ describe("UserStore database tests", () => {
 		let userId: number;
 
 		await transaction(async (txn) => {
-			const user = await txn.users.insertUser(1, "token_user", "secret_token");
+			const user = await txn.users.getOrCreateUser(
+				1,
+				"token_user",
+				"secret_token",
+				new Date("2100-01-01T00:00:00Z"),
+			);
 			userId = user.user_id;
 		});
 

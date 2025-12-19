@@ -4,6 +4,7 @@ import * as v from "valibot";
 import { config } from "../config";
 import { transaction } from "../db/stores";
 import { mustGetForge } from "../services/forges";
+import { decrypt } from "../util/crypto";
 
 export const SetupWebhooksJobPayload = v.object({
 	repoId: v.number(),
@@ -21,13 +22,14 @@ export async function setup_webhooks(payload: unknown, helpers: JobHelpers) {
 			forge_id: number;
 			forge_repo_id: string;
 			forge_user_id: string;
-			access_token: string;
+			access_token: Buffer | null;
 		} = await transaction(async (txn) => {
 			const result = await txn.client.query(
-				`SELECT r.forge_id, r.forge_repo_id, u.forge_user_id, u.access_token
+				`SELECT r.forge_id, r.forge_repo_id, u.forge_user_id, tokens.access_token
 				FROM repositories r
 				JOIN users u ON r.owner_id = u.user_id
 				JOIN forges f ON u.forge_id = f.forge_id
+				LEFT JOIN forge_access_tokens tokens ON u.user_id = tokens.user_id
 				WHERE r.repo_id = $1`,
 				[repoId],
 			);
@@ -39,11 +41,15 @@ export async function setup_webhooks(payload: unknown, helpers: JobHelpers) {
 			return;
 		}
 
-		const accessToken = repoResult.access_token;
-		if (!accessToken) {
+		if (!repoResult.access_token) {
 			helpers.logger.error(`No access token found`);
 			return;
 		}
+		// Decrypt token from BYTEA (Buffer)
+		const accessToken = decrypt(
+			repoResult.access_token,
+			config.app.encryptionkey,
+		);
 
 		const forge = mustGetForge(repoResult.forge_id).withUser(accessToken);
 

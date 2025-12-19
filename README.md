@@ -13,7 +13,9 @@ MolCI is an in-progress self-hosted CI system.
 
 # Compiling and running code
 1. Clone the repository:
-2. Rename `.env.sample` to `.env` in /server and fill in the database credentials and OAuth secrets in that file.
+2. Rename `.env.sample` to `.env` in /server and fill in the database credentials, OAuth secrets and encryption key in that file.
+
+Could use ``openssl rand -hex 32`` to generate an encryption key
 3. Inside /server directory, run:
    ```sh
    pnpm install
