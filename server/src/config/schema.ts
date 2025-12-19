@@ -55,7 +55,10 @@ const AppConfigSchema = v.object({
 });
 
 const SessionConfigSchema = v.object({
-	secret: v.string(),
+	secret: v.pipe(
+		v.string(),
+		v.minLength(32, "Session secret must be at least 32 characters long"),
+	),
 });
 
 export const ConfigSchema = v.object({
