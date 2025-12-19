@@ -15,18 +15,14 @@ export const findUserByForge = (
 export const insertUser = (
 	forgeId: number,
 	forgeUserId: string,
-	access_token?: string,
-	token_expires_at?: Date,
 ): Promise<User> => {
-	return transaction((txn) =>
-		txn.users.insertUser(forgeId, forgeUserId, access_token, token_expires_at),
-	);
+	return transaction((txn) => txn.users.insertUser(forgeId, forgeUserId));
 };
 
 export const getOrCreateUser = (
 	forgeId: number,
 	forgeUserId: string,
-	access_token?: string,
+	access_token: string,
 	token_expires_at?: Date,
 ): Promise<User> => {
 	return transaction((txn) =>
