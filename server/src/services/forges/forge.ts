@@ -1,16 +1,19 @@
 import type { t_ForgeRepository } from "../../generated/server/models";
 import type { ForgeUser } from "./forgeuser";
 
+export interface TokenInfo {
+	accessToken: string;
+	accessTokenExpiresAt: Date;
+	refreshToken: string;
+	refreshTokenExpiresAt: Date;
+}
+
 export interface Forge {
 	getAuthorizationUrl(): { url: string; state: string; codeVerifier: string };
 
-	exchangeCodeForToken(
-		code: string,
-		codeVerifier: string,
-	): Promise<{
-		accessToken: string;
-		accessTokenExpiresAt?: Date;
-	}>;
+	exchangeCodeForToken(code: string, codeVerifier: string): Promise<TokenInfo>;
+
+	refreshAccessToken(refreshToken: string): Promise<TokenInfo>;
 
 	withUser(accessToken: string): ForgeWithUser;
 }

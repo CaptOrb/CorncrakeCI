@@ -77,16 +77,17 @@ authRouter.get("/callback", async (req: Request, res: Response) => {
 
 	try {
 		const forge = mustGetForge(forgeId);
-		const { accessToken, accessTokenExpiresAt } =
-			await forge.exchangeCodeForToken(code, codeVerifier);
-		const forgeWithUser = forge.withUser(accessToken);
+		const tokens = await forge.exchangeCodeForToken(code, codeVerifier);
+		const forgeWithUser = forge.withUser(tokens.accessToken);
 		const forgeUser = await forgeWithUser.getUserInfo();
 
 		const internalUser = await getOrCreateUser(
 			forgeId,
 			forgeUser.id.toString(),
-			accessToken,
-			accessTokenExpiresAt,
+			tokens.accessToken,
+			tokens.accessTokenExpiresAt,
+			tokens.refreshToken,
+			tokens.refreshTokenExpiresAt,
 		);
 
 		req.session.userId = internalUser.user_id;

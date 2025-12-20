@@ -2,7 +2,11 @@ import { afterEach, beforeEach } from "vitest";
 import { transaction } from "../../src/db/stores";
 import type { t_ForgeRepository } from "../../src/generated/server/models";
 import { _forgeMap } from "../../src/services/forges";
-import type { Forge, ForgeWithUser } from "../../src/services/forges/forge";
+import type {
+	Forge,
+	ForgeWithUser,
+	TokenInfo,
+} from "../../src/services/forges/forge";
 import type { ForgeUser } from "../../src/services/forges/forgeuser";
 
 /**
@@ -63,15 +67,26 @@ export class TestForge implements Forge {
 	async exchangeCodeForToken(
 		code: string,
 		codeVerifier: string,
-	): Promise<{ accessToken: string; accessTokenExpiresAt?: Date }> {
+	): Promise<TokenInfo> {
 		if (code === "testCode" && codeVerifier === "VERIFIER") {
 			return {
 				accessToken: "testAccessToken",
 				accessTokenExpiresAt: new Date("2100-01-01T01:01:01"),
+				refreshToken: "testRefreshToken",
+				refreshTokenExpiresAt: new Date("2100-01-01T01:01:01"),
 			};
 		}
 
 		throw new Error("invalid auth");
+	}
+
+	async refreshAccessToken(): Promise<TokenInfo> {
+		return {
+			accessToken: "refreshedAccessToken",
+			accessTokenExpiresAt: new Date("2100-01-01T01:01:01"),
+			refreshToken: "newRefreshToken",
+			refreshTokenExpiresAt: new Date("2100-01-01T01:01:01"),
+		};
 	}
 
 	withUser(accessToken: string): ForgeWithUser {

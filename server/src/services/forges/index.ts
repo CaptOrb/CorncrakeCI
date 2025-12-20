@@ -1,6 +1,7 @@
 import { config } from "../../config";
 import type { ForgeInstanceConfig } from "../../config/schema";
-import type { Forge } from "./forge";
+import { findUserById, getTokenInfo, updateTokens } from "../user";
+import type { Forge, ForgeWithUser } from "./forge";
 import { GiteaForge } from "./gitea";
 
 /**
@@ -51,4 +52,49 @@ export function createForgesFromConfig(): void {
  */
 export function listAvailableForgeIds(): number[] {
 	return Array.from(_forgeMap.keys());
+}
+
+/**
+ * Gets a ForgeWithUser for a given molciuser ID, automatically refreshing the access token if it's about to expire.
+ */
+export async function getForgeWithUser(userId: number): Promise<ForgeWithUser> {
+	const user = await findUserById(userId);
+	if (!user) {
+		throw new Error("User not found");
+	}
+
+	const forge = mustGetForge(user.forge_id);
+
+	const tokenInfo = await getTokenInfo(userId);
+	if (!tokenInfo) {
+		throw new Error("No tokens found for user");
+	}
+
+	const now = new Date();
+	const thresholdMs = config.app.accesstokenthreshold * 1000;
+	const expiresAt = tokenInfo.accessTokenExpiresAt;
+
+	const isExpiring =
+		expiresAt && expiresAt.getTime() - now.getTime() < thresholdMs;
+
+	if (isExpiring) {
+		try {
+			const newTokens = await forge.refreshAccessToken(tokenInfo.refreshToken);
+
+			await updateTokens(
+				userId,
+				newTokens.accessToken,
+				newTokens.accessTokenExpiresAt,
+				newTokens.refreshToken,
+				newTokens.refreshTokenExpiresAt,
+			);
+
+			return forge.withUser(newTokens.accessToken);
+		} catch (error) {
+			console.error("Failed to refresh token for user", error);
+			throw new Error("Failed to refresh token");
+		}
+	}
+
+	return forge.withUser(tokenInfo.accessToken);
 }
