@@ -4,7 +4,7 @@ import type { ForgeInstanceConfig } from "../../../config/schema";
 import { ApiClient } from "../../../generated/gitea/client";
 import type { t_ForgeRepository } from "../../../generated/server/models";
 import { unwrap } from "../../../util/typing";
-import type { Forge, ForgeWithUser } from "./../forge";
+import type { Forge, ForgeWithUser, TokenInfo } from "./../forge";
 import type { ForgeUser } from "./../forgeuser";
 
 class HttpError extends Error {
@@ -102,11 +102,17 @@ export class GiteaForge implements Forge {
 
 		return { url: url.toString(), state, codeVerifier };
 	}
+	/**
+	 * Gitea doesn't provide refresh token expiry, so calculate it from config.
+	 */
+	private calculateRefreshTokenExpiry(): Date {
+		return new Date(Date.now() + this.config.refreshtokenlifetime * 1000);
+	}
 
 	async exchangeCodeForToken(
 		code: string,
 		codeVerifier: string,
-	): Promise<{ accessToken: string; accessTokenExpiresAt?: Date }> {
+	): Promise<TokenInfo> {
 		try {
 			const tokens = await this.gitea.validateAuthorizationCode(
 				code,
@@ -116,10 +122,28 @@ export class GiteaForge implements Forge {
 			return {
 				accessToken: tokens.accessToken(),
 				accessTokenExpiresAt: tokens.accessTokenExpiresAt(),
+				refreshToken: tokens.refreshToken(),
+				refreshTokenExpiresAt: this.calculateRefreshTokenExpiry(),
 			};
 		} catch (error) {
 			console.error("Failed to exchange code for token:", error);
 			throw new Error("Failed to exchange authorisation code for token");
+		}
+	}
+
+	async refreshAccessToken(refreshToken: string): Promise<TokenInfo> {
+		try {
+			// https://arcticjs.dev/providers/gitea
+			const tokens = await this.gitea.refreshAccessToken(refreshToken);
+			return {
+				accessToken: tokens.accessToken(),
+				accessTokenExpiresAt: tokens.accessTokenExpiresAt(),
+				refreshToken: tokens.refreshToken(),
+				refreshTokenExpiresAt: this.calculateRefreshTokenExpiry(),
+			};
+		} catch (error) {
+			console.error("Failed to refresh access token:", error);
+			throw new Error("Failed to refresh access token");
 		}
 	}
 

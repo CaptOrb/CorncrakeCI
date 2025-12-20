@@ -69,6 +69,8 @@ describe("UserStore database tests", () => {
 				"get_or_create_user",
 				"new_token",
 				new Date("2100-01-01T00:00:00Z"),
+				"refresh_token",
+				new Date("2100-01-01T00:00:00Z"),
 			);
 
 			expect(user.forge_user_id).toBe("get_or_create_user");
@@ -89,6 +91,8 @@ describe("UserStore database tests", () => {
 				"existing_user",
 				"original_token",
 				new Date("2100-01-01T00:00:00Z"),
+				"refresh_token",
+				new Date("2100-01-01T00:00:00Z"),
 			);
 			firstUserId = user.user_id;
 		});
@@ -99,6 +103,8 @@ describe("UserStore database tests", () => {
 				1,
 				"existing_user",
 				"updated_token",
+				new Date("2100-01-01T00:00:00Z"),
+				"refresh_token",
 				new Date("2100-01-01T00:00:00Z"),
 			);
 
@@ -118,6 +124,8 @@ describe("UserStore database tests", () => {
 				1,
 				"token_user",
 				"secret_token",
+				new Date("2100-01-01T00:00:00Z"),
+				"refresh_token",
 				new Date("2100-01-01T00:00:00Z"),
 			);
 			userId = user.user_id;
