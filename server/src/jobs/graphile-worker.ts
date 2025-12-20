@@ -1,9 +1,11 @@
 import { type Runner, run, type TaskList } from "graphile-worker";
 import type { Pool } from "pg";
+import { refresh_tokens } from "./refresh-tokens";
 import { setup_webhooks } from "./setup-webhooks";
 
 const taskList: TaskList = {
 	setup_webhooks,
+	refresh_tokens,
 };
 
 export async function runJobs(pgPool: Pool) {
