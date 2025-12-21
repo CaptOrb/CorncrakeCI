@@ -2,7 +2,7 @@ import type { JobHelpers } from "graphile-worker";
 import * as v from "valibot";
 import { config } from "../config";
 import { transaction } from "../db/stores";
-import { mustGetForge } from "../services/forges";
+import { mustGetForge, userTokenMutexes } from "../services/forges";
 import { findUserById, getTokenInfo, updateTokens } from "../services/user";
 
 export const RefreshTokensPayload = v.object({
@@ -13,6 +13,10 @@ export type RefreshTokensPayload = v.InferOutput<typeof RefreshTokensPayload>;
 export async function refresh_tokens(payload: unknown, helpers: JobHelpers) {
 	const { userId } = v.parse(RefreshTokensPayload, payload);
 	helpers.logger.info(`Refreshing tokens for user ${userId}`);
+
+	// Lock the user for token refreshes, so that we don't race with a user request
+	// refreshing at the same time.
+	using _lock = userTokenMutexes.lock(String(userId));
 
 	try {
 		const user = await findUserById(userId);

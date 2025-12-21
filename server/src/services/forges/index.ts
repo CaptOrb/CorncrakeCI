@@ -1,3 +1,4 @@
+import { KeyedMutex } from "keyed-mutex";
 import { config } from "../../config";
 import type { ForgeInstanceConfig } from "../../config/schema";
 import { coalesceConcurrent } from "../../util/coalesce";
@@ -61,6 +62,10 @@ export function listAvailableForgeIds(): number[] {
 async function getForgeWithUserUnwrapped(
 	userId: number,
 ): Promise<ForgeWithUser> {
+	// Lock the user's tokens so that e.g. the background job doesn't
+	// refresh concurrently with us.
+	using _lock = await userTokenMutexes.lock(String(userId));
+
 	const user = await findUserById(userId);
 	if (!user) {
 		throw new Error("User not found");
@@ -117,3 +122,9 @@ export function getForgeWithUser(userId: number): Promise<ForgeWithUser> {
 		getForgeWithUserUnwrapped(userId),
 	);
 }
+
+/**
+ * Mutexes for refreshing/mutating user access and refresh tokens.
+ * Keyed by user ID stringified.
+ */
+export const userTokenMutexes: KeyedMutex = new KeyedMutex();
