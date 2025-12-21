@@ -7,8 +7,7 @@ import type {
 	ReconfigureRepo,
 } from "../../generated/server/generated";
 import type { t_ConfigureRepoRequestBodySchema } from "../../generated/server/models";
-import { mustGetForge } from "../../services/forges";
-import { getAccessToken, getForgeIdforUser } from "../../services/user";
+import { getForgeWithUser } from "../../services/forges";
 
 export const listAvailableRepos: ListAvailableRepos = async (
 	_params,
@@ -21,16 +20,7 @@ export const listAvailableRepos: ListAvailableRepos = async (
 		return respond.with401().body({ error: "Not authenticated" });
 	}
 
-	const [accessToken, forgeId] = await Promise.all([
-		getAccessToken(userId),
-		getForgeIdforUser(userId), // you login to one forge at a time, so we can get the forge id from the user
-	]);
-
-	if (!accessToken) {
-		return respond.with401().body({ error: "Missing or expired access token" });
-	}
-
-	const forge = mustGetForge(forgeId!).withUser(accessToken);
+	const forge = await getForgeWithUser(userId);
 	const repos = await forge.listRepositories();
 
 	return respond.with200().body(repos);
@@ -43,14 +33,9 @@ export const configureRepo: ConfigureRepo = async (_params, respond, req) => {
 		return respond.with401().body({ error: "Not authenticated" });
 	}
 
-	const accessToken = await getAccessToken(userId);
-	if (!accessToken) {
-		return respond.with401().body({ error: "Missing or expired access token" });
-	}
-
 	const { forge, forge_repo_id } = req.body as t_ConfigureRepoRequestBodySchema;
 
-	const forgeClient = mustGetForge(forge).withUser(accessToken);
+	const forgeClient = await getForgeWithUser(userId);
 	const repoDetails = await forgeClient.getRepository(forge_repo_id);
 
 	const repository = await transaction(async (txn) => {
@@ -110,12 +95,7 @@ export const reconfigureRepo: ReconfigureRepo = async (
 		return respond.with404().body({ error: "Repository not found" });
 	}
 
-	const accessToken = await getAccessToken(userId);
-	if (!accessToken) {
-		return respond.with401().body({ error: "Missing or expired access token" });
-	}
-
-	const forge = mustGetForge(dbRepo.forge_id).withUser(accessToken);
+	const forge = await getForgeWithUser(userId);
 	const forgeRepo = await forge.getRepository(dbRepo.forge_repo_id);
 
 	// Update DB for the reconfiguredRepo
