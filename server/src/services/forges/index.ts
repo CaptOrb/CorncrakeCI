@@ -1,5 +1,6 @@
 import { config } from "../../config";
 import type { ForgeInstanceConfig } from "../../config/schema";
+import { coalesceConcurrent } from "../../util/coalesce";
 import { findUserById, getTokenInfo, updateTokens } from "../user";
 import type { Forge, ForgeWithUser } from "./forge";
 import { GiteaForge } from "./gitea";
@@ -57,7 +58,9 @@ export function listAvailableForgeIds(): number[] {
 /**
  * Gets a ForgeWithUser for a given molciuser ID, automatically refreshing the access token if it's about to expire.
  */
-export async function getForgeWithUser(userId: number): Promise<ForgeWithUser> {
+async function getForgeWithUserUnwrapped(
+	userId: number,
+): Promise<ForgeWithUser> {
 	const user = await findUserById(userId);
 	if (!user) {
 		throw new Error("User not found");
@@ -97,4 +100,20 @@ export async function getForgeWithUser(userId: number): Promise<ForgeWithUser> {
 	}
 
 	return forge.withUser(tokenInfo.accessToken);
+}
+
+/**
+ * User ID -> `getForgeWithUser` promises.
+ */
+const coalesceMapForgeWithUser: Map<number, Promise<ForgeWithUser>> = new Map();
+
+/**
+ * Gets a ForgeWithUser for a given molciuser ID, automatically refreshing the access token if it's about to expire.
+ *
+ * Concurrent calls will be coalesced into one.
+ */
+export function getForgeWithUser(userId: number): Promise<ForgeWithUser> {
+	return coalesceConcurrent(coalesceMapForgeWithUser, userId, () =>
+		getForgeWithUserUnwrapped(userId),
+	);
 }
