@@ -47,16 +47,13 @@ steps:
     environment:
       NODE_ENV: test
       DB_URI: postgresql://molcitest:molcitest@postgres:5432/molcitest
-      SESSION_SECRET: test-secret-key-for-ci-only-at-least-32-chars
-      APP_BASEURL: http://localhost:3000
-      APP_ENCRYPTIONKEY: "0000000000000000000000000000000000000000000000000000000000000000" # random secret used only for CI
 
     commands:
       - cd server
       - pnpm install --frozen-lockfile
 
       - pnpm run generate
-      
+
       - touch .env
 
       - pnpm run check

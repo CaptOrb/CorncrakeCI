@@ -3,12 +3,16 @@ import { loadEnvFile } from "node:process";
 import { Client } from "pg";
 import { getBaseDbConfig, setupTemplate } from "./helpers/database";
 
+/**
+ * Load `.env.test` files for the test.
+ * We intentionally don't load `.env` files because they might contain env vars
+ * for production and may not reflect the intended test setup.
+ */
 function findAndLoadEnvFiles() {
 	// Note: Earlier env files win
 	const envPaths = [
 		resolve(__dirname, "..", ".env.test"), // In server/
-		resolve(__dirname, "..", ".env"), // In server/
-		resolve(__dirname, "..", "..", ".env"), // In repo root
+		resolve(__dirname, "..", "..", ".env.test"), // In repo root
 	];
 
 	for (const envPath of envPaths) {
