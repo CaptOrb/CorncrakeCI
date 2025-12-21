@@ -23,28 +23,26 @@ export class RepositoryStore {
        DO UPDATE SET
          repo_name = EXCLUDED.repo_name,
          updated_at = NOW()
-        RETURNING repo_id, owner_id, created_at, updated_at`,
+		RETURNING repo_id, (xmax = 0) AS inserted`,
 			[forgeId, forgeRepoId, ownerId, repoName],
 		);
 
 		const repository: {
 			repo_id: number;
-			owner_id: number;
-			created_at: Date;
-			updated_at: Date;
+			inserted: boolean;
 		} = result.rows[0];
-		const newlyCreated =
-			repository.created_at.getTime() === repository.updated_at.getTime();
 
-		if (newlyCreated) {
+		if (repository.inserted) {
 			await this.client.query(
 				`SELECT graphile_worker.add_job(
-           'setup_webhooks', $1
+			'setup_webhooks', $1,
+			job_key := $2
          )`,
 				[
 					{
 						repoId: repository.repo_id,
 					} satisfies SetupWebhooksJobPayload,
+					`setup_webhooks:${repository.repo_id}`,
 				],
 			);
 		}
@@ -79,7 +77,6 @@ export class RepositoryStore {
 			repo: {
 				forge_repo_id: row.forge_repo_id,
 				full_name: row.repo_name,
-				description: row.description,
 
 				forge: {
 					id: row.forge_id,
