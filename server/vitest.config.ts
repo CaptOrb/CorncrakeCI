@@ -5,5 +5,7 @@ export default defineConfig({
 		globals: false,
 		environment: "node",
 		globalSetup: "./tests/setup.ts",
+		// Hide logs from passing tests
+		silent: "passed-only",
 	},
 });
