@@ -23,6 +23,7 @@ import {
 	listConfiguredRepos,
 	reconfigureRepo,
 } from "./api/repositories";
+import { BaseError } from "./errors";
 
 export async function createWebServer({
 	isProduction,
@@ -94,7 +95,21 @@ const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
 		error: "Internal Server Error",
 	};
 	let toLog: (Error | string)[] = [err];
-	if (err instanceof ExpressRuntimeError) {
+
+	// Helper function to handle our custom errors
+	const handleCustomError = (customErr: BaseError) => {
+		statusCode = customErr.statusCode;
+		errorBody = {
+			error: customErr.message,
+		};
+		toLog = [`${customErr.name}: ${customErr.message}`];
+	};
+
+	// Check for custom errors
+	const errorToCheck = err instanceof ExpressRuntimeError ? err.cause : err;
+	if (errorToCheck instanceof BaseError) {
+		handleCustomError(errorToCheck);
+	} else if (err instanceof ExpressRuntimeError) {
 		if (err.phase === "request_validation") {
 			const cause = err.cause;
 			if (cause instanceof ZodError) {

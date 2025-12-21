@@ -4,6 +4,7 @@ import type { ForgeInstanceConfig } from "../../../config/schema";
 import { ApiClient } from "../../../generated/gitea/client";
 import type { t_ForgeRepository } from "../../../generated/server/models";
 import { unwrap } from "../../../util/typing";
+import { AuthError, NotFoundError } from "./../errors";
 import type { Forge, ForgeWithUser, TokenInfo } from "./../forge";
 import type { ForgeUser } from "./../forgeuser";
 
@@ -127,7 +128,7 @@ export class GiteaForge implements Forge {
 			};
 		} catch (error) {
 			console.error("Failed to exchange code for token:", error);
-			throw new Error("Failed to exchange authorisation code for token");
+			throw new AuthError("Failed to exchange authorisation code for token");
 		}
 	}
 
@@ -143,7 +144,7 @@ export class GiteaForge implements Forge {
 			};
 		} catch (error) {
 			console.error("Failed to refresh access token:", error);
-			throw new Error("Failed to refresh access token");
+			throw new AuthError("Failed to refresh access token");
 		}
 	}
 
@@ -180,7 +181,9 @@ export class GiteaForgeWithUser implements ForgeWithUser {
 	): Promise<{ owner: string; repo: string }> {
 		const res = await this.client.repoGetById({ id: Number(forgeRepoId) });
 		if (res.status === 404) {
-			throw new Error(`Repository ${forgeRepoId} does not exist on the forge.`);
+			throw new NotFoundError(
+				`Repository ${forgeRepoId} does not exist on the forge.`,
+			);
 		}
 		const repo = await successJson(res);
 		return {
@@ -210,7 +213,9 @@ export class GiteaForgeWithUser implements ForgeWithUser {
 	async getRepository(repoId: string): Promise<t_ForgeRepository> {
 		const res = await this.client.repoGetById({ id: Number(repoId) });
 		if (res.status === 404) {
-			throw new Error(`Repository ${repoId} does not exist on the forge.`);
+			throw new NotFoundError(
+				`Repository ${repoId} does not exist on the forge.`,
+			);
 		}
 		const repo = await successJson(res);
 

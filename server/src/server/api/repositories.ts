@@ -7,7 +7,11 @@ import type {
 	ReconfigureRepo,
 } from "../../generated/server/generated";
 import type { t_ConfigureRepoRequestBodySchema } from "../../generated/server/models";
-import { getForgeWithUser } from "../../services/forges";
+import {
+	AuthError,
+	getForgeWithUser,
+	NotFoundError,
+} from "../../services/forges";
 
 export const listAvailableRepos: ListAvailableRepos = async (
 	_params,
@@ -17,7 +21,7 @@ export const listAvailableRepos: ListAvailableRepos = async (
 	const userId = req.session?.userId;
 
 	if (!userId) {
-		return respond.with401().body({ error: "Not authenticated" });
+		throw new AuthError("Not authenticated");
 	}
 
 	const forge = await getForgeWithUser(userId);
@@ -30,24 +34,31 @@ export const configureRepo: ConfigureRepo = async (_params, respond, req) => {
 	const userId = req.session?.userId;
 
 	if (!userId) {
-		return respond.with401().body({ error: "Not authenticated" });
+		throw new AuthError("Not authenticated");
 	}
 
 	const { forge, forge_repo_id } = req.body as t_ConfigureRepoRequestBodySchema;
 
-	const forgeClient = await getForgeWithUser(userId);
-	const repoDetails = await forgeClient.getRepository(forge_repo_id);
+	try {
+		const forgeClient = await getForgeWithUser(userId);
+		const repoDetails = await forgeClient.getRepository(forge_repo_id);
 
-	const repository = await transaction(async (txn) => {
-		return await txn.repositories.createOrUpdateRepository(
-			forge,
-			forge_repo_id,
-			userId,
-			repoDetails.full_name,
-		);
-	});
+		const repository = await transaction(async (txn) => {
+			return await txn.repositories.createOrUpdateRepository(
+				forge,
+				forge_repo_id,
+				userId,
+				repoDetails.full_name,
+			);
+		});
 
-	return respond.with200().body({ repo_id: repository.repo_id });
+		return respond.with200().body({ repo_id: repository.repo_id });
+	} catch (error) {
+		if (error instanceof NotFoundError) {
+			return respond.with400().body({ error: error.message });
+		}
+		throw error;
+	}
 };
 
 export const listConfiguredRepos: ListConfiguredRepos = async (
@@ -81,7 +92,7 @@ export const reconfigureRepo: ReconfigureRepo = async (
 	const userId = req.session?.userId;
 
 	if (!userId) {
-		return respond.with401().body({ error: "Not authenticated" });
+		throw new AuthError("Not authenticated");
 	}
 
 	const repoId = params.id;
@@ -92,7 +103,7 @@ export const reconfigureRepo: ReconfigureRepo = async (
 	);
 
 	if (!dbRepo) {
-		return respond.with404().body({ error: "Repository not found" });
+		throw new NotFoundError("Repository not found");
 	}
 
 	const forge = await getForgeWithUser(userId);
@@ -121,7 +132,7 @@ export const getRepo: GetRepo = async (
 	const userId = req.session?.userId;
 
 	if (!userId) {
-		return respond.with401().body({ error: "Not authenticated" });
+		throw new AuthError("Not authenticated");
 	}
 
 	const molciRepoId = params.id;
@@ -131,7 +142,7 @@ export const getRepo: GetRepo = async (
 	});
 
 	if (!repository) {
-		return respond.with404().body({ error: "Repository not found" });
+		throw new NotFoundError("Repository not found");
 	}
 
 	return respond.with200().body({

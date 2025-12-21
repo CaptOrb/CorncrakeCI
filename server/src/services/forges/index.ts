@@ -1,8 +1,12 @@
 import { config } from "../../config";
 import type { ForgeInstanceConfig } from "../../config/schema";
 import { findUserById, getTokenInfo, updateTokens } from "../user";
+import { AuthError } from "./errors";
 import type { Forge, ForgeWithUser } from "./forge";
 import { GiteaForge } from "./gitea";
+
+// Re-export error classes
+export { AuthError, NotFoundError } from "./errors";
 
 /**
  * Map from forge ID to the forge instance.
@@ -56,18 +60,19 @@ export function listAvailableForgeIds(): number[] {
 
 /**
  * Gets a ForgeWithUser for a given molciuser ID, automatically refreshing the access token if it's about to expire.
+ * @throws {AuthError} if user not found, tokens missing, or token refresh fails
  */
 export async function getForgeWithUser(userId: number): Promise<ForgeWithUser> {
 	const user = await findUserById(userId);
 	if (!user) {
-		throw new Error("User not found");
+		throw new AuthError("User not found");
 	}
 
 	const forge = mustGetForge(user.forge_id);
 
 	const tokenInfo = await getTokenInfo(userId);
 	if (!tokenInfo) {
-		throw new Error("No tokens found for user");
+		throw new AuthError("No tokens found for user");
 	}
 
 	const now = new Date();
@@ -92,7 +97,7 @@ export async function getForgeWithUser(userId: number): Promise<ForgeWithUser> {
 			return forge.withUser(newTokens.accessToken);
 		} catch (error) {
 			console.error("Failed to refresh token for user", error);
-			throw new Error("Failed to refresh token");
+			throw new AuthError("Failed to refresh token");
 		}
 	}
 
