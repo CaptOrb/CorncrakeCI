@@ -69,7 +69,7 @@ export const listConfiguredRepos: ListConfiguredRepos = async (
 	const userId = req.session?.userId;
 
 	if (!userId) {
-		return respond.with401().body({ error: "Not authenticated" });
+		throw new AuthError("Not authenticated");
 	}
 
 	const configuredRepos = await transaction(async (txn) => {
