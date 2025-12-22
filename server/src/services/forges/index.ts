@@ -1,3 +1,4 @@
+import { KeyedMutex } from "keyed-mutex";
 import { config } from "../../config";
 import type { ForgeInstanceConfig } from "../../config/schema";
 import { findUserById, getTokenInfo, updateTokens } from "../user";
@@ -63,6 +64,10 @@ export function listAvailableForgeIds(): number[] {
  * @throws {AuthError} if user not found, tokens missing, or token refresh fails
  */
 export async function getForgeWithUser(userId: number): Promise<ForgeWithUser> {
+	// Lock the user's tokens so that e.g. the background job doesn't
+	// refresh concurrently with us.
+	using _lock = await userTokenMutexes.lock(userId);
+
 	const user = await findUserById(userId);
 	if (!user) {
 		throw new AuthError("User not found");
@@ -103,3 +108,9 @@ export async function getForgeWithUser(userId: number): Promise<ForgeWithUser> {
 
 	return forge.withUser(tokenInfo.accessToken);
 }
+
+/**
+ * Mutexes for refreshing/mutating user access and refresh tokens.
+ * Keyed by user ID.
+ */
+export const userTokenMutexes: KeyedMutex<number> = new KeyedMutex();
