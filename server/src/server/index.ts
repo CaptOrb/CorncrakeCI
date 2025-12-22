@@ -1,4 +1,5 @@
-import { resolve } from "node:path";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { ExpressRuntimeError } from "@nahkies/typescript-express-runtime/errors";
 import pgSimple from "connect-pg-simple";
 import type { ErrorRequestHandler } from "express";
@@ -176,7 +177,12 @@ async function startServer(): Promise<void> {
 async function runMigrations(pool: Pool): Promise<void> {
 	const client = await pool.connect();
 	try {
-		await migrate({ client }, resolve(__dirname, "../../migrations"), {
+		// Get current directory in a ESM-friendly way
+		const currentFilename = fileURLToPath(import.meta.url);
+		const currentDirname = path.dirname(currentFilename);
+		const migrationsDir = path.join(currentDirname, "../../migrations");
+
+		await migrate({ client }, migrationsDir, {
 			// Enable logging to see which migrations are being applied
 			logger: (msg) => console.log(`[Migration] ${msg}`),
 		});
