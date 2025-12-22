@@ -1,6 +1,6 @@
-import { KeyedMutex } from "keyed-mutex";
 import { config } from "../../config";
 import type { ForgeInstanceConfig } from "../../config/schema";
+import { Lock } from "async-await-mutex-lock";
 import { findUserById, getTokenInfo, updateTokens } from "../user";
 import { AuthError } from "./errors";
 import type { Forge, ForgeWithUser } from "./forge";
@@ -66,51 +66,57 @@ export function listAvailableForgeIds(): number[] {
 export async function getForgeWithUser(userId: number): Promise<ForgeWithUser> {
 	// Lock the user's tokens so that e.g. the background job doesn't
 	// refresh concurrently with us.
-	using _lock = await userTokenMutexes.lock(userId);
+	await userTokenMutexes.acquire(userId);
 
-	const user = await findUserById(userId);
-	if (!user) {
-		throw new AuthError("User not found");
-	}
-
-	const forge = mustGetForge(user.forge_id);
-
-	const tokenInfo = await getTokenInfo(userId);
-	if (!tokenInfo) {
-		throw new AuthError("No tokens found for user");
-	}
-
-	const now = new Date();
-	const thresholdMs = config.app.accesstokenthreshold * 1000;
-	const expiresAt = tokenInfo.accessTokenExpiresAt;
-
-	const isExpiring =
-		expiresAt && expiresAt.getTime() - now.getTime() < thresholdMs;
-
-	if (isExpiring) {
-		try {
-			const newTokens = await forge.refreshAccessToken(tokenInfo.refreshToken);
-
-			await updateTokens(
-				userId,
-				newTokens.accessToken,
-				newTokens.accessTokenExpiresAt,
-				newTokens.refreshToken,
-				newTokens.refreshTokenExpiresAt,
-			);
-
-			return forge.withUser(newTokens.accessToken);
-		} catch (error) {
-			console.error("Failed to refresh token for user", error);
-			throw new AuthError("Failed to refresh token");
+	try {
+		const user = await findUserById(userId);
+		if (!user) {
+			throw new AuthError("User not found");
 		}
-	}
 
-	return forge.withUser(tokenInfo.accessToken);
+		const forge = mustGetForge(user.forge_id);
+
+		const tokenInfo = await getTokenInfo(userId);
+		if (!tokenInfo) {
+			throw new AuthError("No tokens found for user");
+		}
+
+		const now = new Date();
+		const thresholdMs = config.app.accesstokenthreshold * 1000;
+		const expiresAt = tokenInfo.accessTokenExpiresAt;
+
+		const isExpiring =
+			expiresAt && expiresAt.getTime() - now.getTime() < thresholdMs;
+
+		if (isExpiring) {
+			try {
+				const newTokens = await forge.refreshAccessToken(
+					tokenInfo.refreshToken,
+				);
+
+				await updateTokens(
+					userId,
+					newTokens.accessToken,
+					newTokens.accessTokenExpiresAt,
+					newTokens.refreshToken,
+					newTokens.refreshTokenExpiresAt,
+				);
+
+				return forge.withUser(newTokens.accessToken);
+			} catch (error) {
+				console.error("Failed to refresh token for user", error);
+				throw new AuthError("Failed to refresh token");
+			}
+		}
+
+		return forge.withUser(tokenInfo.accessToken);
+	} finally {
+		userTokenMutexes.release(userId);
+	}
 }
 
 /**
  * Mutexes for refreshing/mutating user access and refresh tokens.
  * Keyed by user ID.
  */
-export const userTokenMutexes: KeyedMutex<number> = new KeyedMutex();
+export const userTokenMutexes = new Lock<number>();

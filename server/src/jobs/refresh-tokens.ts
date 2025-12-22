@@ -16,7 +16,7 @@ export async function refresh_tokens(payload: unknown, helpers: JobHelpers) {
 
 	// Lock the user for token refreshes, so that we don't race with a user request
 	// refreshing at the same time.
-	using _lock = await userTokenMutexes.lock(userId);
+	await userTokenMutexes.acquire(userId);
 
 	try {
 		const user = await findUserById(userId);
@@ -44,6 +44,8 @@ export async function refresh_tokens(payload: unknown, helpers: JobHelpers) {
 			`Failed to refresh tokens for user ${userId}: ${error}`,
 		);
 		throw error;
+	} finally {
+		userTokenMutexes.release(userId);
 	}
 }
 
