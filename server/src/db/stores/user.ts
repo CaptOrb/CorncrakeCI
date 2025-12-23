@@ -99,19 +99,6 @@ export class UserStore {
 		return user;
 	}
 
-	async getAccessToken(userId: number): Promise<string | null> {
-		const result = await this.client.query(
-			`SELECT access_token FROM forge_access_tokens WHERE user_id = $1`,
-			[userId],
-		);
-		if (result.rows.length === 0) {
-			return null;
-		}
-		// Decrypt token from BYTEA (Buffer)
-
-		return decrypt(result.rows[0]?.access_token, config.app.encryptionkey);
-	}
-
 	async getTokenInfo(userId: number): Promise<StoredTokenInfo | null> {
 		const result = await this.client.query(
 			`SELECT access_token, access_token_expires_at, refresh_token, refresh_token_expires_at
