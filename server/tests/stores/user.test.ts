@@ -76,8 +76,8 @@ describe("UserStore database tests", () => {
 			expect(user.forge_user_id).toBe("get_or_create_user");
 			expect(user.forge_id).toBe(1);
 
-			const token = await txn.users.getAccessToken(user.user_id);
-			expect(token).toBe("new_token");
+			const tokens = await txn.users.getTokenInfo(user.user_id);
+			expect(tokens!.accessToken).toBe("new_token");
 		});
 	});
 
@@ -105,20 +105,26 @@ describe("UserStore database tests", () => {
 				"updated_token",
 				new Date("2100-01-01T00:00:00Z"),
 				"refresh_token",
-				new Date("2100-01-01T00:00:00Z"),
+				new Date("2100-01-02T00:00:00Z"),
 			);
 
 			// Should return the same user ID
 			expect(user.user_id).toBe(firstUserId);
-			// Should update the access token
-			const token = await txn.users.getAccessToken(user.user_id);
-			expect(token).toBe("updated_token");
+
+			const tokens = await txn.users.getTokenInfo(user.user_id);
+			expect(tokens!.accessToken).toBe("updated_token");
+			expect(tokens!.accessTokenExpiresAt.toISOString()).toBe(
+				"2100-01-01T00:00:00.000Z",
+			);
+			expect(tokens!.refreshToken).toBe("refresh_token");
+			expect(tokens!.refreshTokenExpiresAt.toISOString()).toBe(
+				"2100-01-02T00:00:00.000Z",
+			);
 		});
 	});
 
-	it("should get access token for user", async () => {
+	it("should get access and refresh token info for user", async () => {
 		let userId: number;
-
 		await transaction(async (txn) => {
 			const user = await txn.users.getOrCreateUser(
 				1,
@@ -126,20 +132,25 @@ describe("UserStore database tests", () => {
 				"secret_token",
 				new Date("2100-01-01T00:00:00Z"),
 				"refresh_token",
-				new Date("2100-01-01T00:00:00Z"),
+				new Date("2100-02-01T00:00:00Z"),
 			);
 			userId = user.user_id;
 		});
-
 		await transaction(async (txn) => {
-			const token = await txn.users.getAccessToken(userId!);
-			expect(token).toBe("secret_token");
+			const tokens = await txn.users.getTokenInfo(userId!);
+			expect(tokens!.accessToken).toBe("secret_token");
+			expect(tokens!.accessTokenExpiresAt.toISOString()).toBe(
+				"2100-01-01T00:00:00.000Z",
+			);
+			expect(tokens!.refreshToken).toBe("refresh_token");
+			expect(tokens!.refreshTokenExpiresAt.toISOString()).toBe(
+				"2100-02-01T00:00:00.000Z",
+			);
 		});
-
 		// Test non-existent user
 		await transaction(async (txn) => {
-			const token = await txn.users.getAccessToken(99999);
-			expect(token).toBeNull();
+			const tokens = await txn.users.getTokenInfo(99999);
+			expect(tokens).toBeNull();
 		});
 	});
 });

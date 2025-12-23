@@ -43,10 +43,6 @@ export const getOrCreateUser = async (
 	return user;
 };
 
-export const getAccessToken = (userId: number): Promise<string | null> => {
-	return transaction((txn) => txn.users.getAccessToken(userId));
-};
-
 export const getTokenInfo = (
 	userId: number,
 ): Promise<StoredTokenInfo | null> => {
