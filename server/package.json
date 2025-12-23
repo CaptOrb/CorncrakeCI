@@ -14,7 +14,7 @@
 		"generate": "pnpm run '/^generate:/'",
 		"generate-win": "pnpm run generate:api-tsp-openapi && pnpm run generate:api-tsp-server && pnpm run generate:openapi-ts-clients",
 		"generate:api-tsp-openapi": "tsp compile api.tsp --emit @typespec/openapi3 --options @typespec/openapi3.output-file=openapi.json --output-dir src/generated/api",
-		"generate:api-tsp-server": "openapi-code-generator --input ./api.tsp --input-type typespec --output ./src/generated/server --template typescript-express --ts-is-esm-project false",
+		"generate:api-tsp-server": "openapi-code-generator --input ./api.tsp --input-type typespec --output ./src/generated/server --template typescript-express",
 		"generate:openapi-ts-clients": "swagger2openapi --outfile schemas/gitea.openapi3.yaml schemas/gitea.yaml && openapi-code-generator --input ./schemas/gitea.openapi3.yaml --output ./src/generated/gitea --template typescript-fetch",
 		"lint": "pnpm exec biome check --write"
 	},
