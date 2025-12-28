@@ -1,5 +1,7 @@
 // biome-ignore-all lint/complexity/useLiteralKeys: without adding types,
 //   we can't remove literal keys from a few areas in this file
+
+import { promisify } from "node:util";
 import { type Request, type Response, Router } from "express";
 import { config } from "../../config";
 import { listAvailableForgeIds, mustGetForge } from "../../services/forges";
@@ -68,7 +70,10 @@ authRouter.get("/callback", async (req: Request, res: Response) => {
 		return;
 	}
 
-	const { forgeId, codeVerifier } = incompleteLogin;
+	if (!stateFromCookie) {
+		res.status(400).json({ error: "Missing state from cookie" });
+		return;
+	}
 
 	if (state !== stateFromCookie) {
 		res.status(400).json({ error: "Invalid OAuth state parameter" });
@@ -76,6 +81,7 @@ authRouter.get("/callback", async (req: Request, res: Response) => {
 	}
 
 	try {
+		const { forgeId, codeVerifier } = incompleteLogin;
 		const forge = mustGetForge(forgeId);
 		const tokens = await forge.exchangeCodeForToken(code, codeVerifier);
 		const forgeWithUser = forge.withUser(tokens.accessToken);
@@ -90,12 +96,22 @@ authRouter.get("/callback", async (req: Request, res: Response) => {
 			tokens.refreshTokenExpiresAt,
 		);
 
-		req.session.userId = internalUser.user_id;
+		// regenerate the session, which is good practice to help guard against forms of session fixation
+		// see https://expressjs.com/en/resources/middleware/session.html
+		await promisify(req.session.regenerate).apply(req.session);
 
+		req.session.userId = internalUser.user_id;
 		// incomplete_login should not be reused
 		delete req.session.incompleteLogin;
-		res.clearCookie(cookieName, { path: "/" });
 
+		await promisify(req.session.save).apply(req.session);
+
+		res.clearCookie(cookieName, {
+			path: "/",
+			secure: isProduction,
+			httpOnly: true,
+			sameSite: "lax",
+		});
 		res.json({
 			success: true,
 			user: {
@@ -106,7 +122,12 @@ authRouter.get("/callback", async (req: Request, res: Response) => {
 			},
 		});
 	} catch (err) {
-		res.clearCookie(cookieName, { path: "/" });
+		res.clearCookie(cookieName, {
+			path: "/",
+			secure: isProduction,
+			httpOnly: true,
+			sameSite: "lax",
+		});
 		console.error("OAuth callback error:", err);
 		res.status(500).json({ error: "OAuth callback failed" });
 	}
