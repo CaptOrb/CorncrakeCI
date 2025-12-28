@@ -2,6 +2,7 @@ import { afterEach, beforeEach } from "vitest";
 import { transaction } from "../../src/db/stores";
 import type { t_ForgeRepository } from "../../src/generated/server/models";
 import { _forgeMap } from "../../src/services/forges";
+import { NotFoundError } from "../../src/services/forges/errors";
 import type {
 	Forge,
 	ForgeWithUser,
@@ -77,6 +78,15 @@ export class TestForge implements Forge {
 			};
 		}
 
+		if (code === "testCode2" && codeVerifier === "VERIFIER") {
+			return {
+				accessToken: "testAccessToken2",
+				accessTokenExpiresAt: new Date("2100-01-01T01:01:01"),
+				refreshToken: "testRefreshToken2",
+				refreshTokenExpiresAt: new Date("2100-01-01T01:01:01"),
+			};
+		}
+
 		throw new Error("invalid auth");
 	}
 
@@ -95,6 +105,12 @@ export class TestForge implements Forge {
 				return {
 					id: 1,
 					login: "testuser",
+				};
+			}
+			if (accessToken === "testAccessToken2") {
+				return {
+					id: 2,
+					login: "otheruser",
 				};
 			}
 			return null;
@@ -141,10 +157,10 @@ class TestForgeWithUser implements ForgeWithUser {
 
 		const repo = this.controller.repositories.get(repoId);
 
-		if (!repo) throw new Error("Repository not found");
+		if (!repo) throw new NotFoundError("Repository not found");
 
 		if (repo.owner !== this.user.id)
-			throw new Error("Repository not owned by this user");
+			throw new NotFoundError("Repository not owned by this user");
 
 		return {
 			forge: {
