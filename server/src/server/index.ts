@@ -47,9 +47,11 @@ export async function createWebServer({
 			secret: config.session.secret,
 			resave: false,
 			saveUninitialized: false,
+			rolling: true, // session identifier cookie will expire in maxAge since the last response was sent instead of in maxAge since the session was last modified by the server
 			store: new PgSession({
 				pool,
 				createTableIfMissing: true,
+				pruneSessionInterval: 60 * 15, // removes old sessions from db
 			}),
 			cookie: {
 				secure: isProduction, // false in dev

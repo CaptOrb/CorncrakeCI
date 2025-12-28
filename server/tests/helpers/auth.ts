@@ -28,21 +28,6 @@ export async function createTestUser(
 		throw new Error("No cookies set");
 	}
 
-	const cookieArray = Array.isArray(loginCookies)
-		? loginCookies
-		: [loginCookies];
-
-	const sessionCookie = cookieArray.find((c: string) =>
-		c.startsWith("sessionID="),
-	);
-	if (!sessionCookie) {
-		throw new Error("No session cookie found");
-	}
-	const sessionIdMatch = sessionCookie.match(/sessionID=([^;]+)/);
-	if (!sessionIdMatch) {
-		throw new Error("Failed to parse session ID");
-	}
-
 	const callbackResponse = await request
 		.get("/auth/callback")
 		.query({ code: authCode, state: "STATE" })
@@ -51,6 +36,28 @@ export async function createTestUser(
 	if (callbackResponse.status !== 200) {
 		console.error(callbackResponse.error);
 		throw new Error(`Callback failed`);
+	}
+
+	const callbackCookies = callbackResponse.get("Set-Cookie");
+
+	if (!callbackCookies) {
+		throw new Error("No callback cookies set");
+	}
+	const callbackCookieArray = Array.isArray(callbackCookies)
+		? callbackCookies
+		: [callbackCookies];
+
+	// Get session ID from callback response as we want to guard against session fixation
+	const sessionCookie = callbackCookieArray.find((c: string) =>
+		c.startsWith("sessionID="),
+	);
+
+	if (!sessionCookie) {
+		throw new Error("No session cookie found");
+	}
+	const sessionIdMatch = sessionCookie.match(/sessionID=([^;]+)/);
+	if (!sessionIdMatch) {
+		throw new Error("Failed to parse session ID from callback");
 	}
 
 	const user = callbackResponse.body.user;
