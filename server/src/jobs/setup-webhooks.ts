@@ -23,9 +23,10 @@ export async function setup_webhooks(payload: unknown, helpers: JobHelpers) {
 			forge_repo_id: string;
 			forge_user_id: string;
 			access_token: Buffer | null;
+			webhook_secret: string | null;
 		} = await transaction(async (txn) => {
 			const result = await txn.client.query(
-				`SELECT r.forge_id, r.forge_repo_id, u.forge_user_id, tokens.access_token
+				`SELECT r.forge_id, r.forge_repo_id, u.forge_user_id, tokens.access_token, r.webhook_secret
 				FROM repositories r
 				JOIN users u ON r.owner_id = u.user_id
 				JOIN forges f ON u.forge_id = f.forge_id
@@ -43,6 +44,14 @@ export async function setup_webhooks(payload: unknown, helpers: JobHelpers) {
 
 		if (!repoResult.access_token) {
 			helpers.logger.error(`No access token found`);
+			return;
+		}
+
+		// If webhook already exists, skip creation to avoid duplicates
+		if (repoResult.webhook_secret !== null) {
+			helpers.logger.info(
+				`Webhook already exists for repo ${repoId}, skipping creation`,
+			);
 			return;
 		}
 		// Decrypt token from BYTEA (Buffer)

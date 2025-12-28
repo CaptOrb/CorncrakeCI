@@ -23,29 +23,28 @@ export class RepositoryStore {
        DO UPDATE SET
          repo_name = EXCLUDED.repo_name,
          updated_at = NOW()
-		RETURNING repo_id, (xmax = 0) AS inserted`,
+		RETURNING repo_id`,
 			[forgeId, forgeRepoId, ownerId, repoName],
 		);
 
 		const repository: {
 			repo_id: number;
-			inserted: boolean;
 		} = result.rows[0];
 
-		if (repository.inserted) {
-			await this.client.query(
-				`SELECT graphile_worker.add_job(
+		// schedule webhook setup job (for both configureRepo and reconfigureRepo)
+		// The job_key ensures only one job exists per repo
+		await this.client.query(
+			`SELECT graphile_worker.add_job(
 			'setup_webhooks', $1,
 			job_key := $2
-         )`,
-				[
-					{
-						repoId: repository.repo_id,
-					} satisfies SetupWebhooksJobPayload,
-					`setup_webhooks:${repository.repo_id}`,
-				],
-			);
-		}
+		 )`,
+			[
+				{
+					repoId: repository.repo_id,
+				} satisfies SetupWebhooksJobPayload,
+				`setup_webhooks:${repository.repo_id}`,
+			],
+		);
 
 		return { repo_id: repository.repo_id };
 	}
@@ -120,5 +119,14 @@ export class RepositoryStore {
 			return null;
 		}
 		return result.rows[0];
+	}
+
+	async clearWebhookSecret(repoId: number): Promise<void> {
+		await this.client.query(
+			`UPDATE repositories
+				SET webhook_secret = NULL
+			WHERE repo_id = $1`,
+			[repoId],
+		);
 	}
 }
