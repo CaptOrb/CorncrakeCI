@@ -6,10 +6,16 @@ export interface UserWithSessionId extends User {
 	session_id: string;
 }
 
+export interface CreateTestUserOptions {
+	forgeId?: number;
+	authCode?: string; // different auth codes for different users
+}
+
 export async function createTestUser(
 	app: Application,
-	forgeId = 1,
+	options: CreateTestUserOptions = {},
 ): Promise<UserWithSessionId> {
+	const { forgeId = 1, authCode = "testCode" } = options;
 	const request = supertest(app);
 
 	const loginResponse = await request.get(`/auth/login/${forgeId}`);
@@ -39,7 +45,7 @@ export async function createTestUser(
 
 	const callbackResponse = await request
 		.get("/auth/callback")
-		.query({ code: "testCode", state: "STATE" })
+		.query({ code: authCode, state: "STATE" })
 		.set("Cookie", loginCookies);
 
 	if (callbackResponse.status !== 200) {

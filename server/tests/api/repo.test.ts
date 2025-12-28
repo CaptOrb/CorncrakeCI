@@ -283,4 +283,75 @@ describe("Repository API tests", () => {
 				expect(res.body).toEqual({ error: "Not authenticated" });
 			});
 	});
+
+	it("getRepo returns 404 when trying to access another user's repo", async () => {
+		const userA = await createTestUser(app);
+
+		const createResponse = await request
+			.post("/repo")
+			.set("Cookie", `sessionID=${userA.session_id}`)
+			.send({
+				forge: 1,
+				forge_repo_id: "repo0001",
+			})
+			.expect(200);
+
+		const repoId = createResponse.body.repo_id;
+
+		// Create second user
+		const userB = await createTestUser(app, { authCode: "testCode2" });
+
+		// User B tries to access user A's repo
+		const fetchResponse = await request
+			.get(`/repo/${repoId}`)
+			.set("Cookie", `sessionID=${userB.session_id}`)
+			.expect(404);
+
+		expect(fetchResponse.body).toEqual({ error: "Repository not found" });
+	});
+
+	it("reconfigureRepo returns 404 when trying to reconfigure another user's repo", async () => {
+		const userA = await createTestUser(app);
+
+		const createResponse = await request
+			.post("/repo")
+			.set("Cookie", `sessionID=${userA.session_id}`)
+			.send({
+				forge: 1,
+				forge_repo_id: "repo0001",
+			})
+			.expect(200);
+
+		const repoId = createResponse.body.repo_id;
+
+		// Create second user
+		const userB = await createTestUser(app, { authCode: "testCode2" });
+
+		// User B tries to reconfigure user A's repo
+		const reconfigureResponse = await request
+			.put(`/repo/${repoId}`)
+			.set("Cookie", `sessionID=${userB.session_id}`)
+			.expect(404);
+
+		expect(reconfigureResponse.body).toEqual({
+			error: "Repository not found",
+		});
+	});
+
+	// maybe should return 404 instead of 400 to be consistent with the other tests?
+	it("configureRepo returns 400 when trying to configure a repo you don't own on the forge", async () => {
+		const userB = await createTestUser(app, { authCode: "testCode2" });
+
+		// User B tries to configure repo0001, which is owned by testuser on the forge
+		const response = await request
+			.post("/repo")
+			.set("Cookie", `sessionID=${userB.session_id}`)
+			.send({
+				forge: 1,
+				forge_repo_id: "repo0001", // owned by testuser (user id 1), not otheruser
+			})
+			.expect(400);
+
+		expect(response.body).toHaveProperty("error");
+	});
 });
