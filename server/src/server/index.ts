@@ -1,5 +1,6 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 import { ExpressRuntimeError } from "@nahkies/typescript-express-runtime/errors";
 import pgSimple from "connect-pg-simple";
 import type { ErrorRequestHandler } from "express";
@@ -16,6 +17,7 @@ import { createRouter } from "../generated/server/generated";
 import { runJobs } from "../jobs/graphile-worker";
 import authRouter from "../server/routes/auth";
 import { createForgesFromConfig } from "../services/forges";
+import { getTokenInfo } from "../services/user";
 import { seedForges } from "../util/seedforges";
 import {
 	configureRepo,
@@ -58,6 +60,26 @@ export async function createWebServer({
 			},
 		}),
 	);
+
+	// Middleware to invalidate session if access token is missing/invalid
+	app.use(async (req, res, next) => {
+		try {
+			if (req.session?.userId !== undefined) {
+				const tokenInfo = await getTokenInfo(req.session.userId);
+				if (!tokenInfo) {
+					console.log("No tokens found - invalidating session");
+
+					await promisify(req.session.regenerate).apply(req.session);
+
+					res.clearCookie(sessionCookieName, { path: "/" });
+				}
+			}
+
+			return next();
+		} catch (err) {
+			return next(err);
+		}
+	});
 
 	app.use(
 		"/",
