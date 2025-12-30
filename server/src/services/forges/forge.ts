@@ -32,4 +32,9 @@ export interface ForgeWithUser {
 		webhookUrl: string,
 		webhookSecret: string,
 	): Promise<{ id: string }>;
+
+	getMolciConfig(
+		forgeRepoId: string,
+		ref?: string,
+	): Promise<{ path: string; content?: string }>;
 }

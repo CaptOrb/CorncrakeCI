@@ -4,7 +4,7 @@ import { promisify } from "node:util";
 import { ExpressRuntimeError } from "@nahkies/typescript-express-runtime/errors";
 import pgSimple from "connect-pg-simple";
 import type { ErrorRequestHandler } from "express";
-import express, { type Application } from "express";
+import express, { type Application, type Request } from "express";
 import session from "express-session";
 import { Pool } from "pg";
 import { migrate } from "postgres-migrations";
@@ -26,7 +26,12 @@ import {
 	listConfiguredRepos,
 	reconfigureRepo,
 } from "./api/repositories";
+import { handleWebhook } from "./api/webhooks";
 import { BaseError } from "./errors";
+
+export interface RawBodyRequest extends Request {
+	rawBody?: Buffer;
+}
 
 export async function createWebServer({
 	isProduction,
@@ -36,7 +41,16 @@ export async function createWebServer({
 	pool: Pool;
 }): Promise<Application> {
 	const app = express();
-	app.use(express.json());
+
+	app.use(
+		express.json({
+			verify: (req: RawBodyRequest, _res, buf) => {
+				// Store the raw body bytes for later, as we need them to do a
+				// HMAC verification when processing webhook requests
+				req.rawBody = buf;
+			},
+		}),
+	);
 
 	const sessionCookieName = isProduction ? "__Host-SessionID" : "sessionID";
 
@@ -91,6 +105,7 @@ export async function createWebServer({
 			getRepo,
 			configureRepo,
 			reconfigureRepo,
+			handleWebhook,
 		}),
 	);
 
@@ -191,7 +206,8 @@ async function startServer(): Promise<void> {
 	void runJobs(pool);
 
 	const PORT = config.app.port;
-	app.listen(PORT, () => {
+	// todo allow configuring later
+	app.listen(PORT, "0.0.0.0", () => {
 		console.log(
 			`Server running in ${isProduction ? "production" : "development"} mode on port ${PORT}`,
 		);

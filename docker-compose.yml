@@ -24,8 +24,9 @@ services:
       POSTGRES_USER: ${GITEA_DB_USER}
       POSTGRES_PASSWORD: ${GITEA_DB_PASSWORD}
       POSTGRES_DB: ${GITEA_DB_NAME}
+      PGPORT: 5430
     ports:
-      - "5433:5432"
+      - "5430:5430"
     volumes:
       - gitea_postgres_data:/var/lib/postgresql/data
 
@@ -41,12 +42,15 @@ services:
       USER_UID: 1000
       USER_GID: 1000
       GITEA__database__DB_TYPE: postgres
-      GITEA__database__HOST: gitea-db:5432
+      GITEA__database__HOST: localhost:5430  # Connect to the correct port
+      GITEA__server__HTTP_PORT: 3001
+
       GITEA__database__NAME: ${GITEA_DB_NAME}
       GITEA__database__USER: ${GITEA_DB_USER}
       GITEA__database__PASSWORD: ${GITEA_DB_PASSWORD}
-    ports:
-      - "3001:3000"
+      GITEA__webhook__ALLOWED_HOST_LIST: localhost,127.0.0.1,172.17.0.1
+    network_mode: host # using this to make webhooks to MOLCI possible. previous use of host.docker.internal resulted in issues with firewall
+    
     volumes:
       - ./gitea:/data
       - /etc/localtime:/etc/localtime:ro

@@ -118,3 +118,29 @@ op reconfigureRepo(
       @statusCode statusCode: 500;
       @body body: Error;
     };
+
+@route("/webhooks/{repoId}")
+@post
+@summary("Handle webhook events from forge")
+op handleWebhook(
+  /**
+   * Repository ID
+   */
+  @path repoId: integer,
+
+  /**
+   * Webhook payload from forge.
+   *
+   * Freeform, forge-dependent and dependent on the event type (from HTTP header).
+   * Will be parsed with Valibot later.
+   */
+  @body body: Record<unknown>,
+): {
+  @statusCode statusCode: 200;
+} | {
+  @statusCode statusCode: 400;
+  @body body: Error;
+} | {
+  @statusCode statusCode: 404;
+  @body body: Error;
+};

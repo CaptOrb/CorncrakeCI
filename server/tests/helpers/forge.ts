@@ -192,6 +192,14 @@ class TestForgeWithUser implements ForgeWithUser {
 			id: "some-webhook-id",
 		};
 	}
+
+	// TODO: Implement this, it gets upset if it's not implemented
+	async getMolciConfig(
+		_forgeRepoId: string,
+		_ref?: string,
+	): Promise<{ path: string; content?: string }> {
+		return { path: "", content: "" };
+	}
 }
 
 export class TestForgeController {
