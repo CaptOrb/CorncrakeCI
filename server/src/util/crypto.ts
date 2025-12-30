@@ -41,3 +41,33 @@ export function decrypt(ciphertext: Buffer, key: Buffer): string {
 
 	return decrypted.toString("utf8");
 }
+
+export function verifyWebhookSignature(
+	rawBody: string | Buffer,
+	secret: string,
+	signatureHeader: string,
+): boolean {
+	// Strip the sha256= prefix off the front of the header.
+	const PREFIX = "sha256=";
+	if (!signatureHeader.startsWith("sha256=")) {
+		console.debug("No `sha256=` prefix on signature header.");
+		return false;
+	}
+	signatureHeader = signatureHeader.slice(PREFIX.length);
+
+	let received: Buffer;
+	try {
+		received = Buffer.from(signatureHeader, "hex");
+	} catch {
+		return false;
+	}
+
+	const expected = crypto.createHmac("sha256", secret).update(rawBody).digest();
+
+	// timingSafeEqual throws if lengths differ
+	if (expected.length !== received.length) {
+		return false;
+	}
+
+	return crypto.timingSafeEqual(expected, received);
+}

@@ -258,7 +258,7 @@ export class GiteaForgeWithUser implements ForgeWithUser {
 				type: "gitea",
 				config: {
 					url: webhookUrl,
-					webhookSecret: webhookSecret,
+					secret: webhookSecret,
 					content_type: "json",
 				},
 				events: webhookEvents,
@@ -270,5 +270,19 @@ export class GiteaForgeWithUser implements ForgeWithUser {
 		return {
 			id: String(webhook.id),
 		};
+	}
+
+	async getMolciConfig(
+		forgeRepoId: string,
+		_ref?: string,
+	): Promise<{ path: string; content: string }> {
+		const repoQueryParts = await this.getRepoQueryParts(forgeRepoId);
+
+		// Try to get the .molci directory contents
+		await this.client.repoGetContentsList({
+			...repoQueryParts,
+		});
+
+		throw new Error("Not implemented");
 	}
 }

@@ -95,8 +95,9 @@ export class RepositoryStore {
 
 	async getRepositoryById(
 		repoId: number,
-		ownerId: number,
+		ownerId?: number,
 	): Promise<{
+		webhook_secret: string;
 		repo_id: number;
 		forge_id: number;
 		forge_repo_id: string;
@@ -107,13 +108,13 @@ export class RepositoryStore {
 		forge_display_name: string;
 	} | null> {
 		const result = await this.client.query(
-			`SELECT r.repo_id, r.forge_id, r.forge_repo_id, r.owner_id, r.repo_name,
+			`SELECT r.repo_id, r.forge_id, r.forge_repo_id, r.owner_id, r.repo_name, webhook_secret,
 			 r.created_at, r.updated_at,
 			 f.display_name as forge_display_name
 			 FROM repositories r
 			 JOIN forges f USING (forge_id)
-			 WHERE r.repo_id = $1 AND r.owner_id = $2`,
-			[repoId, ownerId],
+			 WHERE r.repo_id = $1 ${ownerId !== undefined ? "AND r.owner_id = $2" : ""}`,
+			ownerId !== undefined ? [repoId, ownerId] : [repoId],
 		);
 		if (result.rows.length === 0) {
 			return null;
