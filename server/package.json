@@ -45,6 +45,7 @@
 		"vitest": "^4.0.15"
 	},
 	"dependencies": {
+		"@bgotink/kdl": "^0.4.0",
 		"@nahkies/typescript-express-runtime": "^0.22.0",
 		"@nahkies/typescript-fetch-runtime": "^0.22.0",
 		"@types/swagger-ui-express": "^4.1.8",

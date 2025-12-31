@@ -35,6 +35,6 @@ export interface ForgeWithUser {
 
 	getMolciConfig(
 		forgeRepoId: string,
-		ref?: string,
-	): Promise<{ path: string; content?: string }>;
+		ref: string,
+	): Promise<{ path: string; configFiles: Map<string, string> }>;
 }
