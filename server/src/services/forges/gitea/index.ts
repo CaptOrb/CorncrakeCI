@@ -2,6 +2,7 @@ import type { Res, StatusCode } from "@nahkies/typescript-fetch-runtime/main";
 import * as arctic from "arctic";
 import type { ForgeInstanceConfig } from "../../../config/schema";
 import { ApiClient } from "../../../generated/gitea/client";
+import type { t_ContentsResponse } from "../../../generated/gitea/models";
 import type { t_ForgeRepository } from "../../../generated/server/models";
 import { unwrap } from "../../../util/typing";
 import { AuthError, NotFoundError } from "./../errors";
@@ -274,15 +275,61 @@ export class GiteaForgeWithUser implements ForgeWithUser {
 
 	async getMolciConfig(
 		forgeRepoId: string,
-		_ref?: string,
-	): Promise<{ path: string; content: string }> {
+		ref: string,
+	): Promise<{ path: string; configFiles: Map<string, string> }> {
 		const repoQueryParts = await this.getRepoQueryParts(forgeRepoId);
 
-		// Try to get the .molci directory contents
-		await this.client.repoGetContentsList({
+		const molciContentsRes = await this.client.repoGetContents({
 			...repoQueryParts,
+			filepath: ".molci",
+			ref,
 		});
 
-		throw new Error("Not implemented");
+		if (molciContentsRes.status === 404) {
+			//return empty configs
+			return {
+				path: "",
+				configFiles: new Map<string, string>(),
+			};
+		}
+
+		const molciContents = (await successJson(
+			molciContentsRes,
+		)) as t_ContentsResponse[];
+
+		const configFiles = new Map<string, string>();
+		for (const item of molciContents) {
+			if (item.name!.endsWith(".kdl") && item.type! === "file") {
+				try {
+					const fileRes = await this.client.repoGetContents({
+						...repoQueryParts,
+						filepath: `.molci/${item.name}`,
+						ref,
+					});
+
+					if (fileRes.status === 200) {
+						const fileData = (await successJson(fileRes)) as {
+							content?: string;
+						};
+						if (fileData.content) {
+							// Decode base64 content before parsing KDL
+							// was intermettiently getting base64 encoded content as an error, so had to decode it
+							const decodedContent = Buffer.from(
+								fileData.content,
+								"base64",
+							).toString("utf-8");
+							configFiles.set(item.name!, decodedContent);
+						}
+					}
+				} catch (error) {
+					console.warn(`Failed to fetch KDL file ${item.name}:`, error);
+				}
+			}
+		}
+
+		return {
+			path: ".molci",
+			configFiles,
+		};
 	}
 }

@@ -1,6 +1,8 @@
+import { type Document, parse } from "@bgotink/kdl";
 import * as v from "valibot";
 import { transaction } from "../../db/stores";
 import type { HandleWebhook } from "../../generated/server/generated";
+import { getForgeWithUser } from "../../services/forges";
 import { verifyWebhookSignature } from "../../util/crypto";
 import type { RawBodyRequest } from "..";
 
@@ -68,11 +70,32 @@ export const handleWebhook: HandleWebhook = async (
 	);
 	console.debug("Raw webhook payload:", body);
 
+	const forge = await getForgeWithUser(repo.owner_id);
 	switch (eventTypeHeader) {
-		case "pull_request_sync": {
+		case "pull_request_sync":
+		case "pull_request": {
 			const parsed = v.safeParse(s_PullRequestWebHook, body);
 			if (parsed.success) {
 				console.debug("pull request:", parsed.output);
+
+				const molciConfig = await forge.getMolciConfig(
+					repo.forge_repo_id,
+					parsed.output.pull_request.head.sha,
+				);
+
+				const configs = new Map<string, Document>();
+				for (const [filename, content] of molciConfig.configFiles) {
+					try {
+						configs.set(filename, parse(content));
+					} catch (error) {
+						console.warn(`Failed to parse KDL file ${filename}:`, error);
+					}
+				}
+
+				console.log(
+					`Pull Request Event: found files: ${[...configs.keys()].join(", ")} in ${molciConfig.path}`,
+				);
+
 				// TODO do something
 			} else {
 				console.warn(
@@ -82,6 +105,32 @@ export const handleWebhook: HandleWebhook = async (
 				return respond
 					.with400()
 					.body({ error: "Could not parse webhook body" });
+			}
+			break;
+		}
+		case "push": {
+			const parsed = v.safeParse(s_PushWebHook, body);
+			if (parsed.success) {
+				console.log("push:", parsed.output);
+
+				const molciConfig = await forge.getMolciConfig(
+					repo.forge_repo_id,
+					parsed.output.after, // only the latest commit on a branch matters
+				);
+
+				// Parse KDL config files
+				const configs = new Map<string, Document>();
+				for (const [filename, content] of molciConfig.configFiles) {
+					try {
+						configs.set(filename, parse(content));
+					} catch (error) {
+						console.warn(`Failed to parse KDL file ${filename}:`, error);
+					}
+				}
+
+				console.log(
+					`push Event: (${parsed.output.ref}): found files: ${[...configs.keys()].join(", ")} in ${molciConfig.path}`,
+				);
 			}
 			break;
 		}
@@ -131,4 +180,23 @@ const s_PullRequestWebHook = v.object({
 	action: v.picklist(["synchronized", "opened"]),
 	sender: s_User,
 	pull_request: s_PullRequest,
+});
+
+const s_PushWebHook = v.object({
+	ref: v.string(),
+	before: v.string(),
+	after: v.string(),
+	commits: v.array(
+		v.object({
+			id: v.string(),
+			message: v.string(),
+			url: v.string(),
+		}),
+	),
+	repository: v.object({
+		id: v.number(),
+		full_name: v.string(),
+		clone_url: v.string(),
+	}),
+	pusher: s_User,
 });
