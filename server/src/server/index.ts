@@ -105,9 +105,10 @@ export async function createWebServer({
 			getRepo,
 			configureRepo,
 			reconfigureRepo,
-			handleWebhook,
 		}),
 	);
+
+	app.post("/webhooks/:repoId", handleWebhook);
 
 	app.use("/auth", authRouter);
 
