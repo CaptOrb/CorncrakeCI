@@ -301,25 +301,24 @@ export class GiteaForgeWithUser implements ForgeWithUser {
 		for (const item of molciContents) {
 			if (item.name!.endsWith(".kdl") && item.type! === "file") {
 				try {
-					const fileRes = await this.client.repoGetContents({
+					const fileRes = await this.client.repoGetRawFile({
 						...repoQueryParts,
 						filepath: `.molci/${item.name}`,
 						ref,
 					});
 
 					if (fileRes.status === 200) {
-						const fileData = (await successJson(fileRes)) as {
-							content?: string;
-						};
-						if (fileData.content) {
-							// Decode base64 content before parsing KDL
-							// was intermettiently getting base64 encoded content as an error, so had to decode it
-							const decodedContent = Buffer.from(
-								fileData.content,
-								"base64",
-							).toString("utf-8");
-							configFiles.set(item.name!, decodedContent);
+						const fileContent = await fileRes.text();
+						if (fileContent) {
+							configFiles.set(item.name!, fileContent);
 						}
+					} else {
+						// repoGetRawFile returns either 200 or 404 but aren't we just fetching the files that exists in .molci..?
+						// I guess we can check regardless to be defensive
+						console.warn(
+							`Failed to fetch KDL file ${item.name}:`,
+							fileRes.status,
+						);
 					}
 				} catch (error) {
 					console.warn(`Failed to fetch KDL file ${item.name}:`, error);

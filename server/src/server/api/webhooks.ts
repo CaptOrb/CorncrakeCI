@@ -1,26 +1,20 @@
 import { type Document, parse } from "@bgotink/kdl";
+import type { Response } from "express";
 import * as v from "valibot";
 import { transaction } from "../../db/stores";
-import type { HandleWebhook } from "../../generated/server/generated";
 import { getForgeWithUser } from "../../services/forges";
 import { verifyWebhookSignature } from "../../util/crypto";
 import type { RawBodyRequest } from "..";
 
-export const handleWebhook: HandleWebhook = async (
-	{ params, body },
-	respond,
-	req: RawBodyRequest,
-	_res,
-	_next,
-) => {
-	const { repoId } = params;
-
+export const handleWebhook = async (req: RawBodyRequest, res: Response) => {
+	const { repoId: repoIdStr } = req.params;
+	const repoId = Number(repoIdStr);
 	const repo = await transaction(async (txn) => {
 		return await txn.repositories.getRepositoryById(repoId);
 	});
 
 	if (!repo) {
-		return respond.with404().body({ error: "Repository not found" });
+		return res.status(404).json({ error: "Repository not found" });
 	}
 
 	// Before processing the webhook, we should verify that is came from the forge
@@ -28,7 +22,7 @@ export const handleWebhook: HandleWebhook = async (
 	// compare it against the HMAC provided in the request header
 	if (!req.rawBody) {
 		// We need the raw body bytes. This error shouldn't happen.
-		return respond.with400().body({ error: "Missing raw request body" });
+		return res.status(400).json({ error: "Missing raw request body" });
 	}
 
 	// These are not headers that have a list of duplicates,
@@ -48,33 +42,33 @@ export const handleWebhook: HandleWebhook = async (
 		| undefined;
 
 	if (!signatureHeader) {
-		return respond.with400().body({ error: "Missing signature header" });
+		return res.status(400).json({ error: "Missing signature header" });
 	}
 	if (!eventTypeHeader) {
-		return respond.with400().body({ error: "Missing event type header" });
+		return res.status(400).json({ error: "Missing event type header" });
 	}
 	if (!deliveryHeader) {
-		return respond.with400().body({ error: "Missing delivery ID header" });
+		return res.status(400).json({ error: "Missing delivery ID header" });
 	}
 
 	// Verify signature using raw body
 	if (
 		!verifyWebhookSignature(req.rawBody, repo.webhook_secret, signatureHeader)
 	) {
-		return respond.with400().body({ error: "Invalid signature" });
+		return res.status(400).json({ error: "Invalid signature" });
 	}
 
 	// At this point, the signature has been verified and we can process the body
 	console.log(
 		`Received ${eventTypeHeader} webhook ${deliveryHeader} for repo ${repoId}`,
 	);
-	console.debug("Raw webhook payload:", body);
+	console.debug("Raw webhook payload:", req.body);
 
 	const forge = await getForgeWithUser(repo.owner_id);
 	switch (eventTypeHeader) {
 		case "pull_request_sync":
 		case "pull_request": {
-			const parsed = v.safeParse(s_PullRequestWebHook, body);
+			const parsed = v.safeParse(s_PullRequestWebHook, req.body);
 			if (parsed.success) {
 				console.debug("pull request:", parsed.output);
 
@@ -102,14 +96,12 @@ export const handleWebhook: HandleWebhook = async (
 					`Failed to parse ${eventTypeHeader} webhook body:`,
 					parsed.issues,
 				);
-				return respond
-					.with400()
-					.body({ error: "Could not parse webhook body" });
+				return res.status(400).json({ error: "Could not parse webhook body" });
 			}
 			break;
 		}
 		case "push": {
-			const parsed = v.safeParse(s_PushWebHook, body);
+			const parsed = v.safeParse(s_PushWebHook, req.body);
 			if (parsed.success) {
 				console.log("push:", parsed.output);
 
@@ -140,7 +132,7 @@ export const handleWebhook: HandleWebhook = async (
 		}
 	}
 
-	return respond.with200();
+	return res.status(200).end();
 };
 
 const s_User = v.object({
