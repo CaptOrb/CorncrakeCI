@@ -58,6 +58,7 @@ const AppConfigSchema = v.object({
 		v.url(),
 		v.check((s) => !s.endsWith("/"), "Must not end with /"),
 	),
+	bindaddress: v.pipe(v.optional(v.string(), "127.0.0.1"), v.ip()),
 	encryptionkey: v.pipe(
 		v.string(),
 		v.hexadecimal(),
