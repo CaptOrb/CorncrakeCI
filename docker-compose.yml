@@ -49,6 +49,7 @@ services:
       GITEA__database__USER: ${GITEA_DB_USER}
       GITEA__database__PASSWORD: ${GITEA_DB_PASSWORD}
       GITEA__webhook__ALLOWED_HOST_LIST: localhost,127.0.0.1,172.17.0.1
+      GITEA__server__START_SSH_SERVER: "false"
     network_mode: host # using this to make webhooks to MOLCI possible. previous use of host.docker.internal resulted in issues with firewall
     
     volumes:
