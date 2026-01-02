@@ -207,10 +207,9 @@ async function startServer(): Promise<void> {
 	void runJobs(pool);
 
 	const PORT = config.app.port;
-	// todo allow configuring later
-	app.listen(PORT, "0.0.0.0", () => {
+	app.listen(PORT, config.app.bindaddress, () => {
 		console.log(
-			`Server running in ${isProduction ? "production" : "development"} mode on port ${PORT}`,
+			`Server running in ${isProduction ? "production" : "development"} mode on port ${PORT} (bound to ${config.app.bindaddress})`,
 		);
 	});
 }
