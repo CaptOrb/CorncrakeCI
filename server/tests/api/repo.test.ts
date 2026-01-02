@@ -264,6 +264,7 @@ describe("Repository API tests", () => {
 			{
 				configured_at: expect.any(String),
 				repo: {
+					repo_id: 1,
 					forge_repo_id: "repo0001",
 					full_name: "testuser/testrepo",
 					forge: {

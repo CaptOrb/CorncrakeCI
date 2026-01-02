@@ -31,13 +31,20 @@ model ForgeRepository {
   forge: ForgeSummary;
 }
 
+model ConfiguredRepository {
+  repo_id: integer;
+  forge_repo_id: string;
+  full_name: string;
+  forge: ForgeSummary;
+}
+
 model ForgeSummary {
   id: integer;
   name: string;
 }
 
 model RepositoryConfig {
-  repo: ForgeRepository;
+  repo: ConfiguredRepository;
   configured_at: utcDateTime;
 }
 

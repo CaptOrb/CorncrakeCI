@@ -58,7 +58,7 @@ export class RepositoryStore {
 	      r.forge_repo_id,
 	      r.repo_name,
 	      r.created_at,
-
+		  r.repo_id,
 	      f.forge_id,
 	      f.display_name,
 
@@ -76,6 +76,7 @@ export class RepositoryStore {
 			repo: {
 				forge_repo_id: row.forge_repo_id,
 				full_name: row.repo_name,
+				repo_id: row.repo_id,
 
 				forge: {
 					id: row.forge_id,
