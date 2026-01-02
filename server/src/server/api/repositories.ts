@@ -73,12 +73,7 @@ export const listConfiguredRepos: ListConfiguredRepos = async (
 	}
 
 	const configuredRepos = await transaction(async (txn) => {
-		const repos = await txn.repositories.listConfiguredRepositories(userId);
-
-		return repos.map((r) => ({
-			repo: r.repo,
-			configured_at: r.configured_at,
-		}));
+		return await txn.repositories.listConfiguredRepositories(userId);
 	});
 
 	return respond.with200().body(configuredRepos);
@@ -151,6 +146,7 @@ export const getRepo: GetRepo = async (
 
 	return respond.with200().body({
 		repo: {
+			repo_id: repository.repo_id,
 			forge_repo_id: repository.forge_repo_id,
 			full_name: repository.repo_name,
 			forge: {
