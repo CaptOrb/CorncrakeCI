@@ -4,14 +4,10 @@
 import { promisify } from "node:util";
 import { type Request, type Response, Router } from "express";
 import { config } from "../../config";
-import { listAvailableForgeIds, mustGetForge } from "../../services/forges";
+import { mustGetForge } from "../../services/forges";
 import { getOrCreateUser } from "../../services/user";
 
 const authRouter = Router();
-
-authRouter.get("/providers", (_req, res) => {
-	res.json({ providers: listAvailableForgeIds() });
-});
 
 authRouter.get("/login/:forgeId", (req: Request, res: Response) => {
 	const forgeIdParam = req.params["forgeId"];
@@ -38,6 +34,7 @@ authRouter.get("/login/:forgeId", (req: Request, res: Response) => {
 		};
 
 		const cookieName = isProduction ? "__Host-oauth_state" : "oauth_state";
+		const thenCookieName = isProduction ? "__Host-then_path" : "then_path";
 
 		// Store OAuth state in a cookie
 		res.cookie(cookieName, authData.state, {
@@ -48,7 +45,18 @@ authRouter.get("/login/:forgeId", (req: Request, res: Response) => {
 			sameSite: "lax",
 		});
 
-		res.json({ authUrl: `${authData.url}&state=${authData.state}` });
+		// Store then parameter in a cookie
+		const thenParam = req.query["then"] as string;
+		if (thenParam) {
+			res.cookie(thenCookieName, thenParam, {
+				secure: isProduction,
+				path: "/",
+				httpOnly: true,
+				maxAge: 10 * 60 * 1000, // 10 minutes
+				sameSite: "lax",
+			});
+		}
+		res.redirect(authData.url);
 	} catch (err) {
 		console.error("Failed to generate auth URL:", err);
 		res.status(400).json({ error: (err as Error).message });
@@ -63,6 +71,7 @@ authRouter.get("/callback", async (req: Request, res: Response) => {
 	const isProduction = config.node.env === "production";
 	const cookies = parseCookies(req);
 	const cookieName = isProduction ? "__Host-oauth_state" : "oauth_state";
+	const thenCookieName = isProduction ? "__Host-then_path" : "then_path";
 	const stateFromCookie = cookies[cookieName];
 
 	if (!incompleteLogin || !state || !code) {
@@ -106,23 +115,40 @@ authRouter.get("/callback", async (req: Request, res: Response) => {
 
 		await promisify(req.session.save).apply(req.session);
 
+		const thenPath = cookies[thenCookieName];
+
 		res.clearCookie(cookieName, {
 			path: "/",
 			secure: isProduction,
 			httpOnly: true,
 			sameSite: "lax",
 		});
-		res.json({
-			success: true,
-			user: {
-				user_id: internalUser.user_id, // internal molci ID
-				forgeUserId: forgeUser.id,
-				login: forgeUser.login,
-				avatar_url: forgeUser.avatar_url,
-			},
-		});
+
+		// Clear the then cookie if it exists
+		if (thenPath) {
+			res.clearCookie(thenCookieName, {
+				path: "/",
+				secure: isProduction,
+				httpOnly: true,
+				sameSite: "lax",
+			});
+		}
+
+		// Validate and redirect to the then path if provided and valid
+		if (thenPath && isValidRedirectPath(thenPath)) {
+			res.redirect(thenPath);
+			return;
+		}
+
+		res.redirect(`/`);
 	} catch (err) {
 		res.clearCookie(cookieName, {
+			path: "/",
+			secure: isProduction,
+			httpOnly: true,
+			sameSite: "lax",
+		});
+		res.clearCookie(thenCookieName, {
 			path: "/",
 			secure: isProduction,
 			httpOnly: true,
@@ -160,6 +186,10 @@ function parseCookies(req: Request): Record<string, string> {
 			return [key, decodeURIComponent(v.join("="))];
 		}),
 	);
+}
+
+function isValidRedirectPath(path: string): boolean {
+	return path.startsWith("/") && !path.includes("://");
 }
 
 export default authRouter;

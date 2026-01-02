@@ -1,8 +1,9 @@
 import type { Application } from "express";
 import supertest from "supertest";
-import type { User } from "../../src/db/models/user";
 
-export interface UserWithSessionId extends User {
+export interface TestUser {
+	user_id: number;
+	forge_id: number;
 	session_id: string;
 }
 
@@ -14,12 +15,12 @@ export interface CreateTestUserOptions {
 export async function createTestUser(
 	app: Application,
 	options: CreateTestUserOptions = {},
-): Promise<UserWithSessionId> {
+): Promise<TestUser> {
 	const { forgeId = 1, authCode = "testCode" } = options;
 	const request = supertest(app);
 
 	const loginResponse = await request.get(`/auth/login/${forgeId}`);
-	if (loginResponse.status !== 200) {
+	if (loginResponse.status !== 302) {
 		throw new Error(`Login unsuccessful: ${loginResponse.status}`);
 	}
 
@@ -33,9 +34,9 @@ export async function createTestUser(
 		.query({ code: authCode, state: "STATE" })
 		.set("Cookie", loginCookies);
 
-	if (callbackResponse.status !== 200) {
+	if (callbackResponse.status !== 302) {
 		console.error(callbackResponse.error);
-		throw new Error(`Callback failed`);
+		throw new Error(`Callback failed with status ${callbackResponse.status}`);
 	}
 
 	const callbackCookies = callbackResponse.get("Set-Cookie");
@@ -55,17 +56,22 @@ export async function createTestUser(
 	if (!sessionCookie) {
 		throw new Error("No session cookie found");
 	}
-	const sessionIdMatch = sessionCookie.match(/sessionID=([^;]+)/);
-	if (!sessionIdMatch) {
+	const sessionId = sessionCookie.match(/sessionID=([^;]+)/)?.[1];
+	if (!sessionId) {
 		throw new Error("Failed to parse session ID from callback");
 	}
 
-	const user = callbackResponse.body.user;
+	const whoamiResponse = await request
+		.get(`/whoami`)
+		.set("Cookie", `sessionID=${sessionId}`);
+	if (whoamiResponse.status !== 200) {
+		throw new Error(`/whoami unsuccessful: ${whoamiResponse.status}`);
+	}
+	const whoami = whoamiResponse.body;
 
 	return {
-		user_id: user.user_id,
-		forge_id: forgeId,
-		forge_user_id: user.forgeUserId.toString(),
-		session_id: sessionIdMatch[1]!,
+		user_id: whoami.user.id,
+		forge_id: whoami.forge.id,
+		session_id: sessionId,
 	};
 }

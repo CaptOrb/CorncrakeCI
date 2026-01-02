@@ -60,6 +60,16 @@ export function listAvailableForgeIds(): number[] {
 }
 
 /**
+ * Returns the list of available forges with their ID and name.
+ */
+export function listAvailableForges(): Array<{
+	id: number;
+	forge: Forge;
+}> {
+	return Array.from(_forgeMap.entries()).map(([id, forge]) => ({ id, forge }));
+}
+
+/**
  * Gets a ForgeWithUser for a given molciuser ID, automatically refreshing the access token if it's about to expire.
  * @throws {AuthError} if user not found, tokens missing, or token refresh fails
  */

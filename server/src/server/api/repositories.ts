@@ -4,14 +4,31 @@ import type {
 	GetRepo,
 	ListAvailableRepos,
 	ListConfiguredRepos,
+	ListForges,
 	ReconfigureRepo,
 } from "../../generated/server/generated";
 import type { t_ConfigureRepoRequestBodySchema } from "../../generated/server/models";
 import {
 	AuthError,
 	getForgeWithUser,
+	listAvailableForges,
 	NotFoundError,
 } from "../../services/forges";
+
+export const listForges: ListForges = async (
+	_params,
+	respond,
+	_req,
+	_res,
+	_next,
+) => {
+	return respond.with200().body(
+		listAvailableForges().map(({ id, forge }) => ({
+			id,
+			name: forge.name,
+		})),
+	);
+};
 
 export const listAvailableRepos: ListAvailableRepos = async (
 	_params,

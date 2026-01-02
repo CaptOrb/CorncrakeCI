@@ -47,6 +47,8 @@ export function testForgeHelper(): { controller?: TestForgeController } {
 }
 
 export class TestForge implements Forge {
+	public name: string = "TestForge";
+
 	constructor(
 		private _controller: TestForgeController,
 		public forgeId: number,

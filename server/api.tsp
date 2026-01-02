@@ -38,6 +38,11 @@ model ConfiguredRepository {
   forge: ForgeSummary;
 }
 
+model UserSummary {
+  id: integer;
+  name: string;
+};
+
 model ForgeSummary {
   id: integer;
   name: string;
@@ -48,6 +53,26 @@ model RepositoryConfig {
   configured_at: utcDateTime;
 }
 
+alias InternalError = {
+  @statusCode statusCode: 500;
+  @body body: Error;
+};
+
+model WhoAmI {
+  user: UserSummary;
+  forge: ForgeSummary;
+};
+
+@route("/whoami")
+@get
+@summary("Return information about the current logged-in user")
+op whoAmI(): Body<WhoAmI> | (UnauthorizedResponse & Error) | InternalError;
+
+@route("/forges")
+@get
+@summary("List available forge providers")
+op listForges(): Body<ForgeSummary[]> | InternalError;
+
 @route("/repos/available")
 @get
 @summary("List repositories available from the user's forge account")
@@ -55,19 +80,15 @@ op listAvailableRepos():
   | Body<ForgeRepository[]>
   | (UnauthorizedResponse & Error)
   | (ForbiddenResponse & Error)
-  | {
-      @statusCode statusCode: 500;
-      @body body: Error;
-    };
+  | InternalError;
 
 @route("/repos/configured")
 @get
 @summary("List repositories already configured in MOLCI")
-op listConfiguredRepos(): Body<RepositoryConfig[]> | (UnauthorizedResponse &
-  Error) | {
-  @statusCode statusCode: 500;
-  @body body: Error;
-};
+op listConfiguredRepos():
+  | Body<RepositoryConfig[]>
+  | (UnauthorizedResponse & Error)
+  | InternalError;
 
 @route("/repo")
 @post
@@ -83,10 +104,7 @@ op configureRepo(
     }>
   | (BadRequestResponse & Error)
   | (UnauthorizedResponse & Error)
-  | {
-      @statusCode statusCode: 500;
-      @body body: Error;
-    };
+  | InternalError;
 
 @route("/repo/{id}")
 @get
@@ -101,10 +119,7 @@ op getRepo(
   | (BadRequestResponse & Error)
   | (UnauthorizedResponse & Error)
   | (NotFoundResponse & Error)
-  | {
-      @statusCode statusCode: 500;
-      @body body: Error;
-    };
+  | InternalError;
 
 @route("/repo/{id}")
 @put
@@ -121,8 +136,4 @@ op reconfigureRepo(
   | (BadRequestResponse & Error)
   | (UnauthorizedResponse & Error)
   | (NotFoundResponse & Error)
-  | {
-      @statusCode statusCode: 500;
-      @body body: Error;
-    };
-
+  | InternalError;

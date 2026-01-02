@@ -24,8 +24,10 @@ import {
 	getRepo,
 	listAvailableRepos,
 	listConfiguredRepos,
+	listForges,
 	reconfigureRepo,
 } from "./api/repositories";
+import { whoAmI } from "./api/users";
 import { handleWebhook } from "./api/webhooks";
 import { BaseError } from "./errors";
 
@@ -100,11 +102,13 @@ export async function createWebServer({
 	app.use(
 		"/",
 		createRouter({
+			listForges,
 			listAvailableRepos,
 			listConfiguredRepos,
 			getRepo,
 			configureRepo,
 			reconfigureRepo,
+			whoAmI,
 		}),
 	);
 

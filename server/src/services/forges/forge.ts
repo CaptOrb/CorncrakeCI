@@ -9,6 +9,8 @@ export interface TokenInfo {
 }
 
 export interface Forge {
+	readonly name: string;
+
 	getAuthorizationUrl(): { url: string; state: string; codeVerifier: string };
 
 	exchangeCodeForToken(code: string, codeVerifier: string): Promise<TokenInfo>;

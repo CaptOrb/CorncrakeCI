@@ -73,12 +73,14 @@ async function successJson<R extends Res<StatusCode, unknown>>(
 export class GiteaForge implements Forge {
 	private gitea: arctic.Gitea;
 	private baseUrl: string;
+	public name: string;
 
 	constructor(
 		private forgeId: number,
 		private config: ForgeInstanceConfig,
 	) {
 		this.baseUrl = config.url;
+		this.name = config.name;
 
 		if (!config.clientid || !config.clientsecret) {
 			throw new Error("Gitea OAuth2 credentials not configured");
