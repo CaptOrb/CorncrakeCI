@@ -6,7 +6,7 @@ import type TestAgent from "supertest/lib/agent";
 import { beforeEach, describe, expect, it } from "vitest";
 import { transaction } from "../../src/db/stores";
 import { setup_webhooks } from "../../src/jobs/setup-webhooks";
-import { createWebServer } from "../../src/server";
+import { createApiServer } from "../../src/server";
 import { _forgeMap } from "../../src/services/forges";
 import { createTestUser } from "../helpers/auth";
 import { databaseHelper } from "../helpers/database";
@@ -24,7 +24,7 @@ describe("Repository API tests", () => {
 	testForgeHelper();
 
 	beforeEach(async () => {
-		app = await createWebServer({
+		app = await createApiServer({
 			isProduction: false,
 			pool,
 		});
@@ -36,7 +36,7 @@ describe("Repository API tests", () => {
 		const testData = await createTestUser(app);
 
 		const response = await request
-			.post("/repo")
+			.post("/v0/repo")
 			.set("Cookie", `sessionID=${testData.session_id}`)
 			.send({
 				forge: 1,
@@ -49,7 +49,7 @@ describe("Repository API tests", () => {
 
 	it("configureRepo returns 401 without authentication", async () => {
 		await request
-			.post("/repo")
+			.post("/v0/repo")
 			.send({
 				forge: 1,
 				forge_repo_id: "repo0001",
@@ -58,7 +58,7 @@ describe("Repository API tests", () => {
 	});
 
 	it("configureRepo with missing forge_repo_id returns 400", async () => {
-		const res = await request.post("/repo").send({ forge: 1 }); // missing forge_repo_id
+		const res = await request.post("/v0/repo").send({ forge: 1 }); // missing forge_repo_id
 		expect(res.status).toBe(400);
 		expect(res.body).toHaveProperty(
 			"error",
@@ -81,7 +81,7 @@ describe("Repository API tests", () => {
 
 		// First, configure the repo
 		const initConfiguredRepo = await request
-			.post("/repo")
+			.post("/v0/repo")
 			.set("Cookie", `sessionID=${testData.session_id}`)
 			.send({
 				forge: 1,
@@ -98,7 +98,7 @@ describe("Repository API tests", () => {
 		repo!.name = "testuser/updated-repo"; // changed repo name
 
 		await request
-			.put(`/repo/${repoId}`)
+			.put(`/v0/repo/${repoId}`)
 			.set("Cookie", `sessionID=${testData.session_id}`)
 			.expect(200);
 
@@ -114,7 +114,7 @@ describe("Repository API tests", () => {
 		const testData = await createTestUser(app);
 
 		const createResponse = await request
-			.post("/repo")
+			.post("/v0/repo")
 			.set("Cookie", `sessionID=${testData.session_id}`)
 			.send({
 				forge: 1,
@@ -128,7 +128,7 @@ describe("Repository API tests", () => {
 		const repoId = createResponse.body.repo_id;
 
 		const fetchResponse = await request
-			.get(`/repo/${repoId}`)
+			.get(`/v0/repo/${repoId}`)
 			.set("Cookie", `sessionID=${testData.session_id}`)
 			.expect(200);
 
@@ -147,7 +147,7 @@ describe("Repository API tests", () => {
 		const testData = await createTestUser(app);
 
 		const createResponse = await request
-			.post("/repo")
+			.post("/v0/repo")
 			.set("Cookie", `sessionID=${testData.session_id}`)
 			.send({
 				forge: 1,
@@ -158,13 +158,13 @@ describe("Repository API tests", () => {
 		const repoId = createResponse.body.repo_id;
 
 		// no session ID cookie
-		const fetchResponse = await request.get(`/repo/${repoId}`).expect(401);
+		const fetchResponse = await request.get(`/v0/repo/${repoId}`).expect(401);
 
 		expect(fetchResponse.body).toEqual({ error: "Not authenticated" });
 
 		// invalid session ID
 		await request
-			.get(`/repo/${repoId}`)
+			.get(`/v0/repo/${repoId}`)
 			.set("Cookie", `sessionID="invalidSessionID"`)
 
 			.expect(401);
@@ -175,7 +175,7 @@ describe("Repository API tests", () => {
 		const testData = await createTestUser(app);
 
 		const createResponse = await request
-			.post("/repo")
+			.post("/v0/repo")
 			.set("Cookie", `sessionID=${testData.session_id}`)
 			.send({
 				forge: 1,
@@ -186,13 +186,13 @@ describe("Repository API tests", () => {
 		const repoId = createResponse.body.repo_id;
 
 		// no session ID cookie
-		const fetchResponse = await request.get(`/repo/${repoId}`).expect(401);
+		const fetchResponse = await request.get(`/v0/repo/${repoId}`).expect(401);
 
 		expect(fetchResponse.body).toEqual({ error: "Not authenticated" });
 
 		// invalid session ID and invalid repo id
 		await request
-			.get(`/repo/999`)
+			.get(`/v0/repo/999`)
 			.set("Cookie", `sessionID="invalidSessionID"`)
 
 			.expect(401);
@@ -202,7 +202,7 @@ describe("Repository API tests", () => {
 		const testData = await createTestUser(app);
 
 		await request
-			.get("/repo/999999")
+			.get("/v0/repo/999999")
 			.set("Cookie", `sessionID=${testData.session_id}`)
 			.expect(404);
 	});
@@ -211,7 +211,7 @@ describe("Repository API tests", () => {
 		const testUser = await createTestUser(app);
 
 		const response = await request
-			.get("/repos/available")
+			.get("/v0/repos/available")
 			.set("Cookie", `sessionID=${testUser.session_id}`)
 			.expect(200);
 
@@ -226,7 +226,7 @@ describe("Repository API tests", () => {
 
 	it("listAvailableRepos returns 401 if not authenticated", async () => {
 		await request
-			.get("/repos/available")
+			.get("/v0/repos/available")
 			.expect(401)
 			.then((res) => {
 				expect(res.body).toEqual({ error: "Not authenticated" });
@@ -237,7 +237,7 @@ describe("Repository API tests", () => {
 		const testData = await createTestUser(app);
 
 		const createResponse = await request
-			.post("/repo")
+			.post("/v0/repo")
 			.set("Cookie", `sessionID=${testData.session_id}`)
 			.send({
 				forge: 1,
@@ -256,7 +256,7 @@ describe("Repository API tests", () => {
 		);
 
 		const fetchResponse = await request
-			.get(`/repos/configured`)
+			.get(`/v0/repos/configured`)
 			.set("Cookie", `sessionID=${testData.session_id}`)
 			.expect(200);
 
@@ -278,7 +278,7 @@ describe("Repository API tests", () => {
 
 	it("listConfiguredRepos returns 401 if not authenticated", async () => {
 		await request
-			.get("/repos/configured")
+			.get("/v0/repos/configured")
 			.expect(401)
 			.then((res) => {
 				expect(res.body).toEqual({ error: "Not authenticated" });
@@ -289,7 +289,7 @@ describe("Repository API tests", () => {
 		const userA = await createTestUser(app);
 
 		const createResponse = await request
-			.post("/repo")
+			.post("/v0/repo")
 			.set("Cookie", `sessionID=${userA.session_id}`)
 			.send({
 				forge: 1,
@@ -304,7 +304,7 @@ describe("Repository API tests", () => {
 
 		// User B tries to access user A's repo
 		const fetchResponse = await request
-			.get(`/repo/${repoId}`)
+			.get(`/v0/repo/${repoId}`)
 			.set("Cookie", `sessionID=${userB.session_id}`)
 			.expect(404);
 
@@ -315,7 +315,7 @@ describe("Repository API tests", () => {
 		const userA = await createTestUser(app);
 
 		const createResponse = await request
-			.post("/repo")
+			.post("/v0/repo")
 			.set("Cookie", `sessionID=${userA.session_id}`)
 			.send({
 				forge: 1,
@@ -330,7 +330,7 @@ describe("Repository API tests", () => {
 
 		// User B tries to reconfigure user A's repo
 		const reconfigureResponse = await request
-			.put(`/repo/${repoId}`)
+			.put(`/v0/repo/${repoId}`)
 			.set("Cookie", `sessionID=${userB.session_id}`)
 			.expect(404);
 
@@ -345,7 +345,7 @@ describe("Repository API tests", () => {
 
 		// User B tries to configure repo0001, which is owned by testuser on the forge
 		const response = await request
-			.post("/repo")
+			.post("/v0/repo")
 			.set("Cookie", `sessionID=${userB.session_id}`)
 			.send({
 				forge: 1,

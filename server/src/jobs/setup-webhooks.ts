@@ -62,7 +62,7 @@ export async function setup_webhooks(payload: unknown, helpers: JobHelpers) {
 
 		const forge = mustGetForge(repoResult.forge_id).withUser(accessToken);
 
-		const webhookUrl = `${config.app.baseurl}/webhooks/${repoId}`;
+		const webhookUrl = `${config.app.baseurl}/api/_webhooks/${repoId}`;
 
 		const webhookSecret = secureRandomBase64Url();
 

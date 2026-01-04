@@ -62,7 +62,7 @@ export async function createTestUser(
 	}
 
 	const whoamiResponse = await request
-		.get(`/whoami`)
+		.get(`/v0/whoami`)
 		.set("Cookie", `sessionID=${sessionId}`);
 	if (whoamiResponse.status !== 200) {
 		throw new Error(`/whoami unsuccessful: ${whoamiResponse.status}`);

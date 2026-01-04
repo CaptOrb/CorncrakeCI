@@ -12,7 +12,7 @@ import swaggerUi from "swagger-ui-express";
 import { ZodError } from "zod";
 import { config } from "../config";
 import { connectDB } from "../config/db";
-import apiOpenapi from "../generated/api/@typespec/openapi3/openapi.json";
+import v0OpenApi from "../generated/api/@typespec/openapi3/openapi.json";
 import { createRouter } from "../generated/server/generated";
 import { runJobs } from "../jobs/graphile-worker";
 import authRouter from "../server/routes/auth";
@@ -31,16 +31,24 @@ import { whoAmI } from "./api/users";
 import { handleWebhook } from "./api/webhooks";
 import { BaseError } from "./errors";
 
+const OPENAPI_DEFINITIONS = {
+	v0: v0OpenApi,
+};
+
+const LATEST_API_VERSION: keyof typeof OPENAPI_DEFINITIONS = "v0";
+
 export interface RawBodyRequest extends Request {
 	rawBody?: Buffer;
 }
 
-export async function createWebServer({
+export async function createApiServer({
 	isProduction,
 	pool,
+	enableSwagger = false,
 }: {
 	isProduction: boolean;
 	pool: Pool;
+	enableSwagger?: boolean;
 }): Promise<Application> {
 	const app = express();
 
@@ -99,8 +107,10 @@ export async function createWebServer({
 		}
 	});
 
+	// the v0 signals that this is currently unversioned and we will change the API.
+	// In the future, we will have a more stable v1 API.
 	app.use(
-		"/",
+		"/v0",
 		createRouter({
 			listForges,
 			listAvailableRepos,
@@ -112,9 +122,34 @@ export async function createWebServer({
 		}),
 	);
 
-	app.post("/webhooks/:repoId", handleWebhook);
+	// the underscore denotes that this is not a public interface
+	app.post("/_webhooks/:repoId", handleWebhook);
 
+	// the Forge login endpoints are kept externally from the OpenAPI-defined API
+	// and are intentionally unversioned right now
 	app.use("/auth", authRouter);
+
+	if (enableSwagger) {
+		for (const [apiVersion, apiOpenapi] of Object.entries(
+			OPENAPI_DEFINITIONS,
+		)) {
+			const apiOpenapiWithBase = {
+				...apiOpenapi,
+				servers: [{ url: `/api/${apiVersion}` }],
+			};
+			app.use(
+				`/${apiVersion}/swagger`,
+				swaggerUi.serve,
+				swaggerUi.setup(apiOpenapiWithBase, {
+					customSiteTitle: `MOLCI API ${apiVersion}`,
+				}),
+			);
+		}
+
+		app.get("/", (_req, res) => {
+			return res.redirect(`./${LATEST_API_VERSION}/swagger`);
+		});
+	}
 
 	app.use(errorHandler);
 
@@ -199,13 +234,16 @@ async function startServer(): Promise<void> {
 	await seedForges();
 
 	const isProduction = config.node.env === "production";
-	const app = await createWebServer({
-		isProduction,
-		pool,
-	});
+	const app = express();
 
-	// We don't care about Swagger in tests so mount it here
-	app.use("/swagger", swaggerUi.serve, swaggerUi.setup(apiOpenapi));
+	app.use(
+		"/api",
+		await createApiServer({
+			isProduction,
+			pool,
+			enableSwagger: true,
+		}),
+	);
 
 	// Intentionally don't await
 	void runJobs(pool);
