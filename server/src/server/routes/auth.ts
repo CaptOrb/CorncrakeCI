@@ -9,6 +9,35 @@ import { getOrCreateUser } from "../../services/user";
 
 const authRouter = Router();
 
+const isProduction = config.node.env === "production";
+
+const getCookieName = (name: string): string =>
+	isProduction ? `__Host-${name}` : name;
+
+const OAUTH_STATE_COOKIE = getCookieName("oauth_state");
+const THEN_PATH_COOKIE = getCookieName("then_path");
+const SESSION_COOKIE = getCookieName("sessionID");
+
+const OAUTH_COOKIE_OPTIONS = {
+	secure: isProduction,
+	path: "/",
+	httpOnly: true,
+	maxAge: 10 * 60 * 1000, // 10 minutes
+	sameSite: "lax" as const,
+};
+
+const CLEAR_COOKIE_OPTIONS = {
+	path: "/",
+	secure: isProduction,
+	httpOnly: true,
+	sameSite: "lax" as const,
+};
+
+function clearOAuthCookies(res: Response): void {
+	res.clearCookie(OAUTH_STATE_COOKIE, CLEAR_COOKIE_OPTIONS);
+	res.clearCookie(THEN_PATH_COOKIE, CLEAR_COOKIE_OPTIONS);
+}
+
 authRouter.get("/login/:forgeId", (req: Request, res: Response) => {
 	const forgeIdParam = req.params["forgeId"];
 	if (!forgeIdParam) {
@@ -22,8 +51,6 @@ authRouter.get("/login/:forgeId", (req: Request, res: Response) => {
 		return;
 	}
 
-	const isProduction = config.node.env === "production";
-
 	try {
 		const forge = mustGetForge(forgeId);
 		const authData = forge.getAuthorizationUrl();
@@ -33,33 +60,18 @@ authRouter.get("/login/:forgeId", (req: Request, res: Response) => {
 			codeVerifier: authData.codeVerifier,
 		};
 
-		const cookieName = isProduction ? "__Host-oauth_state" : "oauth_state";
-		const thenCookieName = isProduction ? "__Host-then_path" : "then_path";
-
 		// Store OAuth state in a cookie
-		res.cookie(cookieName, authData.state, {
-			secure: isProduction,
-			path: "/",
-			httpOnly: true,
-			maxAge: 10 * 60 * 1000, // 10 minutes
-			sameSite: "lax",
-		});
+		res.cookie(OAUTH_STATE_COOKIE, authData.state, OAUTH_COOKIE_OPTIONS);
 
 		// Store then parameter in a cookie
 		const thenParam = req.query["then"] as string;
 		if (thenParam) {
-			res.cookie(thenCookieName, thenParam, {
-				secure: isProduction,
-				path: "/",
-				httpOnly: true,
-				maxAge: 10 * 60 * 1000, // 10 minutes
-				sameSite: "lax",
-			});
+			res.cookie(THEN_PATH_COOKIE, thenParam, OAUTH_COOKIE_OPTIONS);
 		}
 		res.redirect(authData.url);
 	} catch (err) {
 		console.error("Failed to generate auth URL:", err);
-		res.status(400).json({ error: (err as Error).message });
+		res.status(400).json({ error: "Login unsuccessful" });
 	}
 });
 
@@ -68,11 +80,8 @@ authRouter.get("/callback", async (req: Request, res: Response) => {
 	const state = req.query["state"] as string;
 	const code = req.query["code"] as string;
 
-	const isProduction = config.node.env === "production";
 	const cookies = parseCookies(req);
-	const cookieName = isProduction ? "__Host-oauth_state" : "oauth_state";
-	const thenCookieName = isProduction ? "__Host-then_path" : "then_path";
-	const stateFromCookie = cookies[cookieName];
+	const stateFromCookie = cookies[OAUTH_STATE_COOKIE];
 
 	if (!incompleteLogin || !state || !code) {
 		res.status(400).json({ error: "Missing OAuth callback parameters" });
@@ -105,34 +114,20 @@ authRouter.get("/callback", async (req: Request, res: Response) => {
 			tokens.refreshTokenExpiresAt,
 		);
 
+		// incomplete_login should not be reused
+		delete req.session.incompleteLogin;
+
 		// regenerate the session, which is good practice to help guard against forms of session fixation
 		// see https://expressjs.com/en/resources/middleware/session.html
 		await promisify(req.session.regenerate).apply(req.session);
 
 		req.session.userId = internalUser.user_id;
-		// incomplete_login should not be reused
-		delete req.session.incompleteLogin;
 
 		await promisify(req.session.save).apply(req.session);
 
-		const thenPath = cookies[thenCookieName];
+		const thenPath = cookies[THEN_PATH_COOKIE];
 
-		res.clearCookie(cookieName, {
-			path: "/",
-			secure: isProduction,
-			httpOnly: true,
-			sameSite: "lax",
-		});
-
-		// Clear the then cookie if it exists
-		if (thenPath) {
-			res.clearCookie(thenCookieName, {
-				path: "/",
-				secure: isProduction,
-				httpOnly: true,
-				sameSite: "lax",
-			});
-		}
+		clearOAuthCookies(res);
 
 		// Validate and redirect to the then path if provided and valid
 		if (thenPath && isValidRedirectPath(thenPath)) {
@@ -142,37 +137,25 @@ authRouter.get("/callback", async (req: Request, res: Response) => {
 
 		res.redirect(`/`);
 	} catch (err) {
-		res.clearCookie(cookieName, {
-			path: "/",
-			secure: isProduction,
-			httpOnly: true,
-			sameSite: "lax",
-		});
-		res.clearCookie(thenCookieName, {
-			path: "/",
-			secure: isProduction,
-			httpOnly: true,
-			sameSite: "lax",
-		});
+		clearOAuthCookies(res);
 		console.error("OAuth callback error:", err);
 		res.status(500).json({ error: "OAuth callback failed" });
 	}
 });
 
 authRouter.post("/logout", (req: Request, res: Response) => {
-	const isProduction = config.node.env === "production";
-
 	req.session.destroy((err) => {
 		if (err) {
 			res.status(500).json({ error: "Failed to logout" });
 			return;
 		}
-		res.clearCookie(isProduction ? "__Host-SessionID" : "sessionID", {
+		res.clearCookie(SESSION_COOKIE, {
 			path: "/",
+			secure: isProduction,
+			httpOnly: true,
+			sameSite: "lax" as const,
 		});
-		res.clearCookie(isProduction ? "__Host-oauth_state" : "oauth_state", {
-			path: "/",
-		});
+		clearOAuthCookies(res);
 		res.json({ success: true });
 	});
 });
@@ -189,7 +172,9 @@ function parseCookies(req: Request): Record<string, string> {
 }
 
 function isValidRedirectPath(path: string): boolean {
-	return path.startsWith("/") && !path.includes("://");
+	return (
+		path.startsWith("/") && !path.includes("://") && !path.startsWith("//")
+	);
 }
 
 export default authRouter;

@@ -77,14 +77,7 @@ export const handleWebhook = async (req: RawBodyRequest, res: Response) => {
 					parsed.output.pull_request.head.sha,
 				);
 
-				const configs = new Map<string, Document>();
-				for (const [filename, content] of molciConfig.configFiles) {
-					try {
-						configs.set(filename, parse(content));
-					} catch (error) {
-						console.warn(`Failed to parse KDL file ${filename}:`, error);
-					}
-				}
+				const configs = parseKdlConfigs(molciConfig.configFiles);
 
 				console.log(
 					`Pull Request Event: found files: ${[...configs.keys()].join(", ")} in ${molciConfig.path}`,
@@ -110,15 +103,7 @@ export const handleWebhook = async (req: RawBodyRequest, res: Response) => {
 					parsed.output.after, // only the latest commit on a branch matters
 				);
 
-				// Parse KDL config files
-				const configs = new Map<string, Document>();
-				for (const [filename, content] of molciConfig.configFiles) {
-					try {
-						configs.set(filename, parse(content));
-					} catch (error) {
-						console.warn(`Failed to parse KDL file ${filename}:`, error);
-					}
-				}
+				const configs = parseKdlConfigs(molciConfig.configFiles);
 
 				console.log(
 					`push Event: (${parsed.output.ref}): found files: ${[...configs.keys()].join(", ")} in ${molciConfig.path}`,
@@ -134,6 +119,23 @@ export const handleWebhook = async (req: RawBodyRequest, res: Response) => {
 
 	return res.status(200).end();
 };
+
+/**
+ * Parses KDL config files from a map of filename to content.
+ */
+function parseKdlConfigs(
+	configFiles: Map<string, string>,
+): Map<string, Document> {
+	const configs = new Map<string, Document>();
+	for (const [filename, content] of configFiles) {
+		try {
+			configs.set(filename, parse(content));
+		} catch (error) {
+			console.warn(`Failed to parse KDL file ${filename}:`, error);
+		}
+	}
+	return configs;
+}
 
 const s_User = v.object({
 	id: v.pipe(v.number(), v.integer()),
