@@ -171,10 +171,17 @@ function parseCookies(req: Request): Record<string, string> {
 	);
 }
 
-function isValidRedirectPath(path: string): boolean {
-	return (
-		path.startsWith("/") && !path.includes("://") && !path.startsWith("//")
-	);
+function isValidRedirectPath(redirectUrl: string): boolean {
+	let url: URL;
+	try {
+		url = new URL(redirectUrl, config.app.baseurl);
+	} catch {
+		return false;
+	}
+
+	const base = new URL(config.app.baseurl);
+
+	return url.origin === base.origin;
 }
 
 export default authRouter;
