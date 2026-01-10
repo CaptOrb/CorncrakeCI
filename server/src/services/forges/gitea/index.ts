@@ -73,21 +73,26 @@ async function successJson<R extends Res<StatusCode, unknown>>(
 export class GiteaForge implements Forge {
 	private gitea: arctic.Gitea;
 	private baseUrl: string;
+	private publicUrl: string; // For OAuth authorisation URL (browser-accessible) in docker demo
 	public name: string;
 
 	constructor(
 		private forgeId: number,
 		private config: ForgeInstanceConfig,
 	) {
-		this.baseUrl = config.url;
+		// Use internalUrl for API calls (server-to-server), fallback to url
+		this.baseUrl = config.internalurl;
+		this.publicUrl = config.url;
 		this.name = config.name;
 
 		if (!config.clientid || !config.clientsecret) {
 			throw new Error("Gitea OAuth2 credentials not configured");
 		}
 
+		// Use internal url for token exchange/refresh (server-to-server)
+		const tokenUrl = this.baseUrl;
 		this.gitea = new arctic.Gitea(
-			config.url,
+			tokenUrl,
 			config.clientid,
 			config.clientsecret,
 			config.redirecturi,
@@ -104,7 +109,15 @@ export class GiteaForge implements Forge {
 		const scopes = ["read:user", "repo", "write:repository"];
 		const url = this.gitea.createAuthorizationURL(state, codeVerifier, scopes);
 
-		return { url: url.toString(), state, codeVerifier };
+		// If public URL differs from internal URL, replace the base URL
+		let authUrl = url.toString();
+		if (this.publicUrl !== this.baseUrl) {
+			const internalBase = new URL(this.baseUrl).origin;
+			const publicBase = new URL(this.publicUrl).origin;
+			authUrl = authUrl.replace(internalBase, publicBase);
+		}
+
+		return { url: authUrl, state, codeVerifier };
 	}
 	/**
 	 * Gitea doesn't provide refresh token expiry, so calculate it from config.

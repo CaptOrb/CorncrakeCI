@@ -1,0 +1,17 @@
+node_modules
+dist
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+.vscode
+.idea
+coverage
+*.test.ts
+*.test.tsx
+tests
+.git
+.gitignore
+
+

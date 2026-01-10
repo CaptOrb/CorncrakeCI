@@ -14,7 +14,8 @@ const ForgeInstanceSchema = v.pipe(
 	v.object({
 		type: v.picklist(ALL_FORGE_TYPES),
 		name: v.optional(v.string()),
-		url: v.string(),
+		url: v.string(), // Public URL for OAuth redirects (browser-accessible)
+		internalurl: v.optional(v.string()), // Internal URL for server-to-server API calls for docker
 		clientid: v.string(),
 		clientsecret: v.string(),
 		redirecturi: v.string(),
@@ -29,6 +30,8 @@ const ForgeInstanceSchema = v.pipe(
 		...input,
 		// If no name is supplied, default to the type's default name
 		name: input.name ?? DEFAULT_FORGE_NAMES[input.type],
+		// If no internalUrl is supplied, default to url
+		internalurl: input.internalurl ?? input.url,
 	})),
 );
 

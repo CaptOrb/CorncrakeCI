@@ -1,0 +1,108 @@
+services:
+  molci-db:
+    image: postgres:17
+    container_name: molci-db-demo
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: "molci_user_DEMO_ONLY"
+      POSTGRES_PASSWORD: "molci_user_password_DEMO_ONLY"
+      POSTGRES_DB: "molci_DB_DEMO_ONLY"
+    ports:
+      - "5435:5432"
+    volumes:
+      - molci_postgres_data_demo:/var/lib/postgresql/data
+    networks:
+      - molci_demo_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U molci_user_DEMO_ONLY -d molci_DB_DEMO_ONLY"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  gitea-db:
+    image: postgres:17
+    container_name: gitea-db-demo
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: "gitea_user_DEMO_ONLY"
+      POSTGRES_PASSWORD: "gitea_password_DEMO_ONLY"
+      POSTGRES_DB: "gitea_db_DEMO_ONLY"
+    ports:
+      - "5438:5432"
+    volumes:
+      - gitea_postgres_data_demo:/var/lib/postgresql/data
+    networks:
+      - molci_demo_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gitea_user_DEMO_ONLY -d gitea_db_DEMO_ONLY"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  gitea:
+    image: docker.gitea.com/gitea:1.24.5
+    container_name: gitea-demo
+    depends_on:
+      gitea-db:
+        condition: service_healthy
+    restart: unless-stopped
+    environment:
+      USER_UID: 1000
+      USER_GID: 1000
+      GITEA__database__DB_TYPE: postgres
+      GITEA__database__HOST: gitea-db:5432
+      GITEA__database__NAME: "gitea_db_DEMO_ONLY"
+      GITEA__database__USER: "gitea_user_DEMO_ONLY"
+      GITEA__database__PASSWORD: "gitea_password_DEMO_ONLY"
+      GITEA__server__HTTP_PORT: 3006
+      GITEA__webhook__ALLOWED_HOST_LIST: external,loopback,private
+    ports:
+      - "3006:3006"
+    volumes:
+      - gitea_data_demo:/data
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - molci_demo_network
+
+  molci-server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: molci-server-demo
+    depends_on:
+      molci-db:
+        condition: service_healthy
+      gitea:
+        condition: service_started
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      APP_BASEURL: "http://localhost:3009"
+      APP_BINDADDRESS: 0.0.0.0
+      APP_PORT: 3009
+      MOLCI_DB_USER: "molci_user_DEMO_ONLY"
+      MOLCI_DB_PASSWORD: "molci_user_password_DEMO_ONLY"
+      MOLCI_DB_NAME: "molci_DB_DEMO_ONLY"
+      DB_URI: postgresql://molci_user_DEMO_ONLY:molci_user_password_DEMO_ONLY@molci-db:5432/molci_DB_DEMO_ONLY
+      APP_ENCRYPTIONKEY: 1c8ed53789678f6970383fb78bb8d6cf6de11057a6a09f20a9a922ad3bb244fc
+      SESSION_SECRET: your_session_secret_here_DO_NOT_USE_IN_PRODUCTION
+      FORGES_1_TYPE: gitea
+      FORGES_1_URL: http://localhost:3006
+      FORGES_1_INTERNALURL: http://gitea:3006
+      FORGES_1_CLIENTID: FILL_IN_DEMO_ID_ONLY!!
+      FORGES_1_CLIENTSECRET: FILL_IN_DEMO_CLIENT_SECRET_ONLY!!!
+      FORGES_1_REDIRECTURI: http://localhost:3009/api/auth/callback
+    ports:
+      - "3009:3009"
+    volumes:
+      - ./server/migrations:/app/migrations:ro
+    networks:
+      - molci_demo_network
+
+volumes:
+  molci_postgres_data_demo:
+  gitea_postgres_data_demo:
+  gitea_data_demo:
+
+networks:
+  molci_demo_network:
+    driver: bridge
