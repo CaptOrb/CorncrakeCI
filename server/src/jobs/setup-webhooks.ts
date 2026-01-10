@@ -18,18 +18,19 @@ export async function setup_webhooks(payload: unknown, helpers: JobHelpers) {
 	helpers.logger.info(`Setting up webhooks for repo ${repoId}`);
 
 	try {
-		const repoResult: {
-			forge_id: number;
-			forge_repo_id: string;
-			forge_user_id: string;
-			access_token: Buffer | null;
-			webhook_secret: string | null;
-		} = await transaction(async (txn) => {
+		const repoResult:
+			| {
+					forge_id: number;
+					forge_repo_id: string;
+					forge_user_id: string;
+					access_token: Buffer | null;
+					webhook_secret: string | null;
+			  }
+			| undefined = await transaction(async (txn) => {
 			const result = await txn.client.query(
 				`SELECT r.forge_id, r.forge_repo_id, u.forge_user_id, tokens.access_token, r.webhook_secret
 				FROM repositories r
 				JOIN users u ON r.owner_id = u.user_id
-				JOIN forges f ON u.forge_id = f.forge_id
 				LEFT JOIN forge_access_tokens tokens ON u.user_id = tokens.user_id
 				WHERE r.repo_id = $1`,
 				[repoId],
@@ -104,7 +105,7 @@ export async function setup_webhooks(payload: unknown, helpers: JobHelpers) {
 				[repoId],
 			);
 		});
-		throw error; // so the graphile job system knows it failed and will retry it
+		throw error; // so the graphile job system knows it has failed and will retry it
 	}
 }
 
