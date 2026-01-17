@@ -2,6 +2,8 @@ import { type Document, parse } from "@bgotink/kdl";
 import type { Response } from "express";
 import * as v from "valibot";
 import { transaction } from "../../db/stores";
+import { FatalParseError } from "../../pipeline/v0/error";
+import { V0Parser } from "../../pipeline/v0/parser";
 import { getForgeWithUser } from "../../services/forges";
 import { verifyWebhookSignature } from "../../util/crypto";
 import type { RawBodyRequest } from "..";
@@ -82,8 +84,6 @@ export const handleWebhook = async (req: RawBodyRequest, res: Response) => {
 				console.log(
 					`Pull Request Event: found files: ${[...configs.keys()].join(", ")} in ${molciConfig.path}`,
 				);
-
-				// TODO do something
 			} else {
 				console.warn(
 					`Failed to parse ${eventTypeHeader} webhook body:`,
@@ -129,7 +129,23 @@ function parseKdlConfigs(
 	const configs = new Map<string, Document>();
 	for (const [filename, content] of configFiles) {
 		try {
-			configs.set(filename, parse(content));
+			const kdlDoc = parse(content);
+			configs.set(filename, kdlDoc);
+
+			const parser = new V0Parser();
+			try {
+				parser.parseFile(kdlDoc.nodes);
+				console.log(`Successfully parsed ${filename} with version header`);
+				if (parser.errors.length > 0) {
+					console.warn(`Parse errors in ${filename}:`, parser.errors);
+				}
+			} catch (error) {
+				if (error instanceof FatalParseError) {
+					console.error(`Fatal parse error in ${filename}:`, parser.errors);
+				} else {
+					throw error;
+				}
+			}
 		} catch (error) {
 			console.warn(`Failed to parse KDL file ${filename}:`, error);
 		}
