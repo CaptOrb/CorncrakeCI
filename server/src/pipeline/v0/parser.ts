@@ -1,12 +1,33 @@
-import type { Entry, Node as KDLNode } from "@bgotink/kdl";
+import { type Entry, getLocation, type Node as KDLNode } from "@bgotink/kdl";
 import * as v from "valibot";
-import type { V0File } from "./ast";
+import type {
+	AnyStepDeclaration,
+	JobDeclaration,
+	NeedsDeclaration,
+	StageDeclaration,
+	UseDeclaration,
+	V0File,
+	WorkflowDeclaration,
+} from "./ast";
 import { DocRef, FatalParseError, type V0ParseError } from "./error";
 
 export class V0Parser {
 	// we want to accumulate errors rather than throwing, allowing multiple issues to be reported at once.
 	errors: V0ParseError[] = [];
 
+	/**
+	 * Parse a complete KDL file into a V0File AST.
+	 *
+	 * Expects the first node to be a version header.
+	 * Remaining top-level nodes are parsed as resource declarations (use blocks), jobs and stages.
+	 *
+	 * Throws FatalParseError if the version header is missing or invalid, or if
+	 * any errors were accumulated during version header validation.
+	 *
+	 * @param nodes - Array of top-level KDL nodes from the parsed file
+	 * @returns The parsed V0File containing uses and workflows
+	 * @throws {FatalParseError} If version header is invalid or missing
+	 */
 	public parseFile(nodes: KDLNode[]): V0File {
 		const versionHeader = nodes[0];
 
@@ -44,9 +65,50 @@ export class V0Parser {
 
 		if (this.errors.length > 0) throw new FatalParseError();
 
+		const uses = [];
+		const workflows: WorkflowDeclaration[] = [];
+		const implicitWorkflowStages: StageDeclaration[] = [];
+		// Parse remaining nodes
+		for (const node of nodes.slice(1)) {
+			const nodeName = node.getName();
+
+			if (nodeName === "use") {
+				const useDecls = this.parseUseBlock(node);
+				uses.push(...useDecls);
+			} else if (nodeName === "stage") {
+				const stage = this.parseStage(node);
+				if (stage) {
+					implicitWorkflowStages.push(stage);
+				}
+			} else if (nodeName === "job") {
+				// Implicit stage: single job
+				const job = this.parseJob(node);
+				if (job) {
+					implicitWorkflowStages.push({
+						name: job.name, // stage gets same name as job
+						span: job.span,
+						jobs: [job],
+					});
+				}
+			} else {
+				this.errors.push({
+					message: `Unexpected node '${nodeName}'`,
+					elements: [node],
+				});
+			}
+		}
+
+		if (implicitWorkflowStages.length > 0) {
+			workflows.push({
+				name: null, // implicit workflow
+				span: implicitWorkflowStages[0]!.span, // first stage/job location
+				stages: implicitWorkflowStages,
+			});
+		}
+
 		return {
-			uses: [],
-			workflows: [],
+			uses: uses,
+			workflows: workflows,
 		};
 	}
 
@@ -170,5 +232,301 @@ export class V0Parser {
 			ok: true,
 			attrs: result.output,
 		};
+	}
+
+	/**
+	 * Parse a use block containing resource declarations
+	 */
+	private parseUseBlock(node: KDLNode): UseDeclaration[] {
+		const declarations: UseDeclaration[] = [];
+		const children = node.children;
+
+		if (children === null) {
+			this.errors.push({
+				message: "this should be a block",
+				elements: [node],
+			});
+			return [];
+		}
+
+		for (const child of children.nodes) {
+			const decl = this.parseUseDeclaration(child);
+			if (decl) {
+				declarations.push(decl);
+			}
+		}
+
+		return declarations;
+	}
+
+	/**
+	 * Parse a single use declaration (image, library, or executor)
+	 */
+	private parseUseDeclaration(node: KDLNode): UseDeclaration | null {
+		this.ensureNoChildren(node);
+		const nodeName = node.getName();
+
+		switch (nodeName) {
+			case "image": {
+				const result = this.parseNodeAttributes(
+					node,
+					["name", "specifier"],
+					[],
+					v.object({
+						name: v.string(),
+						specifier: v.string(),
+					}),
+				);
+				if (result.ok) {
+					return {
+						resourceKind: "image",
+						name: result.attrs.name,
+						specifier: result.attrs.specifier,
+						location: getLocation(node) ?? null,
+					};
+				}
+				break;
+			}
+
+			case "library": {
+				const result = this.parseNodeAttributes(
+					node,
+					["name", "specifier"],
+					[],
+					v.object({
+						name: v.string(),
+						specifier: v.string(),
+					}),
+				);
+				if (result.ok) {
+					return {
+						resourceKind: "library",
+						name: result.attrs.name,
+						specifier: result.attrs.specifier,
+						location: getLocation(node) ?? null,
+					};
+				}
+				break;
+			}
+
+			case "executor": {
+				const result = this.parseNodeAttributes(
+					node,
+					["name", "type"],
+					[],
+					v.object({
+						name: v.string(),
+						type: v.string(),
+					}),
+				);
+				if (result.ok) {
+					return {
+						resourceKind: "executor",
+						name: result.attrs.name,
+						specifier: result.attrs.type,
+						location: getLocation(node) ?? null,
+					};
+				}
+				break;
+			}
+
+			default:
+				this.errors.push({
+					message: `Unexpected declaration '${nodeName}' in use block`,
+					elements: [node],
+				});
+		}
+
+		return null;
+	}
+
+	/**
+	 * Parse a stage declaration containing one or more jobs.
+	 *
+	 * Jobs within a stage run in parallel by default.
+	 * Continues parsing all child jobs even if the stage name is invalid,
+	 * to accumulate all possible errors for better error reporting.
+	 */
+	private parseStage(node: KDLNode): StageDeclaration | null {
+		const children = node.children;
+
+		if (children === null) {
+			this.errors.push({
+				message: "this should be a block",
+				elements: [node],
+			});
+			return null;
+		}
+
+		const jobs: JobDeclaration[] = [];
+
+		const stageNameResult = this.parseNodeAttributes(
+			node,
+			["name"],
+			[],
+			v.object({
+				name: v.string(),
+			}),
+		);
+
+		// Continue parsing all children even if stage name failed
+		for (const child of children.nodes) {
+			const childName = child.getName();
+
+			if (childName === "job") {
+				const job = this.parseJob(child);
+				if (job) {
+					jobs.push(job);
+				}
+			} else {
+				this.errors.push({
+					message: `Unexpected node '${childName}' in stage`,
+					elements: [child],
+				});
+			}
+		}
+
+		if (!stageNameResult.ok) {
+			return null;
+		}
+
+		return {
+			name: stageNameResult.attrs.name,
+			span: getLocation(node)!,
+			jobs,
+		};
+	}
+
+	/**
+	 * Parse a job declaration from a KDL node.
+	 *
+	 * Continues parsing all child nodes even if the job name is invalid,
+	 * to accumulate all possible errors for better error reporting.
+	 */
+	private parseJob(node: KDLNode): JobDeclaration | null {
+		const children = node.children;
+
+		if (children === null) {
+			this.errors.push({
+				message: "this should be a block",
+				elements: [node],
+			});
+			return null;
+		}
+
+		const needs: NeedsDeclaration[] = [];
+		const steps: AnyStepDeclaration[] = [];
+
+		const jobNameResult = this.parseNodeAttributes(
+			node,
+			["name"],
+			[],
+			v.object({
+				name: v.string(),
+			}),
+		);
+
+		for (const child of children.nodes) {
+			const childName = child.getName();
+
+			switch (childName) {
+				case "needs": {
+					const needsDecl = this.parseNeeds(child);
+					if (needsDecl) needs.push(needsDecl);
+					break;
+				}
+				case "step": {
+					const stepDecl = this.parseStep(child);
+					if (stepDecl) steps.push(stepDecl);
+					break;
+				}
+				default:
+					this.errors.push({
+						message: `Unexpected node '${childName}' in job`,
+						elements: [child],
+					});
+			}
+		}
+		if (!jobNameResult.ok) {
+			return null;
+		}
+
+		return {
+			name: jobNameResult.attrs.name,
+			span: getLocation(node)!,
+			needs,
+			steps,
+		};
+	}
+
+	/**
+	 * Parse a needs declaration specifying a job dependency.
+	 */
+	private parseNeeds(node: KDLNode): NeedsDeclaration | null {
+		this.ensureNoChildren(node);
+		const result = this.parseNodeAttributes(
+			node,
+			["job"],
+			["allow_failed"],
+			v.object({
+				job: v.string(),
+				allow_failed: v.optional(v.boolean(), false),
+			}),
+		);
+
+		if (!result.ok) {
+			return null;
+		}
+
+		return {
+			job: result.attrs.job,
+			allowFailed: result.attrs.allow_failed,
+			span: getLocation(node)!,
+		};
+	}
+
+	/**
+	 * Parse a step declaration within a job.
+	 *
+	 * A step defines a command to execute, with an optional container image.
+	 * @param node - The KDL node to parse
+	 * @returns The parsed step declaration, or null if parsing failed
+	 */
+	private parseStep(node: KDLNode): AnyStepDeclaration | null {
+		this.ensureNoChildren(node);
+		const result = this.parseNodeAttributes(
+			node,
+			["command"],
+			["image"],
+			v.object({
+				command: v.string(),
+				image: v.optional(v.string()),
+			}),
+		);
+
+		if (!result.ok) {
+			return null;
+		}
+
+		return {
+			span: getLocation(node)!,
+			image: result.attrs.image,
+			command: result.attrs.command,
+		};
+	}
+
+	/**
+	 * Ensure a node has no children block.
+	 * Adds an error if the node has children
+	 * This helps catch user mistakes and prevents future breaking changes.
+	 * @param node - The node to check
+	 */
+	private ensureNoChildren(node: KDLNode): void {
+		if (node.children !== null) {
+			this.errors.push({
+				message: `Node '${node.getName()}' does not accept a children block`,
+				elements: [node],
+			});
+		}
 	}
 }

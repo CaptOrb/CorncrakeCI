@@ -1,13 +1,13 @@
 import { parse as parseKDL } from "@bgotink/kdl";
 import * as v from "valibot";
 import { describe, expect, it } from "vitest";
-import type { V0File } from "../../../src/pipeline/v0/ast";
+import type { UserStepDeclaration, V0File } from "../../../src/pipeline/v0/ast";
 import { FatalParseError } from "../../../src/pipeline/v0/error";
 import { V0Parser } from "../../../src/pipeline/v0/parser";
 
 //just a sugary wrapper around the one we want to test
 function parse(_file: "parseFile", text: string): V0File {
-	const doc = parseKDL(text);
+	const doc = parseKDL(text, { storeLocations: true });
 
 	const parser = new V0Parser();
 
@@ -80,6 +80,354 @@ describe("V0Parser tests", () => {
 					count: 42,
 				});
 			}
+		});
+	});
+
+	describe("Stage and Job parsing", () => {
+		it("parses a single top-level job (implicit stage)", () => {
+			const out = parse(
+				"parseFile",
+				`molci version=v0
+			
+			job "build" {
+				step "pnpm install"
+			}`,
+			);
+
+			expect(out.workflows).toMatchInlineSnapshot(`
+				[
+				  {
+				    "name": null,
+				    "span": {
+				      "end": {
+				        "column": 5,
+				        "line": 5,
+				        "offset": 66,
+				      },
+				      "start": {
+				        "column": 4,
+				        "line": 3,
+				        "offset": 24,
+				      },
+				    },
+				    "stages": [
+				      {
+				        "jobs": [
+				          {
+				            "name": "build",
+				            "needs": [],
+				            "span": {
+				              "end": {
+				                "column": 5,
+				                "line": 5,
+				                "offset": 66,
+				              },
+				              "start": {
+				                "column": 4,
+				                "line": 3,
+				                "offset": 24,
+				              },
+				            },
+				            "steps": [
+				              {
+				                "command": "pnpm install",
+				                "image": undefined,
+				                "span": {
+				                  "end": {
+				                    "column": 24,
+				                    "line": 4,
+				                    "offset": 61,
+				                  },
+				                  "start": {
+				                    "column": 5,
+				                    "line": 4,
+				                    "offset": 42,
+				                  },
+				                },
+				              },
+				            ],
+				          },
+				        ],
+				        "name": "build",
+				        "span": {
+				          "end": {
+				            "column": 5,
+				            "line": 5,
+				            "offset": 66,
+				          },
+				          "start": {
+				            "column": 4,
+				            "line": 3,
+				            "offset": 24,
+				          },
+				        },
+				      },
+				    ],
+				  },
+				]
+			`);
+
+			//expect(out.workflows[0]?.stages).toHaveLength(1);
+			//expect(out.workflows[0]?.stages[0]?.name).toBe("build"); // stage name matches job
+			//expect(out.workflows[0]?.stages[0]?.jobs).toHaveLength(1);
+			//expect(out.workflows[0]?.stages[0]?.jobs[0]?.name).toBe("build");
+		});
+
+		it("parses an explicit stage with multiple jobs", () => {
+			const out = parse(
+				"parseFile",
+				`molci version=v0
+			
+			stage "test" {
+				job "run tests" {
+					step "pnpm test"
+				}
+				job "lint" {
+					step "npm run lint"
+				}
+			}`,
+			);
+			// Should create one stage named "test" with two jobs
+			expect(out.workflows).toMatchInlineSnapshot(`
+					[
+					  {
+					    "name": null,
+					    "span": {
+					      "end": {
+					        "column": 5,
+					        "line": 10,
+					        "offset": 141,
+					      },
+					      "start": {
+					        "column": 4,
+					        "line": 3,
+					        "offset": 24,
+					      },
+					    },
+					    "stages": [
+					      {
+					        "jobs": [
+					          {
+					            "name": "run tests",
+					            "needs": [],
+					            "span": {
+					              "end": {
+					                "column": 6,
+					                "line": 6,
+					                "offset": 88,
+					              },
+					              "start": {
+					                "column": 5,
+					                "line": 4,
+					                "offset": 43,
+					              },
+					            },
+					            "steps": [
+					              {
+					                "command": "pnpm test",
+					                "image": undefined,
+					                "span": {
+					                  "end": {
+					                    "column": 22,
+					                    "line": 5,
+					                    "offset": 82,
+					                  },
+					                  "start": {
+					                    "column": 6,
+					                    "line": 5,
+					                    "offset": 66,
+					                  },
+					                },
+					              },
+					            ],
+					          },
+					          {
+					            "name": "lint",
+					            "needs": [],
+					            "span": {
+					              "end": {
+					                "column": 6,
+					                "line": 9,
+					                "offset": 136,
+					              },
+					              "start": {
+					                "column": 5,
+					                "line": 7,
+					                "offset": 93,
+					              },
+					            },
+					            "steps": [
+					              {
+					                "command": "npm run lint",
+					                "image": undefined,
+					                "span": {
+					                  "end": {
+					                    "column": 25,
+					                    "line": 8,
+					                    "offset": 130,
+					                  },
+					                  "start": {
+					                    "column": 6,
+					                    "line": 8,
+					                    "offset": 111,
+					                  },
+					                },
+					              },
+					            ],
+					          },
+					        ],
+					        "name": "test",
+					        "span": {
+					          "end": {
+					            "column": 5,
+					            "line": 10,
+					            "offset": 141,
+					          },
+					          "start": {
+					            "column": 4,
+					            "line": 3,
+					            "offset": 24,
+					          },
+					        },
+					      },
+					    ],
+					  },
+					]
+				`);
+		});
+
+		it("parses step with optional image", () => {
+			const out = parse(
+				"parseFile",
+				`molci version=v0
+			
+			job "test" {
+				step "echo hello"
+				step image="node:18" "npm test"
+			}`,
+			);
+
+			const job = out.workflows[0]?.stages[0]?.jobs[0];
+			expect(job?.steps).toHaveLength(2);
+			const step1 = job?.steps[0] as UserStepDeclaration;
+			const step2 = job?.steps[1] as UserStepDeclaration;
+			expect(step1.image).toBeUndefined();
+			expect(step1.command).toBe("echo hello");
+			expect(step2.image).toBe("node:18");
+			expect(step2.command).toBe("npm test");
+		});
+	});
+
+	it("parses job with needs declarations", () => {
+		const out = parse(
+			"parseFile",
+			`molci version=v0
+		
+		job "build" {
+			step "pnpm run build"
+		}
+		
+		job "deploy" {
+			needs "build"
+			needs "test" allow_failed=#true
+			step "deploy.sh"
+		}`,
+		);
+
+		const deployJob = out.workflows[0]?.stages[1]?.jobs[0];
+		expect(deployJob?.needs).toHaveLength(2);
+		expect(deployJob?.needs[0]?.job).toBe("build");
+		expect(deployJob?.needs[0]?.allowFailed).toBe(false);
+		expect(deployJob?.needs[1]?.job).toBe("test");
+		expect(deployJob?.needs[1]?.allowFailed).toBe(true);
+	});
+
+	it("fails when stage has invalid name", () => {
+		expect(() =>
+			parse(
+				"parseFile",
+				`molci version=v0
+				
+				stage {
+					job "invalid" {
+						step "echo hi"
+					}
+				}`,
+			),
+		).toThrow();
+	});
+
+	it("fails when job name not provided", () => {
+		expect(() =>
+			parse(
+				"parseFile",
+				`molci version=v0
+				
+				job {
+					step "echo hi"
+				}`,
+			),
+		).toThrow();
+	});
+
+	it("fails when job contains unexpected children", () => {
+		expect(() =>
+			parse(
+				"parseFile",
+				`molci version=v0
+			
+			job "test" {
+				invalid "something"
+			}`,
+			),
+		).toThrow("Unexpected node 'invalid' in job");
+	});
+
+	it("accumulates errors - reports both undefined job name and undefined step", () => {
+		const doc = parseKDL(`molci version=v0
+		
+		job {
+			step
+		}`);
+		const parser = new V0Parser();
+
+		try {
+			parser.parseFile(doc.nodes);
+		} catch (_e) {
+			// Should have accumulated multiple errors
+			expect(parser.errors.length).toBeGreaterThan(1);
+			expect(parser.errors[0]?.issues).toBeDefined();
+			expect(parser.errors[1]?.issues).toBeDefined();
+		}
+	});
+
+	it("parses use block with resources", () => {
+		const out = parse(
+			"parseFile",
+			`molci version=v0
+		
+		use {
+			image rust "rust:1.59"
+			library rust "builtin:rust@1.83"
+			executor default "containers"
+		}`,
+		);
+
+		expect(out.uses).toHaveLength(3);
+		expect(out.uses[0]).toMatchObject({
+			resourceKind: "image",
+			name: "rust",
+			specifier: "rust:1.59",
+		});
+		expect(out.uses[1]).toMatchObject({
+			resourceKind: "library",
+			name: "rust",
+			specifier: "builtin:rust@1.83",
+		});
+		expect(out.uses[2]).toMatchObject({
+			resourceKind: "executor",
+			name: "default",
+			specifier: "containers",
 		});
 	});
 });

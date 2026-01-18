@@ -129,7 +129,9 @@ function parseKdlConfigs(
 	const configs = new Map<string, Document>();
 	for (const [filename, content] of configFiles) {
 		try {
-			const kdlDoc = parse(content);
+			const kdlDoc = parse(content, {
+				storeLocations: true,
+			});
 			configs.set(filename, kdlDoc);
 
 			const parser = new V0Parser();

@@ -1,7 +1,9 @@
+import type { StoredLocation } from "@bgotink/kdl";
+
 // This will be used to track where items in the file come from, so we can
 // report errors later on. If you can figure it out, feel free to fix, otherwise
 // just leave it as the string "TODO" everywhere this is used for now!
-type Span = "TODO";
+type Span = StoredLocation;
 
 export type V0File = {
 	uses: UseDeclaration[];
@@ -10,10 +12,10 @@ export type V0File = {
 };
 
 export type UseDeclaration = {
-	resourceKind: string;
+	resourceKind: string; // image
 	name: string;
-	specifier: string;
-	span: Span;
+	specifier: string; // e.g. rust:1.123
+	location: StoredLocation | null;
 };
 
 export type WorkflowDeclaration = {
@@ -39,6 +41,7 @@ export type StageDeclaration = {
 export type JobDeclaration = {
 	name: string;
 	span: Span;
+	needs: NeedsDeclaration[];
 
 	steps: AnyStepDeclaration[];
 };
@@ -60,5 +63,13 @@ export type EnvStepDeclaration = {
 
 export type UserStepDeclaration = {
 	span: Span;
+	image?: string;
+	command: string;
 	// TODO
+};
+
+export type NeedsDeclaration = {
+	job: string;
+	allowFailed: boolean;
+	span: Span;
 };
