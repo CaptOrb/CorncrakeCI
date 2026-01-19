@@ -154,7 +154,8 @@ export const reconfigureRepo: ReconfigureRepo = async (
 	const forgeRepo = await forge.getRepository(dbRepo.forge_repo_id);
 
 	// Update DB for the reconfiguredRepo
-	await transaction(async (txn) => {
+	// Echo the changed copy
+	const repository = await transaction(async (txn) => {
 		// Clear webhook_secret so the setup job will recreate the webhook
 		// (this allows reconfigureRepo to refresh webhooks)
 		await txn.repositories.clearWebhookSecret(repoId);
@@ -165,9 +166,22 @@ export const reconfigureRepo: ReconfigureRepo = async (
 			userId,
 			forgeRepo.full_name,
 		);
+
+		return (await txn.repositories.getRepositoryById(repoId, userId))!;
 	});
 
-	return respond.with200();
+	return respond.with200().body({
+		repo: {
+			repo_id: repository.repo_id,
+			forge_repo_id: repository.forge_repo_id,
+			full_name: repository.repo_name,
+			forge: {
+				id: repository.forge_id,
+				name: repository.forge_display_name,
+			},
+		},
+		configured_at: repository.created_at.toISOString(),
+	});
 };
 
 export const getRepo: GetRepo = async (
