@@ -346,4 +346,28 @@ export class GiteaForgeWithUser implements ForgeWithUser {
 			configFiles,
 		};
 	}
+
+	async createCommitStatus(
+		forgeRepoId: string,
+		sha: string,
+		state: "success" | "failure" | "error" | "pending",
+		description: string,
+		context = "molci/pipeline-validation",
+		targetUrl?: string,
+	): Promise<void> {
+		const repoQueryParts = await this.getRepoQueryParts(forgeRepoId);
+
+		const res = await this.client.repoCreateStatus({
+			...repoQueryParts,
+			sha,
+			requestBody: {
+				state,
+				description,
+				context,
+				target_url: targetUrl,
+			},
+		});
+
+		await successJson(res);
+	}
 }

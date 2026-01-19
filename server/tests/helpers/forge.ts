@@ -208,6 +208,18 @@ class TestForgeWithUser implements ForgeWithUser {
 			configFiles: configs || new Map<string, string>(),
 		};
 	}
+
+	async createCommitStatus(
+		_forgeRepoId: string,
+		_sha: string,
+		_state: "success" | "failure" | "error" | "pending",
+		_description: string,
+		_context = "molci/pipeline-validation",
+		_targetUrl?: string,
+	): Promise<void> {
+		if (!this.user) throw new Error("invalid access token");
+		// Test implementation - just succeed
+	}
 }
 
 export class TestForgeController {

@@ -39,4 +39,13 @@ export interface ForgeWithUser {
 		forgeRepoId: string,
 		ref: string,
 	): Promise<{ path: string; configFiles: Map<string, string> }>;
+
+	createCommitStatus(
+		forgeRepoId: string,
+		sha: string,
+		state: "success" | "failure" | "error" | "pending",
+		description: string,
+		context?: string,
+		targetUrl?: string,
+	): Promise<void>;
 }

@@ -145,6 +145,7 @@ op checkPipelines(
     /**
      * ref/branch to check. Defaults to default branch.
      */
+    @example("main")
     ref?: string;
   },
 ):
