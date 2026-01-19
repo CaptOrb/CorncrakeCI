@@ -141,7 +141,7 @@ op reconfigureRepo(
 @summary("Validate all pipeline configurations in a repository")
 op checkPipelines(
   @path id: integer,
-  @body body?: {
+  @body body: {
     /**
      * ref/branch to check. Defaults to default branch.
      */
