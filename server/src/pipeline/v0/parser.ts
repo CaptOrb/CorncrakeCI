@@ -68,6 +68,9 @@ export class V0Parser {
 		const uses = [];
 		const workflows: WorkflowDeclaration[] = [];
 		const implicitWorkflowStages: StageDeclaration[] = [];
+
+		// Track job and stage names to detect conflicts
+		const reservedNames = new Map<string, KDLNode>();
 		// Parse remaining nodes
 		for (const node of nodes.slice(1)) {
 			const nodeName = node.getName();
@@ -78,12 +81,31 @@ export class V0Parser {
 			} else if (nodeName === "stage") {
 				const stage = this.parseStage(node);
 				if (stage) {
+					// Check for duplicate stage name
+					if (reservedNames.has(stage.name!)) {
+						this.errors.push({
+							message: `Duplicate name '${stage.name}'`,
+							elements: [node, reservedNames.get(stage.name!)!],
+						});
+					} else {
+						reservedNames.set(stage.name!, node);
+					}
 					implicitWorkflowStages.push(stage);
 				}
 			} else if (nodeName === "job") {
 				// Implicit stage: single job
 				const job = this.parseJob(node);
 				if (job) {
+					// Check for duplicate job name
+					if (reservedNames.has(job.name)) {
+						this.errors.push({
+							message: `Duplicate name '${job.name}'`,
+							elements: [node, reservedNames.get(job.name)!],
+						});
+					} else {
+						reservedNames.set(job.name, node);
+					}
+
 					implicitWorkflowStages.push({
 						name: job.name, // stage gets same name as job
 						span: job.span,
@@ -364,6 +386,8 @@ export class V0Parser {
 
 		const jobs: JobDeclaration[] = [];
 
+		const jobNames = new Map<string, KDLNode>();
+
 		const stageNameResult = this.parseNodeAttributes(
 			node,
 			["name"],
@@ -380,6 +404,14 @@ export class V0Parser {
 			if (childName === "job") {
 				const job = this.parseJob(child);
 				if (job) {
+					if (jobNames.has(job.name)) {
+						this.errors.push({
+							message: `Duplicate job name '${job.name}' in stage`,
+							elements: [child, jobNames.get(job.name)!],
+						});
+					} else {
+						jobNames.set(job.name, child);
+					}
 					jobs.push(job);
 				}
 			} else {

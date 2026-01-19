@@ -383,6 +383,167 @@ describe("V0Parser tests", () => {
 		).toThrow("Unexpected node 'invalid' in job");
 	});
 
+	it("fails when two top-level jobs have the same name", () => {
+		expect(() =>
+			parse(
+				"parseFile",
+				`molci version=v0
+				job a {
+				}
+
+				job a {
+				}`,
+			),
+		).toThrow("Duplicate name 'a'");
+	});
+
+	it("fails when two top-level stages have the same name", () => {
+		expect(() =>
+			parse(
+				"parseFile",
+				`molci version=v0
+				stage a {
+				}
+
+				stage a {
+				}`,
+			),
+		).toThrow("Duplicate name 'a'");
+	});
+
+	it("fails when two jobs within the same stage have the same name", () => {
+		expect(() =>
+			parse(
+				"parseFile",
+				`molci version=v0
+				stage b {
+					job a {
+					}
+					job a {
+					}
+				}
+			`,
+			),
+		).toThrow("Duplicate job name 'a' in stage");
+	});
+
+	it("fails when a toplevel job and stage have the same name", () => {
+		expect(() =>
+			parse(
+				"parseFile",
+				`molci version=v0
+				job a {
+				}
+
+				stage a {
+				}`,
+			),
+		).toThrow("Duplicate name 'a'");
+	});
+
+	it("allows jobs with the same name in different stages", () => {
+		const out = parse(
+			"parseFile",
+			`molci version=v0
+			stage a {
+				job jobName {
+				}
+			}
+			stage b {
+				job jobName {
+				}
+			}`,
+		);
+
+		expect(out.workflows[0])?.toMatchInlineSnapshot(`
+			{
+			  "name": null,
+			  "span": {
+			    "end": {
+			      "column": 5,
+			      "line": 5,
+			      "offset": 58,
+			    },
+			    "start": {
+			      "column": 4,
+			      "line": 2,
+			      "offset": 20,
+			    },
+			  },
+			  "stages": [
+			    {
+			      "jobs": [
+			        {
+			          "name": "jobName",
+			          "needs": [],
+			          "span": {
+			            "end": {
+			              "column": 6,
+			              "line": 4,
+			              "offset": 53,
+			            },
+			            "start": {
+			              "column": 5,
+			              "line": 3,
+			              "offset": 34,
+			            },
+			          },
+			          "steps": [],
+			        },
+			      ],
+			      "name": "a",
+			      "span": {
+			        "end": {
+			          "column": 5,
+			          "line": 5,
+			          "offset": 58,
+			        },
+			        "start": {
+			          "column": 4,
+			          "line": 2,
+			          "offset": 20,
+			        },
+			      },
+			    },
+			    {
+			      "jobs": [
+			        {
+			          "name": "jobName",
+			          "needs": [],
+			          "span": {
+			            "end": {
+			              "column": 6,
+			              "line": 8,
+			              "offset": 95,
+			            },
+			            "start": {
+			              "column": 5,
+			              "line": 7,
+			              "offset": 76,
+			            },
+			          },
+			          "steps": [],
+			        },
+			      ],
+			      "name": "b",
+			      "span": {
+			        "end": {
+			          "column": 5,
+			          "line": 9,
+			          "offset": 100,
+			        },
+			        "start": {
+			          "column": 4,
+			          "line": 6,
+			          "offset": 62,
+			        },
+			      },
+			    },
+			  ],
+			}
+		`);
+	});
+
 	it("accumulates errors - reports both undefined job name and undefined step", () => {
 		const doc = parseKDL(`molci version=v0
 		
