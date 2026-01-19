@@ -144,6 +144,11 @@ authRouter.get("/callback", async (req: Request, res: Response) => {
 });
 
 authRouter.post("/logout", (req: Request, res: Response) => {
+	const requestedRedirectUrl: string | undefined = req.body.then;
+	const redirectUrl =
+		requestedRedirectUrl && isValidRedirectPath(requestedRedirectUrl)
+			? requestedRedirectUrl
+			: config.app.baseurl;
 	req.session.destroy((err) => {
 		if (err) {
 			res.status(500).json({ error: "Failed to logout" });
@@ -156,7 +161,7 @@ authRouter.post("/logout", (req: Request, res: Response) => {
 			sameSite: "lax" as const,
 		});
 		clearOAuthCookies(res);
-		res.json({ success: true });
+		res.redirect(redirectUrl);
 	});
 });
 
