@@ -20,6 +20,7 @@ import { createForgesFromConfig } from "../services/forges";
 import { getTokenInfo } from "../services/user";
 import { seedForges } from "../util/seedforges";
 import {
+	checkPipelines,
 	configureRepo,
 	getRepo,
 	listAvailableRepos,
@@ -116,6 +117,7 @@ export async function createApiServer({
 			listAvailableRepos,
 			listConfiguredRepos,
 			getRepo,
+			checkPipelines,
 			configureRepo,
 			reconfigureRepo,
 			whoAmI,

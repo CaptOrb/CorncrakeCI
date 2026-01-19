@@ -177,20 +177,22 @@ export class V0Parser {
 			if (!allowedProperties.has(key!)) {
 				hasError = true;
 
-				this.errors.push({
+				const error: V0ParseError = {
 					message: `Unexpected property '${key}' on node '${node.getName()}'`,
 					elements: [propEntry],
-				});
+				};
+				this.errors.push(error);
 				continue;
 			}
 
 			// Check if this property overwrites an argument
 			if (key! in attrEntries) {
 				hasError = true;
-				this.errors.push({
+				const error: V0ParseError = {
 					message: `Property '${key}' cannot overwrite argument on node '${node.getName()}'`,
 					elements: [propEntry],
-				});
+				};
+				this.errors.push(error);
 				continue;
 			}
 
@@ -205,6 +207,7 @@ export class V0Parser {
 		const result = v.safeParse(schema, attrs);
 		if (!result.success) {
 			const error: V0ParseError = {
+				message: "Schema validation failed",
 				elements: [node],
 				issues: result.issues,
 			};
@@ -222,6 +225,7 @@ export class V0Parser {
 				elements: [node],
 				message: `Invalid attributes on node '${node.getName()}'`,
 			};
+			this.errors.push(error);
 			return {
 				ok: false,
 				attrs,

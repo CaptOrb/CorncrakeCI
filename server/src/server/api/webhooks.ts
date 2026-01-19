@@ -1,9 +1,7 @@
-import { type Document, parse } from "@bgotink/kdl";
 import type { Response } from "express";
 import * as v from "valibot";
 import { transaction } from "../../db/stores";
-import { FatalParseError } from "../../pipeline/v0/error";
-import { V0Parser } from "../../pipeline/v0/parser";
+import { parseKdlConfigs } from "../../pipeline";
 import { getForgeWithUser } from "../../services/forges";
 import { verifyWebhookSignature } from "../../util/crypto";
 import type { RawBodyRequest } from "..";
@@ -79,7 +77,7 @@ export const handleWebhook = async (req: RawBodyRequest, res: Response) => {
 					parsed.output.pull_request.head.sha,
 				);
 
-				const configs = parseKdlConfigs(molciConfig.configFiles);
+				const { configs } = parseKdlConfigs(molciConfig.configFiles);
 
 				console.log(
 					`Pull Request Event: found files: ${[...configs.keys()].join(", ")} in ${molciConfig.path}`,
@@ -103,7 +101,7 @@ export const handleWebhook = async (req: RawBodyRequest, res: Response) => {
 					parsed.output.after, // only the latest commit on a branch matters
 				);
 
-				const configs = parseKdlConfigs(molciConfig.configFiles);
+				const { configs } = parseKdlConfigs(molciConfig.configFiles);
 
 				console.log(
 					`push Event: (${parsed.output.ref}): found files: ${[...configs.keys()].join(", ")} in ${molciConfig.path}`,
@@ -119,41 +117,6 @@ export const handleWebhook = async (req: RawBodyRequest, res: Response) => {
 
 	return res.status(200).end();
 };
-
-/**
- * Parses KDL config files from a map of filename to content.
- */
-function parseKdlConfigs(
-	configFiles: Map<string, string>,
-): Map<string, Document> {
-	const configs = new Map<string, Document>();
-	for (const [filename, content] of configFiles) {
-		try {
-			const kdlDoc = parse(content, {
-				storeLocations: true,
-			});
-			configs.set(filename, kdlDoc);
-
-			const parser = new V0Parser();
-			try {
-				parser.parseFile(kdlDoc.nodes);
-				console.log(`Successfully parsed ${filename} with version header`);
-				if (parser.errors.length > 0) {
-					console.warn(`Parse errors in ${filename}:`, parser.errors);
-				}
-			} catch (error) {
-				if (error instanceof FatalParseError) {
-					console.error(`Fatal parse error in ${filename}:`, parser.errors);
-				} else {
-					throw error;
-				}
-			}
-		} catch (error) {
-			console.warn(`Failed to parse KDL file ${filename}:`, error);
-		}
-	}
-	return configs;
-}
 
 const s_User = v.object({
 	id: v.pipe(v.number(), v.integer()),

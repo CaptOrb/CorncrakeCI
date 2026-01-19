@@ -195,12 +195,18 @@ class TestForgeWithUser implements ForgeWithUser {
 		};
 	}
 
-	// TODO: Implement this, it gets upset if it's not implemented
 	async getMolciConfig(
-		_forgeRepoId: string,
-		_ref: string,
+		forgeRepoId: string,
+		_ref?: string,
 	): Promise<{ path: string; configFiles: Map<string, string> }> {
-		return { path: "", configFiles: new Map<string, string>() };
+		if (!this.user) throw new Error("invalid access token");
+
+		const configs = this.controller.configs.get(forgeRepoId);
+
+		return {
+			path: ".molci",
+			configFiles: configs || new Map<string, string>(),
+		};
 	}
 }
 
@@ -221,6 +227,11 @@ export class TestForgeController {
 			},
 		],
 	]);
+	public configs: Map<string, Map<string, string>> = new Map();
+
+	setRepoConfigs(forgeRepoId: string, configFiles: Map<string, string>) {
+		this.configs.set(forgeRepoId, configFiles);
+	}
 }
 
 interface TestRepo {

@@ -1,5 +1,6 @@
 import { transaction } from "../../db/stores";
 import type {
+	CheckPipelines,
 	ConfigureRepo,
 	GetRepo,
 	ListAvailableRepos,
@@ -8,6 +9,7 @@ import type {
 	ReconfigureRepo,
 } from "../../generated/server/generated";
 import type { t_ConfigureRepoRequestBodySchema } from "../../generated/server/models";
+import { parseKdlConfigs } from "../../pipeline";
 import {
 	AuthError,
 	getForgeWithUser,
@@ -30,6 +32,36 @@ export const listForges: ListForges = async (
 	);
 };
 
+export const checkPipelines: CheckPipelines = async (
+	{ params },
+	respond,
+	req,
+) => {
+	const userId = req.session?.userId;
+	if (!userId) {
+		throw new AuthError("Not authenticated");
+	}
+
+	const molciRepoId = params.id;
+	const { ref } = req.body;
+
+	const repository = await transaction(async (txn) => {
+		return txn.repositories.getRepositoryById(molciRepoId, userId);
+	});
+
+	if (!repository) {
+		throw new NotFoundError("Repository not found");
+	}
+
+	const forge = await getForgeWithUser(userId);
+	const molciConfig = await forge.getMolciConfig(repository.forge_repo_id, ref);
+
+	const { results } = parseKdlConfigs(molciConfig.configFiles);
+
+	return respond.with200().body({
+		pipelines: results,
+	});
+};
 export const listAvailableRepos: ListAvailableRepos = async (
 	_params,
 	respond,

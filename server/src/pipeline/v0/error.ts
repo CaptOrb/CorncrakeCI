@@ -18,7 +18,7 @@ export enum DocRef {
 export interface V0ParseError {
 	node?: KDLNode;
 	elements?: readonly Element[];
-	message?: string;
+	message: string;
 	issues?: readonly v.BaseIssue<unknown>[];
 	docRef?: DocRef;
 }

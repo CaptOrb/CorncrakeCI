@@ -41,7 +41,7 @@ model ConfiguredRepository {
 model UserSummary {
   id: integer;
   name: string;
-};
+}
 
 model ForgeSummary {
   id: integer;
@@ -61,7 +61,7 @@ alias InternalError = {
 model WhoAmI {
   user: UserSummary;
   forge: ForgeSummary;
-};
+}
 
 @route("/whoami")
 @get
@@ -85,10 +85,8 @@ op listAvailableRepos():
 @route("/repos/configured")
 @get
 @summary("List repositories already configured in MOLCI")
-op listConfiguredRepos():
-  | Body<RepositoryConfig[]>
-  | (UnauthorizedResponse & Error)
-  | InternalError;
+op listConfiguredRepos(): Body<RepositoryConfig[]> | (UnauthorizedResponse &
+  Error) | InternalError;
 
 @route("/repo")
 @post
@@ -137,3 +135,48 @@ op reconfigureRepo(
   | (UnauthorizedResponse & Error)
   | (NotFoundResponse & Error)
   | InternalError;
+
+@route("/repo/{id}/pipelines/check")
+@post
+@summary("Validate all pipeline configurations in a repository")
+op checkPipelines(
+  @path id: integer,
+  @body body?: {
+    /**
+     * ref/branch to check. Defaults to default branch.
+     */
+    ref?: string;
+  },
+):
+  | Body<{
+      pipelines: PipelineCheckResult[];
+    }>
+  | (BadRequestResponse & Error)
+  | (UnauthorizedResponse & Error)
+  | (NotFoundResponse & Error)
+  | InternalError;
+
+model PipelineCheckResult {
+  /**
+   * Path to the pipeline configuration file relative to the ci folder root.
+   * Example: "deploy.kdl"
+   */
+  path: string;
+
+  /**
+   * The content of the pipeline configuration file that was validated.
+   * This allows clients to display the file content alongside any errors.
+   */
+  content: string;
+
+  errors?: PipelineError[];
+}
+
+model PipelineError {
+  message: string;
+  startLine?: integer;
+  startColumn?: integer;
+  endLine?: integer;
+  endColumn?: integer;
+  docRef?: string;
+}
