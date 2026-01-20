@@ -144,7 +144,7 @@ authRouter.get("/callback", async (req: Request, res: Response) => {
 });
 
 authRouter.post("/logout", (req: Request, res: Response) => {
-	const requestedRedirectUrl: string | undefined = req.body.then;
+	const requestedRedirectUrl: string | undefined = req.body?.then;
 	const redirectUrl =
 		requestedRedirectUrl && isValidRedirectPath(requestedRedirectUrl)
 			? requestedRedirectUrl
