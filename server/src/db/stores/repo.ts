@@ -131,4 +131,21 @@ export class RepositoryStore {
 			[repoId],
 		);
 	}
+
+	async getConfiguredRepositoryForgeIds(ownerId: number): Promise<Set<string>> {
+		const result = await this.client.query(
+			`
+			SELECT forge_repo_id
+			FROM repositories
+			WHERE owner_id = $1 AND webhook_secret IS NOT NULL
+			`,
+			[ownerId],
+		);
+
+		const configuredRepoIds = new Set<string>();
+		for (const row of result.rows) {
+			configuredRepoIds.add(row.forge_repo_id);
+		}
+		return configuredRepoIds;
+	}
 }

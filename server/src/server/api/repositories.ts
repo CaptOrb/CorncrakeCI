@@ -75,9 +75,17 @@ export const listAvailableRepos: ListAvailableRepos = async (
 	}
 
 	const forge = await getForgeWithUser(userId);
-	const repos = await forge.listRepositories();
+	const [repos, configuredRepoIds] = await Promise.all([
+		forge.listRepositories(),
+		transaction(async (txn) => {
+			return txn.repositories.getConfiguredRepositoryForgeIds(userId);
+		}),
+	]);
 
-	return respond.with200().body(repos);
+	const availableRepos = repos.filter(
+		(repo) => !configuredRepoIds.has(repo.forge_repo_id),
+	);
+	return respond.with200().body(availableRepos);
 };
 
 export const configureRepo: ConfigureRepo = async (_params, respond, req) => {
