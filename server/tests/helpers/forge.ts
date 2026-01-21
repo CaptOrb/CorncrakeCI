@@ -48,6 +48,7 @@ export function testForgeHelper(): { controller?: TestForgeController } {
 
 export class TestForge implements Forge {
 	public name: string = "TestForge";
+	public readonly logoUrl: string | undefined = undefined;
 
 	constructor(
 		private _controller: TestForgeController,

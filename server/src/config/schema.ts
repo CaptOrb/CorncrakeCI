@@ -19,6 +19,7 @@ const ForgeInstanceSchema = v.pipe(
 		clientid: v.string(),
 		clientsecret: v.string(),
 		redirecturi: v.string(),
+		logourl: v.optional(v.string()),
 		// assumed refresh token lifetime in seconds (default: 730 hours = 2628000 seconds)
 		refreshtokenlifetime: v.pipe(
 			v.optional(v.string(), "2628000"),

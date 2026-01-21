@@ -75,6 +75,7 @@ export class GiteaForge implements Forge {
 	private baseUrl: string;
 	private publicUrl: string; // For OAuth authorisation URL (browser-accessible) in docker demo
 	public name: string;
+	public readonly logoUrl: string | undefined;
 
 	constructor(
 		private forgeId: number,
@@ -84,6 +85,7 @@ export class GiteaForge implements Forge {
 		this.baseUrl = config.internalurl;
 		this.publicUrl = config.url;
 		this.name = config.name;
+		this.logoUrl = config.logourl ?? `${this.baseUrl}/assets/img/logo.svg`;
 
 		if (!config.clientid || !config.clientsecret) {
 			throw new Error("Gitea OAuth2 credentials not configured");

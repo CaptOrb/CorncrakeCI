@@ -10,6 +10,7 @@ export interface TokenInfo {
 
 export interface Forge {
 	readonly name: string;
+	readonly logoUrl: string | undefined;
 
 	getAuthorizationUrl(): { url: string; state: string; codeVerifier: string };
 

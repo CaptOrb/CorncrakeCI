@@ -28,6 +28,7 @@ export const listForges: ListForges = async (
 		listAvailableForges().map(({ id, forge }) => ({
 			id,
 			name: forge.name,
+			logo_url: forge.logoUrl,
 		})),
 	);
 };

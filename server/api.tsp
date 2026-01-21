@@ -46,6 +46,7 @@ model UserSummary {
 model ForgeSummary {
   id: integer;
   name: string;
+  logo_url?: string;
 }
 
 model RepositoryConfig {
