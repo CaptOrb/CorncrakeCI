@@ -198,6 +198,19 @@ class TestForgeWithUser implements ForgeWithUser {
 		};
 	}
 
+	async listWebhooks(
+		_forgeRepoId: string,
+	): Promise<Array<{ id: string; url: string | undefined }>> {
+		if (!this.user) throw new Error("invalid access token");
+		// Test implementation - return empty array
+		return [];
+	}
+
+	async deleteWebhook(_forgeRepoId: string, _webhookId: string): Promise<void> {
+		if (!this.user) throw new Error("invalid access token");
+		// Test implementation - just succeed
+	}
+
 	async getMolciConfig(
 		forgeRepoId: string,
 		_ref?: string,

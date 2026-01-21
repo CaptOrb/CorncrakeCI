@@ -4,6 +4,7 @@ import * as v from "valibot";
 import { config } from "../config";
 import { transaction } from "../db/stores";
 import { mustGetForge } from "../services/forges";
+import type { ForgeWithUser } from "../services/forges/forge";
 import { decrypt } from "../util/crypto";
 
 export const SetupWebhooksJobPayload = v.object({
@@ -12,6 +13,39 @@ export const SetupWebhooksJobPayload = v.object({
 export type SetupWebhooksJobPayload = v.InferOutput<
 	typeof SetupWebhooksJobPayload
 >;
+
+async function cleanupExistingWebhooks(
+	forge: ForgeWithUser,
+	repoId: number,
+	forgeRepoId: string,
+	molciBaseUrl: string,
+	helpers: JobHelpers,
+): Promise<void> {
+	try {
+		const existingWebhooks = await forge.listWebhooks(forgeRepoId);
+		const molciWebhookUrlPrefix = `${molciBaseUrl}/api/_webhooks/`;
+
+		for (const webhook of existingWebhooks) {
+			if (webhook.url?.startsWith(molciWebhookUrlPrefix)) {
+				try {
+					await forge.deleteWebhook(forgeRepoId, webhook.id);
+					helpers.logger.info(
+						`Deleted stale webhook ${webhook.id} for repo ${repoId}`,
+					);
+				} catch (error) {
+					helpers.logger.warn(
+						`Failed to delete webhook ${webhook.id}: ${error}`,
+					);
+				}
+			}
+		}
+	} catch (error) {
+		helpers.logger.warn(
+			`Failed to list/cleanup webhooks for repo ${repoId}: ${error}`,
+		);
+		// Continue with webhook creation even if cleanup fails
+	}
+}
 
 export async function setup_webhooks(payload: unknown, helpers: JobHelpers) {
 	const { repoId } = v.parse(SetupWebhooksJobPayload, payload);
@@ -48,13 +82,6 @@ export async function setup_webhooks(payload: unknown, helpers: JobHelpers) {
 			return;
 		}
 
-		// If webhook already exists, skip creation to avoid duplicates
-		if (repoResult.webhook_secret !== null) {
-			helpers.logger.info(
-				`Webhook already exists for repo ${repoId}, skipping creation`,
-			);
-			return;
-		}
 		// Decrypt token from BYTEA (Buffer)
 		const accessToken = decrypt(
 			repoResult.access_token,
@@ -65,6 +92,14 @@ export async function setup_webhooks(payload: unknown, helpers: JobHelpers) {
 		const forge = forgeOnly.withUser(accessToken);
 
 		const webhookUrl = `${forgeOnly.molciBaseUrl}/api/_webhooks/${repoId}`;
+
+		await cleanupExistingWebhooks(
+			forge,
+			repoId,
+			repoResult.forge_repo_id,
+			forgeOnly.molciBaseUrl,
+			helpers,
+		);
 
 		const webhookSecret = secureRandomBase64Url();
 

@@ -3,7 +3,10 @@ import * as arctic from "arctic";
 import { config as appConfig } from "../../../config";
 import type { ForgeInstanceConfig } from "../../../config/schema";
 import { ApiClient } from "../../../generated/gitea/client";
-import type { t_ContentsResponse } from "../../../generated/gitea/models";
+import type {
+	t_ContentsResponse,
+	t_Hook,
+} from "../../../generated/gitea/models";
 import type { t_ForgeRepository } from "../../../generated/server/models";
 import { unwrap } from "../../../util/typing";
 import { AuthError, NotFoundError } from "./../errors";
@@ -292,6 +295,34 @@ export class GiteaForgeWithUser implements ForgeWithUser {
 		return {
 			id: String(webhook.id),
 		};
+	}
+
+	async listWebhooks(
+		forgeRepoId: string,
+	): Promise<Array<{ id: string; url: string | undefined }>> {
+		const repoQueryParts = await this.getRepoQueryParts(forgeRepoId);
+
+		const res = await this.client.repoListHooks(repoQueryParts);
+
+		const webhooks = await successJson(res);
+		return webhooks.map((webhook: t_Hook) => ({
+			id: String(webhook.id),
+			// biome-ignore lint/complexity/useLiteralKeys: TypeScript requires bracket notation for index signature access but makes biome unhappy
+			url: webhook.config?.["url"],
+		}));
+	}
+
+	async deleteWebhook(forgeRepoId: string, webhookId: string): Promise<void> {
+		const repoQueryParts = await this.getRepoQueryParts(forgeRepoId);
+
+		const res = await this.client.repoDeleteHook({
+			...repoQueryParts,
+			id: Number(webhookId),
+		});
+
+		if (!(200 <= res.status && res.status <= 299)) {
+			await raiseErr(res);
+		}
 	}
 
 	async getMolciConfig(

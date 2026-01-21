@@ -48,6 +48,12 @@ export interface ForgeWithUser {
 		webhookSecret: string,
 	): Promise<{ id: string }>;
 
+	listWebhooks(
+		forgeRepoId: string,
+	): Promise<Array<{ id: string; url: string | undefined }>>;
+
+	deleteWebhook(forgeRepoId: string, webhookId: string): Promise<void>;
+
 	getMolciConfig(
 		forgeRepoId: string,
 		ref: string,
