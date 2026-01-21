@@ -1,5 +1,6 @@
 import type { Res, StatusCode } from "@nahkies/typescript-fetch-runtime/main";
 import * as arctic from "arctic";
+import { config as appConfig } from "../../../config";
 import type { ForgeInstanceConfig } from "../../../config/schema";
 import { ApiClient } from "../../../generated/gitea/client";
 import type { t_ContentsResponse } from "../../../generated/gitea/models";
@@ -76,6 +77,7 @@ export class GiteaForge implements Forge {
 	private publicUrl: string; // For OAuth authorisation URL (browser-accessible) in docker demo
 	public name: string;
 	public readonly logoUrl: string | undefined;
+	public readonly molciBaseUrl: string;
 
 	constructor(
 		private forgeId: number,
@@ -86,6 +88,8 @@ export class GiteaForge implements Forge {
 		this.publicUrl = config.url;
 		this.name = config.name;
 		this.logoUrl = config.logourl ?? `${this.baseUrl}/assets/img/logo.svg`;
+		// If this forge has a custom MOLCI base URL set, use that, otherwise use the normal MOLCI base URL.
+		this.molciBaseUrl = config.appbaseurloverride ?? appConfig.app.baseurl;
 
 		if (!config.clientid || !config.clientsecret) {
 			throw new Error("Gitea OAuth2 credentials not configured");

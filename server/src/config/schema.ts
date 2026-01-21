@@ -16,6 +16,7 @@ const ForgeInstanceSchema = v.pipe(
 		name: v.optional(v.string()),
 		url: v.string(), // Public URL for OAuth redirects (browser-accessible)
 		internalurl: v.optional(v.string()), // Internal URL for server-to-server API calls for docker
+		appbaseurloverride: v.optional(v.string()), // Override of the MOLCI base URL, in case the Forge can't access MOLCI over the normal public base URL
 		clientid: v.string(),
 		clientsecret: v.string(),
 		redirecturi: v.string(),

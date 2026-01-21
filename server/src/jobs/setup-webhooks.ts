@@ -61,9 +61,10 @@ export async function setup_webhooks(payload: unknown, helpers: JobHelpers) {
 			config.app.encryptionkey,
 		);
 
-		const forge = mustGetForge(repoResult.forge_id).withUser(accessToken);
+		const forgeOnly = mustGetForge(repoResult.forge_id);
+		const forge = forgeOnly.withUser(accessToken);
 
-		const webhookUrl = `${config.app.baseurl}/api/_webhooks/${repoId}`;
+		const webhookUrl = `${forgeOnly.molciBaseUrl}/api/_webhooks/${repoId}`;
 
 		const webhookSecret = secureRandomBase64Url();
 

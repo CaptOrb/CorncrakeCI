@@ -49,6 +49,8 @@ export function testForgeHelper(): { controller?: TestForgeController } {
 export class TestForge implements Forge {
 	public name: string = "TestForge";
 	public readonly logoUrl: string | undefined = undefined;
+	public readonly molciBaseUrl: string =
+		"http://forge-internal.molci.invalid:1234";
 
 	constructor(
 		private _controller: TestForgeController,

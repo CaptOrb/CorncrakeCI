@@ -88,6 +88,7 @@ services:
       FORGES_1_TYPE: gitea
       FORGES_1_URL: http://localhost:3006
       FORGES_1_INTERNALURL: http://gitea:3006
+      FORGES_1_APPBASEURLOVERRIDE: http://molci-server:3009
       FORGES_1_CLIENTID: FILL_IN_DEMO_ID_ONLY!!
       FORGES_1_CLIENTSECRET: FILL_IN_DEMO_CLIENT_SECRET_ONLY!!!
       FORGES_1_REDIRECTURI: http://localhost:3009/api/auth/callback
