@@ -13,6 +13,8 @@ services:
       - "5432:5432"
     volumes:
       - molci_postgres_data:/var/lib/postgresql/data
+    networks:
+      - molci_network
 
   gitea-db:
     image: postgres:17
