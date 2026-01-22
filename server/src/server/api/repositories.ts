@@ -165,10 +165,6 @@ export const reconfigureRepo: ReconfigureRepo = async (
 	// Update DB for the reconfiguredRepo
 	// Echo the changed copy
 	const repository = await transaction(async (txn) => {
-		// Clear webhook_secret so the setup job will recreate the webhook
-		// (this allows reconfigureRepo to refresh webhooks)
-		await txn.repositories.clearWebhookSecret(repoId);
-
 		await txn.repositories.createOrUpdateRepository(
 			dbRepo.forge_id,
 			dbRepo.forge_repo_id,

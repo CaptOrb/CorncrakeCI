@@ -123,15 +123,6 @@ export class RepositoryStore {
 		return result.rows[0];
 	}
 
-	async clearWebhookSecret(repoId: number): Promise<void> {
-		await this.client.query(
-			`UPDATE repositories
-				SET webhook_secret = NULL
-			WHERE repo_id = $1`,
-			[repoId],
-		);
-	}
-
 	async getConfiguredRepositoryForgeIds(ownerId: number): Promise<Set<string>> {
 		const result = await this.client.query(
 			`
