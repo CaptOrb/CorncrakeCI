@@ -62,7 +62,8 @@ export class RepositoryStore {
 	      f.forge_id,
 	      f.display_name,
 
-	      u.forge_user_id
+	      u.forge_user_id,
+	      u.forge_username
 	    FROM repositories r
 	    JOIN forges f ON r.forge_id = f.forge_id
 	    JOIN users u ON r.owner_id = u.user_id
@@ -85,7 +86,7 @@ export class RepositoryStore {
 
 				owner: {
 					id: row.forge_user_id,
-					login: row.forge_user_id,
+					name: row.forge_username,
 					avatar_url: undefined,
 				},
 			},

@@ -15,7 +15,7 @@ export class UserStore {
 
 	async findUserById(userId: number): Promise<User | null> {
 		const result = await this.client.query(
-			`SELECT user_id, forge_id, forge_user_id
+			`SELECT user_id, forge_id, forge_user_id, forge_username
 			FROM users WHERE user_id = $1`,
 			[userId],
 		);
@@ -27,19 +27,23 @@ export class UserStore {
 		forgeUserId: string,
 	): Promise<User | null> {
 		const result = await this.client.query(
-			`SELECT user_id, forge_id, forge_user_id
+			`SELECT user_id, forge_id, forge_user_id, forge_username
 			FROM users WHERE forge_id = $1 AND forge_user_id = $2`,
 			[forgeId, forgeUserId],
 		);
 		return result.rows[0] ?? null;
 	}
 
-	async insertUser(forgeId: number, forgeUserId: string): Promise<User> {
+	async insertUser(
+		forgeId: number,
+		forgeUserId: string,
+		forgeUserName: string,
+	): Promise<User> {
 		const result = await this.client.query(
-			`INSERT INTO users (forge_id, forge_user_id)
-       VALUES ($1, $2)
-       RETURNING user_id, forge_id, forge_user_id`,
-			[forgeId, forgeUserId],
+			`INSERT INTO users (forge_id, forge_user_id, forge_username)
+       VALUES ($1, $2, $3)
+       RETURNING user_id, forge_id, forge_user_id, forge_username`,
+			[forgeId, forgeUserId, forgeUserName],
 		);
 		return result.rows[0];
 	}
@@ -47,28 +51,36 @@ export class UserStore {
 	async getOrCreateUser(
 		forgeId: number,
 		forgeUserId: string,
+		forgeUserLogin: string,
 		access_token: string,
 		access_token_expires_at: Date,
 		refresh_token: string,
 		refresh_token_expires_at: Date,
 	): Promise<User> {
 		const userResult = await this.client.query(
-			`SELECT user_id, forge_id, forge_user_id
+			`SELECT user_id, forge_id, forge_user_id, forge_username
 			FROM users WHERE forge_id = $1 AND forge_user_id = $2`,
 			[forgeId, forgeUserId],
 		);
 
 		let user: User;
 		if (userResult.rows[0]) {
-			// found existing user
+			// found existing user - update login if it changed
 			user = userResult.rows[0];
+			if (user.forge_username !== forgeUserLogin) {
+				await this.client.query(
+					`UPDATE users SET forge_username = $1 WHERE user_id = $2`,
+					[forgeUserLogin, user.user_id],
+				);
+				user.forge_username = forgeUserLogin;
+			}
 		} else {
 			// create new user
 			const insertResult = await this.client.query(
-				`INSERT INTO users (forge_id, forge_user_id)
-				VALUES ($1, $2)
-				RETURNING user_id, forge_id, forge_user_id`,
-				[forgeId, forgeUserId],
+				`INSERT INTO users (forge_id, forge_user_id, forge_username)
+				VALUES ($1, $2, $3)
+				RETURNING user_id, forge_id, forge_user_id, forge_username`,
+				[forgeId, forgeUserId, forgeUserLogin],
 			);
 			user = insertResult.rows[0];
 		}

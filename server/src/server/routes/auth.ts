@@ -108,6 +108,7 @@ authRouter.get("/callback", async (req: Request, res: Response) => {
 		const internalUser = await getOrCreateUser(
 			forgeId,
 			forgeUser.id.toString(),
+			forgeUser.login,
 			tokens.accessToken,
 			tokens.accessTokenExpiresAt,
 			tokens.refreshToken,

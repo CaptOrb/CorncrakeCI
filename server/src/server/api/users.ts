@@ -24,7 +24,7 @@ export const whoAmI: WhoAmI = async (_params, respond, req) => {
 		},
 		user: {
 			id: userInfo.user_id,
-			name: `User ${userInfo.user_id}`,
+			name: userInfo.forge_username,
 		},
 	});
 };

@@ -9,9 +9,10 @@ describe("UserStore database tests", () => {
 
 	it("should insert a new user", async () => {
 		await transaction(async (txn) => {
-			const user = await txn.users.insertUser(1, "test_user_1");
+			const user = await txn.users.insertUser(1, "test_user_1", "testuser1");
 
 			expect(user.forge_user_id).toBe("test_user_1");
+			expect(user.forge_username).toBe("testuser1");
 			expect(user.forge_id).toBe(1);
 			expect(user.user_id).toBe(1);
 			expect(user.user_id).toBeDefined();
@@ -23,7 +24,7 @@ describe("UserStore database tests", () => {
 		let userId: number;
 
 		await transaction(async (txn) => {
-			const user = await txn.users.insertUser(1, "find_by_id_user");
+			const user = await txn.users.insertUser(1, "find_by_id_user", "finduser");
 			userId = user.user_id;
 		});
 
@@ -38,7 +39,7 @@ describe("UserStore database tests", () => {
 
 	it("should find user by forge and forge_user_id", async () => {
 		await transaction(async (txn) => {
-			await txn.users.insertUser(1, "find_by_forge_user");
+			await txn.users.insertUser(1, "find_by_forge_user", "forgeuser");
 		});
 
 		await transaction(async (txn) => {
@@ -67,6 +68,7 @@ describe("UserStore database tests", () => {
 			const user = await txn.users.getOrCreateUser(
 				1,
 				"get_or_create_user",
+				"getorcreateuser",
 				"new_token",
 				new Date("2100-01-01T00:00:00Z"),
 				"refresh_token",
@@ -89,6 +91,7 @@ describe("UserStore database tests", () => {
 			const user = await txn.users.getOrCreateUser(
 				1,
 				"existing_user",
+				"existinguser",
 				"original_token",
 				new Date("2100-01-01T00:00:00Z"),
 				"refresh_token",
@@ -102,6 +105,7 @@ describe("UserStore database tests", () => {
 			const user = await txn.users.getOrCreateUser(
 				1,
 				"existing_user",
+				"existinguser",
 				"updated_token",
 				new Date("2100-01-01T00:00:00Z"),
 				"refresh_token",
@@ -129,6 +133,7 @@ describe("UserStore database tests", () => {
 			const user = await txn.users.getOrCreateUser(
 				1,
 				"token_user",
+				"tokenuser",
 				"secret_token",
 				new Date("2100-01-01T00:00:00Z"),
 				"refresh_token",
