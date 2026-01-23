@@ -88,7 +88,7 @@ describe("checkPipelines endpoint", () => {
 			      {
 			        "endColumn": 10,
 			        "endLine": 4,
-			        "message": "Schema validation failed: Invalid key: Expected "name" but received undefined",
+			        "message": "Invalid key: Expected "name" but received undefined",
 			        "startColumn": 9,
 			        "startLine": 2,
 			      },

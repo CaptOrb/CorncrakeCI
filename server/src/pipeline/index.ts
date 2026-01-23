@@ -22,18 +22,8 @@ function mapParserErrors(errors: V0ParseError[]): t_PipelineError[] {
 			endColumn = loc?.end.column;
 		}
 
-		// Combine parser message with Valibot validation details if present
-		const message =
-			e.message +
-			(e.issues?.length
-				? ": " +
-					e.issues
-						.map((issue) => issue.message || "Validation error")
-						.join("; ")
-				: "");
-
 		return {
-			message,
+			message: e.message,
 			startLine,
 			endLine,
 			startColumn,

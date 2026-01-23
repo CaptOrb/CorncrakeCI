@@ -37,7 +37,7 @@ describe("V0Parser tests", () => {
 
 	it("parses an empty file - but molci version is invalid", () => {
 		expect(() => parse("parseFile", `molci version=v1`)).toThrow(
-			"Expected version=v0, got version=v1",
+			'Invalid type: Expected "v0" but received "v1"',
 		);
 	});
 
@@ -88,7 +88,7 @@ describe("V0Parser tests", () => {
 			const out = parse(
 				"parseFile",
 				`molci version=v0
-			
+
 			job "build" {
 				step "pnpm install"
 			}`,
@@ -102,12 +102,12 @@ describe("V0Parser tests", () => {
 				      "end": {
 				        "column": 5,
 				        "line": 5,
-				        "offset": 66,
+				        "offset": 63,
 				      },
 				      "start": {
 				        "column": 4,
 				        "line": 3,
-				        "offset": 24,
+				        "offset": 21,
 				      },
 				    },
 				    "stages": [
@@ -120,12 +120,12 @@ describe("V0Parser tests", () => {
 				              "end": {
 				                "column": 5,
 				                "line": 5,
-				                "offset": 66,
+				                "offset": 63,
 				              },
 				              "start": {
 				                "column": 4,
 				                "line": 3,
-				                "offset": 24,
+				                "offset": 21,
 				              },
 				            },
 				            "steps": [
@@ -136,12 +136,12 @@ describe("V0Parser tests", () => {
 				                  "end": {
 				                    "column": 24,
 				                    "line": 4,
-				                    "offset": 61,
+				                    "offset": 58,
 				                  },
 				                  "start": {
 				                    "column": 5,
 				                    "line": 4,
-				                    "offset": 42,
+				                    "offset": 39,
 				                  },
 				                },
 				              },
@@ -153,12 +153,12 @@ describe("V0Parser tests", () => {
 				          "end": {
 				            "column": 5,
 				            "line": 5,
-				            "offset": 66,
+				            "offset": 63,
 				          },
 				          "start": {
 				            "column": 4,
 				            "line": 3,
-				            "offset": 24,
+				            "offset": 21,
 				          },
 				        },
 				      },
@@ -177,7 +177,7 @@ describe("V0Parser tests", () => {
 			const out = parse(
 				"parseFile",
 				`molci version=v0
-			
+
 			stage "test" {
 				job "run tests" {
 					step "pnpm test"
@@ -189,118 +189,118 @@ describe("V0Parser tests", () => {
 			);
 			// Should create one stage named "test" with two jobs
 			expect(out.workflows).toMatchInlineSnapshot(`
-					[
-					  {
-					    "name": null,
-					    "span": {
-					      "end": {
-					        "column": 5,
-					        "line": 10,
-					        "offset": 141,
-					      },
-					      "start": {
-					        "column": 4,
-					        "line": 3,
-					        "offset": 24,
-					      },
-					    },
-					    "stages": [
-					      {
-					        "jobs": [
-					          {
-					            "name": "run tests",
-					            "needs": [],
-					            "span": {
-					              "end": {
-					                "column": 6,
-					                "line": 6,
-					                "offset": 88,
-					              },
-					              "start": {
-					                "column": 5,
-					                "line": 4,
-					                "offset": 43,
-					              },
-					            },
-					            "steps": [
-					              {
-					                "command": "pnpm test",
-					                "image": undefined,
-					                "span": {
-					                  "end": {
-					                    "column": 22,
-					                    "line": 5,
-					                    "offset": 82,
-					                  },
-					                  "start": {
-					                    "column": 6,
-					                    "line": 5,
-					                    "offset": 66,
-					                  },
-					                },
-					              },
-					            ],
-					          },
-					          {
-					            "name": "lint",
-					            "needs": [],
-					            "span": {
-					              "end": {
-					                "column": 6,
-					                "line": 9,
-					                "offset": 136,
-					              },
-					              "start": {
-					                "column": 5,
-					                "line": 7,
-					                "offset": 93,
-					              },
-					            },
-					            "steps": [
-					              {
-					                "command": "npm run lint",
-					                "image": undefined,
-					                "span": {
-					                  "end": {
-					                    "column": 25,
-					                    "line": 8,
-					                    "offset": 130,
-					                  },
-					                  "start": {
-					                    "column": 6,
-					                    "line": 8,
-					                    "offset": 111,
-					                  },
-					                },
-					              },
-					            ],
-					          },
-					        ],
-					        "name": "test",
-					        "span": {
-					          "end": {
-					            "column": 5,
-					            "line": 10,
-					            "offset": 141,
-					          },
-					          "start": {
-					            "column": 4,
-					            "line": 3,
-					            "offset": 24,
-					          },
-					        },
-					      },
-					    ],
-					  },
-					]
-				`);
+				[
+				  {
+				    "name": null,
+				    "span": {
+				      "end": {
+				        "column": 5,
+				        "line": 10,
+				        "offset": 138,
+				      },
+				      "start": {
+				        "column": 4,
+				        "line": 3,
+				        "offset": 21,
+				      },
+				    },
+				    "stages": [
+				      {
+				        "jobs": [
+				          {
+				            "name": "run tests",
+				            "needs": [],
+				            "span": {
+				              "end": {
+				                "column": 6,
+				                "line": 6,
+				                "offset": 85,
+				              },
+				              "start": {
+				                "column": 5,
+				                "line": 4,
+				                "offset": 40,
+				              },
+				            },
+				            "steps": [
+				              {
+				                "command": "pnpm test",
+				                "image": undefined,
+				                "span": {
+				                  "end": {
+				                    "column": 22,
+				                    "line": 5,
+				                    "offset": 79,
+				                  },
+				                  "start": {
+				                    "column": 6,
+				                    "line": 5,
+				                    "offset": 63,
+				                  },
+				                },
+				              },
+				            ],
+				          },
+				          {
+				            "name": "lint",
+				            "needs": [],
+				            "span": {
+				              "end": {
+				                "column": 6,
+				                "line": 9,
+				                "offset": 133,
+				              },
+				              "start": {
+				                "column": 5,
+				                "line": 7,
+				                "offset": 90,
+				              },
+				            },
+				            "steps": [
+				              {
+				                "command": "npm run lint",
+				                "image": undefined,
+				                "span": {
+				                  "end": {
+				                    "column": 25,
+				                    "line": 8,
+				                    "offset": 127,
+				                  },
+				                  "start": {
+				                    "column": 6,
+				                    "line": 8,
+				                    "offset": 108,
+				                  },
+				                },
+				              },
+				            ],
+				          },
+				        ],
+				        "name": "test",
+				        "span": {
+				          "end": {
+				            "column": 5,
+				            "line": 10,
+				            "offset": 138,
+				          },
+				          "start": {
+				            "column": 4,
+				            "line": 3,
+				            "offset": 21,
+				          },
+				        },
+				      },
+				    ],
+				  },
+				]
+			`);
 		});
 
 		it("parses step with optional image", () => {
 			const out = parse(
 				"parseFile",
 				`molci version=v0
-			
+
 			job "test" {
 				step "echo hello"
 				step image="node:18" "npm test"
@@ -322,11 +322,11 @@ describe("V0Parser tests", () => {
 		const out = parse(
 			"parseFile",
 			`molci version=v0
-		
+
 		job "build" {
 			step "pnpm run build"
 		}
-		
+
 		job "deploy" {
 			needs "build"
 			needs "test" allow_failed=#true
@@ -347,7 +347,7 @@ describe("V0Parser tests", () => {
 			parse(
 				"parseFile",
 				`molci version=v0
-				
+
 				stage {
 					job "invalid" {
 						step "echo hi"
@@ -362,7 +362,7 @@ describe("V0Parser tests", () => {
 			parse(
 				"parseFile",
 				`molci version=v0
-				
+
 				job {
 					step "echo hi"
 				}`,
@@ -375,7 +375,7 @@ describe("V0Parser tests", () => {
 			parse(
 				"parseFile",
 				`molci version=v0
-			
+
 			job "test" {
 				invalid "something"
 			}`,
@@ -546,7 +546,7 @@ describe("V0Parser tests", () => {
 
 	it("accumulates errors - reports both undefined job name and undefined step", () => {
 		const doc = parseKDL(`molci version=v0
-		
+
 		job {
 			step
 		}`);
@@ -556,9 +556,7 @@ describe("V0Parser tests", () => {
 			parser.parseFile(doc.nodes);
 		} catch (_e) {
 			// Should have accumulated multiple errors
-			expect(parser.errors.length).toBeGreaterThan(1);
-			expect(parser.errors[0]?.issues).toBeDefined();
-			expect(parser.errors[1]?.issues).toBeDefined();
+			expect(parser.errors.length).toBe(2);
 		}
 	});
 
@@ -566,7 +564,7 @@ describe("V0Parser tests", () => {
 		const out = parse(
 			"parseFile",
 			`molci version=v0
-		
+
 		use {
 			image rust "rust:1.59"
 			library rust "builtin:rust@1.83"

@@ -5,7 +5,6 @@ import type {
 	Tag,
 	Value,
 } from "@bgotink/kdl";
-import type * as v from "valibot";
 
 /**
  * Identifiers for parts of the documentation, so we can point users to the manual
@@ -19,7 +18,6 @@ export interface V0ParseError {
 	node?: KDLNode;
 	elements?: readonly Element[];
 	message: string;
-	issues?: readonly v.BaseIssue<unknown>[];
 	docRef?: DocRef;
 }
 

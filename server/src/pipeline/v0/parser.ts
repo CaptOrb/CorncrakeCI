@@ -1,3 +1,4 @@
+import assert from "node:assert";
 import { type Entry, getLocation, type Node as KDLNode } from "@bgotink/kdl";
 import * as v from "valibot";
 import type {
@@ -54,13 +55,8 @@ export class V0Parser {
 		);
 
 		if (!versionNodeParse.ok) {
-			// Enhance the error that was already added
-			const version = versionHeader.getProperty("version");
-			if (version !== "v0") {
-				versionNodeParse.error.message = `Expected version=v0, got version=${version}`;
-			}
-			versionNodeParse.error.docRef = DocRef.MOLCI_VERSION;
-			throw new FatalParseError();
+			// Enhance the errors that were added
+			versionNodeParse.errors.setDocRef(DocRef.MOLCI_VERSION);
 		}
 
 		if (this.errors.length > 0) throw new FatalParseError();
@@ -151,8 +147,10 @@ export class V0Parser {
 	 * the argument form is treated as a 'shorthand' and
 	 * one out of the two can be specified.
 	 *
-	 * If parsing fails, adds an error to this parser.
-	 * The error is also returned so it can be customised.
+	 * If parsing fails, adds errors to this parser.
+	 * The errors are returned as an ErrorSet, which is just a convenience for grouping
+	 * together multiple errors and making it easy to enhance them all with documentation
+	 * references.
 	 *
 	 * @param node - The node to read attributes from
 	 * @param argNames - The names of arguments to accept, in the order they are expected
@@ -171,18 +169,16 @@ export class V0Parser {
 		schema: S,
 	):
 		| { ok: true; attrs: v.InferOutput<S> }
-		| { ok: false; attrs: Record<string, unknown>; error: V0ParseError } {
+		| { ok: false; attrs: Record<string, unknown>; errors: ErrorSet } {
+		const errors: V0ParseError[] = [];
 		const attrs: Record<string, unknown> = {};
 		const attrEntries: Record<string, Entry> = {};
-		let hasError = false;
 
 		const argEntries = node.getArgumentEntries();
 
 		if (argEntries.length > argNames.length) {
-			hasError = true;
-
 			const extraArgValues = argEntries.slice(argNames.length);
-			this.errors.push({
+			errors.push({
 				message: `Too many arguments for node '${node.getName()}': expected at most ${argNames.length}, got ${argEntries.length}`,
 				elements: extraArgValues,
 			});
@@ -197,24 +193,19 @@ export class V0Parser {
 		for (const propEntry of node.getPropertyEntries()) {
 			const key = propEntry.getName();
 			if (!allowedProperties.has(key!)) {
-				hasError = true;
-
-				const error: V0ParseError = {
+				errors.push({
 					message: `Unexpected property '${key}' on node '${node.getName()}'`,
 					elements: [propEntry],
-				};
-				this.errors.push(error);
+				});
 				continue;
 			}
 
 			// Check if this property overwrites an argument
 			if (key! in attrEntries) {
-				hasError = true;
-				const error: V0ParseError = {
+				errors.push({
 					message: `Property '${key}' cannot overwrite argument on node '${node.getName()}'`,
 					elements: [propEntry],
-				};
-				this.errors.push(error);
+				});
 				continue;
 			}
 
@@ -228,30 +219,34 @@ export class V0Parser {
 		// Validate with schema
 		const result = v.safeParse(schema, attrs);
 		if (!result.success) {
-			const error: V0ParseError = {
-				message: "Schema validation failed",
-				elements: [node],
-				issues: result.issues,
-			};
-			this.errors.push(error);
-			return {
-				ok: false,
-				attrs,
-				error,
-			};
+			assert(result.issues.length > 0);
+			for (const issue of result.issues) {
+				let faultyElement: KDLNode | Entry = node;
+				const whatAttr = issue.path?.[0];
+				if (whatAttr?.type === "object") {
+					const faultyKeyEntry = attrEntries?.[whatAttr.key];
+					if (faultyKeyEntry !== undefined) {
+						faultyElement = faultyKeyEntry;
+					}
+				}
+
+				errors.push({
+					message: issue.message,
+					elements: [faultyElement],
+				});
+			}
 		}
 
-		// check for earlier errors
-		if (hasError) {
-			const error: V0ParseError = {
-				elements: [node],
-				message: `Invalid attributes on node '${node.getName()}'`,
-			};
-			this.errors.push(error);
+		// Return errors
+		// !result.success is to satisfy TypeScript; it's technically redundant.
+		if (errors.length > 0 || !result.success) {
+			errors.forEach((e) => {
+				this.errors.push(e);
+			});
 			return {
 				ok: false,
 				attrs,
-				error,
+				errors: new ErrorSet(errors),
 			};
 		}
 		return {
@@ -563,6 +558,22 @@ export class V0Parser {
 				message: `Node '${node.getName()}' does not accept a children block`,
 				elements: [node],
 			});
+		}
+	}
+}
+
+/**
+ * Wrapper for a bundle of errors returned from a parser function.
+ */
+class ErrorSet {
+	constructor(public errors: readonly V0ParseError[]) {}
+
+	/**
+	 * Enhance all errors in the set with a documentation reference.
+	 */
+	setDocRef(docRef: DocRef): void {
+		for (const error of this.errors) {
+			error.docRef = docRef;
 		}
 	}
 }
