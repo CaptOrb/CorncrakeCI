@@ -151,6 +151,7 @@ class TestForgeWithUser implements ForgeWithUser {
 				},
 				forge_repo_id: repoId,
 				full_name: repo.name,
+				html_url: `https://example.com/${repo.name}`,
 			});
 		}
 
@@ -174,6 +175,7 @@ class TestForgeWithUser implements ForgeWithUser {
 			},
 			forge_repo_id: repoId,
 			full_name: repo.name,
+			html_url: `https://example.com/${repo.name}`,
 		};
 	}
 

@@ -180,6 +180,7 @@ export const reconfigureRepo: ReconfigureRepo = async (
 			repo_id: repository.repo_id,
 			forge_repo_id: repository.forge_repo_id,
 			full_name: repository.repo_name,
+			html_url: forgeRepo.html_url,
 			forge: {
 				id: repository.forge_id,
 				name: repository.forge_display_name,
@@ -212,11 +213,15 @@ export const getRepo: GetRepo = async (
 		throw new NotFoundError("Repository not found");
 	}
 
+	const forge = await getForgeWithUser(userId);
+	const forgeRepo = await forge.getRepository(repository.forge_repo_id);
+
 	return respond.with200().body({
 		repo: {
 			repo_id: repository.repo_id,
 			forge_repo_id: repository.forge_repo_id,
 			full_name: repository.repo_name,
+			html_url: forgeRepo.html_url,
 			forge: {
 				id: repository.forge_id,
 				name: repository.forge_display_name,

@@ -226,6 +226,7 @@ export class GiteaForgeWithUser implements ForgeWithUser {
 			const result: t_ForgeRepository = {
 				forge_repo_id: String(repo.id),
 				full_name: unwrap(repo.full_name),
+				html_url: unwrap(repo.html_url),
 				forge: {
 					id: this.forgeId,
 					name: this.config.name,
@@ -251,6 +252,7 @@ export class GiteaForgeWithUser implements ForgeWithUser {
 			},
 			forge_repo_id: String(repo.id),
 			full_name: unwrap(repo.full_name),
+			html_url: unwrap(repo.html_url),
 		};
 	}
 

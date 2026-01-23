@@ -220,6 +220,7 @@ describe("Repository API tests", () => {
 				forge: { id: 1, name: "TestForge" },
 				forge_repo_id: "repo0001",
 				full_name: "testuser/testrepo",
+				html_url: "https://example.com/testuser/testrepo",
 			},
 		]);
 	});

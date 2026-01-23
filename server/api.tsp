@@ -28,6 +28,7 @@ model Error {
 model ForgeRepository {
   forge_repo_id: string;
   full_name: string;
+  html_url?: string;
   forge: ForgeSummary;
 }
 
@@ -35,6 +36,7 @@ model ConfiguredRepository {
   repo_id: integer;
   forge_repo_id: string;
   full_name: string;
+  html_url?: string;
   forge: ForgeSummary;
 }
 
