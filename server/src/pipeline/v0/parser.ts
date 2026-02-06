@@ -1,5 +1,5 @@
 import assert from "node:assert";
-import { type Entry, getLocation, type Node as KDLNode } from "@bgotink/kdl";
+import * as KDL from "@bgotink/kdl";
 import * as v from "valibot";
 import type {
 	AnyStepDeclaration,
@@ -29,7 +29,7 @@ export class V0Parser {
 	 * @returns The parsed V0File containing uses and workflows
 	 * @throws {FatalParseError} If version header is invalid or missing
 	 */
-	public parseFile(nodes: KDLNode[]): V0File {
+	public parseFile(nodes: KDL.Node[]): V0File {
 		const versionHeader = nodes[0];
 
 		if (!versionHeader) {
@@ -66,7 +66,7 @@ export class V0Parser {
 		const implicitWorkflowStages: StageDeclaration[] = [];
 
 		// Track job and stage names to detect conflicts
-		const reservedNames = new Map<string, KDLNode>();
+		const reservedNames = new Map<string, KDL.Node>();
 		// Parse remaining nodes
 		for (const node of nodes.slice(1)) {
 			const nodeName = node.getName();
@@ -163,7 +163,7 @@ export class V0Parser {
 			v.ErrorMessage<v.ObjectIssue> | undefined
 		>,
 	>(
-		node: KDLNode,
+		node: KDL.Node,
 		argNames: readonly string[],
 		propertyNames: readonly string[],
 		schema: S,
@@ -172,7 +172,7 @@ export class V0Parser {
 		| { ok: false; attrs: Record<string, unknown>; errors: ErrorSet } {
 		const errors: V0ParseError[] = [];
 		const attrs: Record<string, unknown> = {};
-		const attrEntries: Record<string, Entry> = {};
+		const attrEntries: Record<string, KDL.Entry> = {};
 
 		const argEntries = node.getArgumentEntries();
 
@@ -221,7 +221,7 @@ export class V0Parser {
 		if (!result.success) {
 			assert(result.issues.length > 0);
 			for (const issue of result.issues) {
-				let faultyElement: KDLNode | Entry = node;
+				let faultyElement: KDL.Node | KDL.Entry = node;
 				const whatAttr = issue.path?.[0];
 				if (whatAttr?.type === "object") {
 					const faultyKeyEntry = attrEntries?.[whatAttr.key];
@@ -258,7 +258,7 @@ export class V0Parser {
 	/**
 	 * Parse a use block containing resource declarations
 	 */
-	private parseUseBlock(node: KDLNode): UseDeclaration[] {
+	private parseUseBlock(node: KDL.Node): UseDeclaration[] {
 		const declarations: UseDeclaration[] = [];
 		const children = node.children;
 
@@ -283,7 +283,7 @@ export class V0Parser {
 	/**
 	 * Parse a single use declaration (image, library, or executor)
 	 */
-	private parseUseDeclaration(node: KDLNode): UseDeclaration | null {
+	private parseUseDeclaration(node: KDL.Node): UseDeclaration | null {
 		this.ensureNoChildren(node);
 		const nodeName = node.getName();
 
@@ -303,7 +303,7 @@ export class V0Parser {
 						resourceKind: "image",
 						name: result.attrs.name,
 						specifier: result.attrs.specifier,
-						location: getLocation(node) ?? null,
+						location: KDL.getLocation(node) ?? null,
 					};
 				}
 				break;
@@ -324,7 +324,7 @@ export class V0Parser {
 						resourceKind: "library",
 						name: result.attrs.name,
 						specifier: result.attrs.specifier,
-						location: getLocation(node) ?? null,
+						location: KDL.getLocation(node) ?? null,
 					};
 				}
 				break;
@@ -345,7 +345,7 @@ export class V0Parser {
 						resourceKind: "executor",
 						name: result.attrs.name,
 						specifier: result.attrs.type,
-						location: getLocation(node) ?? null,
+						location: KDL.getLocation(node) ?? null,
 					};
 				}
 				break;
@@ -368,7 +368,7 @@ export class V0Parser {
 	 * Continues parsing all child jobs even if the stage name is invalid,
 	 * to accumulate all possible errors for better error reporting.
 	 */
-	private parseStage(node: KDLNode): StageDeclaration | null {
+	private parseStage(node: KDL.Node): StageDeclaration | null {
 		const children = node.children;
 
 		if (children === null) {
@@ -381,7 +381,7 @@ export class V0Parser {
 
 		const jobs: JobDeclaration[] = [];
 
-		const jobNames = new Map<string, KDLNode>();
+		const jobNames = new Map<string, KDL.Node>();
 
 		const stageNameResult = this.parseNodeAttributes(
 			node,
@@ -423,7 +423,7 @@ export class V0Parser {
 
 		return {
 			name: stageNameResult.attrs.name,
-			span: getLocation(node)!,
+			span: KDL.getLocation(node)!,
 			jobs,
 		};
 	}
@@ -434,7 +434,7 @@ export class V0Parser {
 	 * Continues parsing all child nodes even if the job name is invalid,
 	 * to accumulate all possible errors for better error reporting.
 	 */
-	private parseJob(node: KDLNode): JobDeclaration | null {
+	private parseJob(node: KDL.Node): JobDeclaration | null {
 		const children = node.children;
 
 		if (children === null) {
@@ -484,7 +484,7 @@ export class V0Parser {
 
 		return {
 			name: jobNameResult.attrs.name,
-			span: getLocation(node)!,
+			span: KDL.getLocation(node)!,
 			needs,
 			steps,
 		};
@@ -493,7 +493,7 @@ export class V0Parser {
 	/**
 	 * Parse a needs declaration specifying a job dependency.
 	 */
-	private parseNeeds(node: KDLNode): NeedsDeclaration | null {
+	private parseNeeds(node: KDL.Node): NeedsDeclaration | null {
 		this.ensureNoChildren(node);
 		const result = this.parseNodeAttributes(
 			node,
@@ -512,7 +512,7 @@ export class V0Parser {
 		return {
 			job: result.attrs.job,
 			allowFailed: result.attrs.allow_failed,
-			span: getLocation(node)!,
+			span: KDL.getLocation(node)!,
 		};
 	}
 
@@ -523,7 +523,7 @@ export class V0Parser {
 	 * @param node - The KDL node to parse
 	 * @returns The parsed step declaration, or null if parsing failed
 	 */
-	private parseStep(node: KDLNode): AnyStepDeclaration | null {
+	private parseStep(node: KDL.Node): AnyStepDeclaration | null {
 		this.ensureNoChildren(node);
 		const result = this.parseNodeAttributes(
 			node,
@@ -540,7 +540,7 @@ export class V0Parser {
 		}
 
 		return {
-			span: getLocation(node)!,
+			span: KDL.getLocation(node)!,
 			image: result.attrs.image,
 			command: result.attrs.command,
 		};
@@ -552,7 +552,7 @@ export class V0Parser {
 	 * This helps catch user mistakes and prevents future breaking changes.
 	 * @param node - The node to check
 	 */
-	private ensureNoChildren(node: KDLNode): void {
+	private ensureNoChildren(node: KDL.Node): void {
 		if (node.children !== null) {
 			this.errors.push({
 				message: `Node '${node.getName()}' does not accept a children block`,

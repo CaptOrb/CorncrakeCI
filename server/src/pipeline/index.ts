@@ -1,4 +1,4 @@
-import { type Document, getLocation, type Node, parse } from "@bgotink/kdl";
+import * as KDL from "@bgotink/kdl";
 import type {
 	t_PipelineCheckResult,
 	t_PipelineError,
@@ -15,7 +15,7 @@ function mapParserErrors(errors: V0ParseError[]): t_PipelineError[] {
 		let endColumn: number | undefined;
 
 		if (e.elements?.[0]) {
-			const loc = getLocation(e.elements[0] as Node);
+			const loc = KDL.getLocation(e.elements[0]);
 			startLine = loc?.start.line;
 			endLine = loc?.end.line;
 			startColumn = loc?.start.column;
@@ -34,15 +34,15 @@ function mapParserErrors(errors: V0ParseError[]): t_PipelineError[] {
 }
 
 export function parseKdlConfigs(configFiles: Map<string, string>): {
-	configs: Map<string, Document>;
+	configs: Map<string, KDL.Document>;
 	results: t_PipelineCheckResult[];
 } {
-	const configs = new Map<string, Document>();
+	const configs = new Map<string, KDL.Document>();
 	const results: t_PipelineCheckResult[] = [];
 
 	for (const [filename, content] of configFiles) {
 		try {
-			const kdlDoc = parse(content, {
+			const kdlDoc = KDL.parse(content, {
 				storeLocations: true,
 			});
 			configs.set(filename, kdlDoc);

@@ -1,10 +1,4 @@
-import type {
-	Entry,
-	Identifier,
-	Node as KDLNode,
-	Tag,
-	Value,
-} from "@bgotink/kdl";
+import type * as KDL from "@bgotink/kdl";
 
 /**
  * Identifiers for parts of the documentation, so we can point users to the manual
@@ -15,13 +9,20 @@ export enum DocRef {
 }
 
 export interface V0ParseError {
-	node?: KDLNode;
+	node?: KDL.Node;
 	elements?: readonly Element[];
 	message: string;
 	docRef?: DocRef;
 }
 
-type Element = Identifier | Tag | Value | Entry | KDLNode | Document;
+type Element =
+	| KDL.Identifier
+	| KDL.Tag
+	| KDL.Value
+	| KDL.Entry
+	| KDL.Node
+	| KDL.Document;
+
 /**
  * Raised when we stop parsing early because the errors don't seem
  * survivable for still producing good-quality diagnostic output.
