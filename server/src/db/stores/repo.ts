@@ -140,4 +140,38 @@ export class RepositoryStore {
 		}
 		return configuredRepoIds;
 	}
+
+	async getRepositoryForWebhookSetup(repoId: number): Promise<{
+		forge_id: number;
+		forge_repo_id: string;
+		forge_user_id: string;
+		access_token: Buffer | null;
+		webhook_secret: string | null;
+	} | null> {
+		const result = await this.client.query(
+			`SELECT r.forge_id, r.forge_repo_id, u.forge_user_id, tokens.access_token, r.webhook_secret
+			FROM repositories r
+			JOIN users u ON r.owner_id = u.user_id
+			LEFT JOIN forge_access_tokens tokens ON u.user_id = tokens.user_id
+			WHERE r.repo_id = $1`,
+			[repoId],
+		);
+		return result.rows[0] ?? null;
+	}
+
+	async updateWebhookSecret(
+		repoId: number,
+		secret: string | null,
+	): Promise<void> {
+		await this.client.query(
+			`
+			UPDATE repositories
+			SET
+				webhook_secret = $1,
+				updated_at    = NOW()
+			WHERE repo_id = $2
+			`,
+			[secret, repoId],
+		);
+	}
 }

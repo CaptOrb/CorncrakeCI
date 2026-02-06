@@ -2,8 +2,10 @@ import type { Response } from "express";
 import * as v from "valibot";
 import { config } from "../../config";
 import { transaction } from "../../db/stores";
+import type { t_PipelineCheckResult } from "../../generated/server/models";
 import { parseKdlConfigs } from "../../pipeline";
 import { getForgeWithUser } from "../../services/forges";
+import type { ForgeWithUser } from "../../services/forges/forge";
 import { verifyWebhookSignature } from "../../util/crypto";
 import type { RawBodyRequest } from "..";
 
@@ -18,9 +20,6 @@ export const handleWebhook = async (req: RawBodyRequest, res: Response) => {
 		return res.status(404).json({ error: "Repository not found" });
 	}
 
-	// Before processing the webhook, we should verify that is came from the forge
-	// To do this, we calculate an HMAC of the request body bytes and
-	// compare it against the HMAC provided in the request header
 	if (!req.rawBody) {
 		// We need the raw body bytes. This error shouldn't happen.
 		return res.status(400).json({ error: "Missing raw request body" });
@@ -52,7 +51,15 @@ export const handleWebhook = async (req: RawBodyRequest, res: Response) => {
 		return res.status(400).json({ error: "Missing delivery ID header" });
 	}
 
+	if (!repo.webhook_secret) {
+		return res.status(404).json({ error: "Webhook not configured" });
+	}
+
 	// Verify signature using raw body
+	// Before processing the webhook, we should verify that it came from the forge
+	// To do this, we calculate an HMAC of the request body bytes and
+	// compare it against the HMAC provided in the request header
+
 	if (
 		!verifyWebhookSignature(req.rawBody, repo.webhook_secret, signatureHeader)
 	) {
@@ -70,120 +77,55 @@ export const handleWebhook = async (req: RawBodyRequest, res: Response) => {
 		case "pull_request_sync":
 		case "pull_request": {
 			const parsed = v.safeParse(s_PullRequestWebHook, req.body);
-			if (parsed.success) {
-				console.debug("pull request:", parsed.output);
-
-				const molciConfig = await forge.getMolciConfig(
-					repo.forge_repo_id,
-					parsed.output.pull_request.head.sha,
-				);
-
-				const { configs, results } = parseKdlConfigs(molciConfig.configFiles);
-
-				console.log(
-					`Pull Request Event: found files: ${[...configs.keys()].join(", ")} in ${molciConfig.path}`,
-				);
-
-				const hasErrors = results.some(
-					(result) => result.errors && result.errors.length > 0,
-				);
-
-				console.log(`hasErrors: ${hasErrors}`);
-				if (hasErrors) {
-					const errorCount = results.reduce(
-						(count, result) => count + (result.errors?.length || 0),
-						0,
-					);
-					const errorPageUrl = `${config.app.baseurl}/repos/${repo.repo_id}/pipeline-check?ref=${parsed.output.pull_request.head.sha}`;
-					try {
-						await forge.createCommitStatus(
-							repo.forge_repo_id,
-							parsed.output.pull_request.head.sha,
-							"failure",
-							`pipeline failed:`,
-							"molci/pipeline-validation",
-							errorPageUrl,
-						);
-						console.log(
-							`Reported CI failure status for PR ${parsed.output.pull_request.number} with ${errorCount} parsing errors`,
-						);
-					} catch (error) {
-						console.error("Failed to create commit status:", error);
-					}
-				}
-			} else {
-				console.warn(
-					`Failed to parse ${eventTypeHeader} webhook body:`,
-					parsed.issues,
-				);
+			if (!parsed.success) {
+				console.debug("Failed to parse pull request webhook", {
+					issues: parsed.issues,
+					repoId,
+				});
 				return res.status(400).json({ error: "Could not parse webhook body" });
 			}
+
+			const molciConfig = await forge.getMolciConfig(
+				repo.forge_repo_id,
+				parsed.output.pull_request.head.sha,
+			);
+
+			const { results } = parseKdlConfigs(molciConfig.configFiles);
+			await reportPipelineErrors(
+				forge,
+				repo.forge_repo_id,
+				parsed.output.pull_request.head.sha,
+				repo.repo_id,
+				results,
+				`PR ${parsed.output.pull_request.number}`,
+			);
 			break;
 		}
 		case "push": {
 			const parsed = v.safeParse(s_PushWebHook, req.body);
-			if (parsed.success) {
-				console.log("push:", parsed.output);
-
-				const molciConfig = await forge.getMolciConfig(
-					repo.forge_repo_id,
-					parsed.output.after, // only the latest commit on a branch matters
-				);
-
-				const { configs, results } = parseKdlConfigs(molciConfig.configFiles);
-
-				console.log(
-					`push Event: (${parsed.output.ref}): found files: ${[...configs.keys()].join(", ")} in ${molciConfig.path}`,
-				);
-
-				console.log(`Parse results:`, results);
-
-				const hasErrors = results.some(
-					(result) => result.errors && result.errors.length > 0,
-				);
-
-				console.log(`hasErrors: ${hasErrors}`);
-				if (hasErrors) {
-					console.log(
-						`PUSH HANDLER: Found errors, about to create failure status`,
-					);
-					const errorCount = results.reduce(
-						(count, result) => count + (result.errors?.length || 0),
-						0,
-					);
-					const filesWithErrors = results
-						.filter((result) => result.errors && result.errors.length > 0)
-						.map((result) => result.path);
-
-					console.log(
-						`PUSH HANDLER: Creating failure status for SHA ${parsed.output.after} with ${errorCount} errors in ${filesWithErrors.join(", ")}`,
-					);
-
-					const errorPageUrl = `${config.app.baseurl}/repos/${repo.repo_id}/pipeline-check?ref=${parsed.output.after}`;
-
-					try {
-						await forge.createCommitStatus(
-							repo.forge_repo_id,
-							parsed.output.after,
-							"failure",
-							`pipeline failed:`,
-							"molci/pipeline-validation",
-							errorPageUrl,
-						);
-						console.log(
-							`Reported CI failure status for push to ${parsed.output.ref} with ${errorCount} parsing errors`,
-						);
-					} catch (error) {
-						console.error("Failed to create commit status:", error);
-					}
-				}
-			} else {
-				console.warn(
-					`Failed to parse ${eventTypeHeader} webhook body:`,
-					parsed.issues,
-				);
+			if (!parsed.success) {
+				console.debug("Failed to parse push webhook", {
+					issues: parsed.issues,
+					repoId,
+				});
 				return res.status(400).json({ error: "Could not parse webhook body" });
 			}
+
+			const molciConfig = await forge.getMolciConfig(
+				repo.forge_repo_id,
+				parsed.output.after, // only the latest commit on a branch matters
+			);
+
+			const { results } = parseKdlConfigs(molciConfig.configFiles);
+
+			await reportPipelineErrors(
+				forge,
+				repo.forge_repo_id,
+				parsed.output.after,
+				repo.repo_id,
+				results,
+				`push to ${parsed.output.ref}`,
+			);
 			break;
 		}
 		default: {
@@ -194,6 +136,36 @@ export const handleWebhook = async (req: RawBodyRequest, res: Response) => {
 
 	return res.status(200).end();
 };
+
+async function reportPipelineErrors(
+	forge: ForgeWithUser,
+	repoForgeId: string,
+	sha: string,
+	repoId: number,
+	results: t_PipelineCheckResult[],
+	_context: string,
+) {
+	const hasErrors = results.some(
+		(result) => result.errors && result.errors.length > 0,
+	);
+
+	if (hasErrors) {
+		const errorPageUrl = `${config.app.baseurl}/repos/${repoId}/pipeline-check?ref=${sha}`;
+
+		try {
+			await forge.createCommitStatus(
+				repoForgeId,
+				sha,
+				"failure",
+				"pipeline failed:",
+				"molci/pipeline-validation",
+				errorPageUrl,
+			);
+		} catch (error) {
+			console.error("Failed to create commit status:", error);
+		}
+	}
+}
 
 const s_User = v.object({
 	id: v.pipe(v.number(), v.integer()),

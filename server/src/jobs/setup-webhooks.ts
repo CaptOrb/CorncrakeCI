@@ -52,24 +52,8 @@ export async function setup_webhooks(payload: unknown, helpers: JobHelpers) {
 	helpers.logger.info(`Setting up webhooks for repo ${repoId}`);
 
 	try {
-		const repoResult:
-			| {
-					forge_id: number;
-					forge_repo_id: string;
-					forge_user_id: string;
-					access_token: Buffer | null;
-					webhook_secret: string | null;
-			  }
-			| undefined = await transaction(async (txn) => {
-			const result = await txn.client.query(
-				`SELECT r.forge_id, r.forge_repo_id, u.forge_user_id, tokens.access_token, r.webhook_secret
-				FROM repositories r
-				JOIN users u ON r.owner_id = u.user_id
-				LEFT JOIN forge_access_tokens tokens ON u.user_id = tokens.user_id
-				WHERE r.repo_id = $1`,
-				[repoId],
-			);
-			return result.rows[0];
+		const repoResult = await transaction(async (txn) => {
+			return await txn.repositories.getRepositoryForWebhookSetup(repoId);
 		});
 
 		if (!repoResult) {
@@ -110,16 +94,7 @@ export async function setup_webhooks(payload: unknown, helpers: JobHelpers) {
 		);
 
 		await transaction(async (txn) => {
-			await txn.client.query(
-				`
-				UPDATE repositories
-				SET
-					webhook_secret = $1,
-					updated_at    = NOW()
-				WHERE repo_id = $2
-				`,
-				[webhookSecret, repoId],
-			);
+			await txn.repositories.updateWebhookSecret(repoId, webhookSecret);
 		});
 
 		helpers.logger.info(
@@ -131,15 +106,7 @@ export async function setup_webhooks(payload: unknown, helpers: JobHelpers) {
 		);
 
 		await transaction(async (txn) => {
-			await txn.client.query(
-				`
-			UPDATE repositories
-			SET webhook_secret = NULL,
-				updated_at = NOW()
-			WHERE repo_id = $1
-			`,
-				[repoId],
-			);
+			await txn.repositories.updateWebhookSecret(repoId, null);
 		});
 		throw error; // so the graphile job system knows it has failed and will retry it
 	}
