@@ -53,15 +53,17 @@ export async function createApiServer({
 }): Promise<Application> {
 	const app = express();
 
-	app.use(
-		express.json({
-			verify: (req: RawBodyRequest, _res, buf) => {
-				// Store the raw body bytes for later, as we need them to do a
-				// HMAC verification when processing webhook requests
-				req.rawBody = buf;
-			},
-		}),
-	);
+	const webhookJsonParser = express.json({
+		verify: (req: RawBodyRequest, _res, buf) => {
+			// Store the raw body bytes for later, as we need them to do a
+			// HMAC verification when processing webhook requests
+			req.rawBody = buf;
+		},
+	});
+	// the underscore denotes that this is not a public interface
+	app.post("/_webhooks/:repoId", webhookJsonParser, handleWebhook);
+
+	app.use(express.json());
 
 	const sessionCookieName = isProduction ? "__Host-SessionID" : "sessionID";
 
@@ -123,9 +125,6 @@ export async function createApiServer({
 			whoAmI,
 		}),
 	);
-
-	// the underscore denotes that this is not a public interface
-	app.post("/_webhooks/:repoId", handleWebhook);
 
 	// the Forge login endpoints are kept externally from the OpenAPI-defined API
 	// and are intentionally unversioned right now

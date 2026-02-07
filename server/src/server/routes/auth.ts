@@ -144,17 +144,16 @@ authRouter.get("/callback", async (req: Request, res: Response) => {
 	}
 });
 
-authRouter.post("/logout", (req: Request, res: Response) => {
+authRouter.post("/logout", async (req: Request, res: Response) => {
 	const requestedRedirectUrl: string | undefined = req.body?.then;
 	const redirectUrl =
 		requestedRedirectUrl && isValidRedirectPath(requestedRedirectUrl)
 			? requestedRedirectUrl
 			: config.app.baseurl;
-	req.session.destroy((err) => {
-		if (err) {
-			res.status(500).json({ error: "Failed to logout" });
-			return;
-		}
+
+	try {
+		await promisify(req.session.destroy).apply(req.session);
+
 		res.clearCookie(SESSION_COOKIE, {
 			path: "/",
 			secure: isProduction,
@@ -163,7 +162,9 @@ authRouter.post("/logout", (req: Request, res: Response) => {
 		});
 		clearOAuthCookies(res);
 		res.redirect(redirectUrl);
-	});
+	} catch {
+		res.status(500).json({ error: "Failed to logout" });
+	}
 });
 
 function parseCookies(req: Request): Record<string, string> {

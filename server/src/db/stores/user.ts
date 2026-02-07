@@ -123,6 +123,11 @@ export class UserStore {
 			return null;
 		}
 
+		// If refresh token is expired, treat as no tokens
+		if (row.refresh_token_expires_at < new Date()) {
+			return null;
+		}
+
 		return {
 			accessToken: decrypt(row.access_token, config.app.encryptionkey),
 			accessTokenExpiresAt: row.access_token_expires_at,
