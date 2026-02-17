@@ -63,6 +63,9 @@ const AppConfigSchema = v.object({
 		v.url(),
 		v.check((s) => !s.endsWith("/"), "Must not end with /"),
 	),
+	// Whether we will trust reverse proxy headers.
+	// Since MOLCI should be run behind a reverse proxy, this is assumed true by default.
+	trustproxy: v.optional(v.boolean(), true),
 	bindaddress: v.pipe(v.optional(v.string(), "127.0.0.1"), v.ip()),
 	encryptionkey: v.pipe(
 		v.string(),

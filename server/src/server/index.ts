@@ -68,6 +68,7 @@ export async function createApiServer({
 	const sessionCookieName = isProduction ? "__Host-SessionID" : "sessionID";
 
 	const PgSession = pgSimple(session);
+	app.set("trust proxy", config.app.trustproxy);
 	app.use(
 		session({
 			name: sessionCookieName,
