@@ -151,3 +151,6 @@ dist
 
 server/src/generated/
 /server/schemas/gitea.openapi3.yaml
+
+# Nix flake build output
+/result
