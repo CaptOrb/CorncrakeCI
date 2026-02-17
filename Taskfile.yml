@@ -1,0 +1,58 @@
+version: "3"
+
+vars:
+  COMPOSE:
+    sh: |
+      if command -v podman >/dev/null 2>&1 && podman compose version >/dev/null 2>&1; then
+        echo "podman compose"
+      elif command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+        echo "docker compose"
+      fi
+
+tasks:
+  generate:
+    desc: Run codegen for server package
+    dir: server
+    cmds:
+      - pnpm run generate
+
+  "test:compose:up":
+    desc: Start test database via compose and wait for readiness
+    dir: server
+    preconditions:
+      - sh: test -n "{{.COMPOSE}}"
+        msg: Neither 'podman compose' nor 'docker compose' is available.
+    cmds:
+      - 'echo "Using compose via: {{.COMPOSE}}"'
+      - "{{.COMPOSE}} -f docker-compose.test.yml up -d"
+      - |
+        i=0
+        while [ "$i" -lt 60 ]; do
+          if {{.COMPOSE}} -f docker-compose.test.yml exec -T molci-test-postgres \
+            pg_isready -U molcitest -d molcitest >/dev/null 2>&1; then
+            exit 0
+          fi
+          i=$((i + 1))
+          sleep 1
+        done
+
+        echo "Postgres test container did not become ready in time." >&2
+        exit 1
+
+  "test:compose:down":
+    desc: Stop test database compose stack
+    dir: server
+    preconditions:
+      - sh: test -n "{{.COMPOSE}}"
+        msg: Neither 'podman compose' nor 'docker compose' is available.
+    cmds:
+      - "{{.COMPOSE}} -f docker-compose.test.yml down -v --remove-orphans"
+
+  test:
+    desc: Run server tests (generate first, then run with test DB compose stack)
+    deps:
+      - generate
+    cmds:
+      - defer: { task: "test:compose:down" }
+      - task: "test:compose:up"
+      - pnpm -C server run test --run
