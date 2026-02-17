@@ -1,6 +1,12 @@
 import type { t_ForgeRepository } from "../../generated/server/models";
 import type { ForgeUser } from "./forgeuser";
 
+export enum AccessLevel {
+	Read = "read",
+	Write = "write",
+	Admin = "admin",
+}
+
 export interface TokenInfo {
 	accessToken: string;
 	accessTokenExpiresAt: Date;
@@ -34,11 +40,19 @@ export interface Forge {
 }
 
 export interface ForgeWithUser {
+	getForgeId(): number;
+
 	getUserInfo(): Promise<ForgeUser>;
 
 	listRepositories(): Promise<t_ForgeRepository[]>;
 
 	getRepository(repoId: string): Promise<t_ForgeRepository>;
+
+	/**
+	 * Verify the authenticated user has at least the given access level on a repository
+	 * @throws {AuthError} if the user lacks the required access level
+	 */
+	checkAccess(forgeRepoId: string, level: AccessLevel): Promise<void>;
 
 	validateToken(): Promise<boolean>;
 

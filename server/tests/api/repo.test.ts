@@ -39,7 +39,6 @@ describe("Repository API tests", () => {
 			.post("/v0/repo")
 			.set("Cookie", `sessionID=${testData.session_id}`)
 			.send({
-				forge: 1,
 				forge_repo_id: "repo0001",
 			})
 			.expect(200);
@@ -51,14 +50,13 @@ describe("Repository API tests", () => {
 		await request
 			.post("/v0/repo")
 			.send({
-				forge: 1,
 				forge_repo_id: "repo0001",
 			})
 			.expect(401);
 	});
 
 	it("configureRepo with missing forge_repo_id returns 400", async () => {
-		const res = await request.post("/v0/repo").send({ forge: 1 }); // missing forge_repo_id
+		const res = await request.post("/v0/repo").send({}); // missing forge_repo_id
 		expect(res.status).toBe(400);
 		expect(res.body).toHaveProperty(
 			"error",
@@ -84,7 +82,6 @@ describe("Repository API tests", () => {
 			.post("/v0/repo")
 			.set("Cookie", `sessionID=${testData.session_id}`)
 			.send({
-				forge: 1,
 				forge_repo_id: "repo0001",
 			})
 			.expect(200);
@@ -117,7 +114,6 @@ describe("Repository API tests", () => {
 			.post("/v0/repo")
 			.set("Cookie", `sessionID=${testData.session_id}`)
 			.send({
-				forge: 1,
 				forge_repo_id: "repo0001",
 			})
 			.expect(200);
@@ -150,7 +146,6 @@ describe("Repository API tests", () => {
 			.post("/v0/repo")
 			.set("Cookie", `sessionID=${testData.session_id}`)
 			.send({
-				forge: 1,
 				forge_repo_id: "repo0001",
 			})
 			.expect(200);
@@ -178,7 +173,6 @@ describe("Repository API tests", () => {
 			.post("/v0/repo")
 			.set("Cookie", `sessionID=${testData.session_id}`)
 			.send({
-				forge: 1,
 				forge_repo_id: "repo0001",
 			})
 			.expect(200);
@@ -225,6 +219,27 @@ describe("Repository API tests", () => {
 		]);
 	});
 
+	it("listAvailableRepos excludes repos configured by another user", async () => {
+		const userA = await createTestUser(app);
+		const userB = await createTestUser(app, { authCode: "testCode2" });
+
+		await transaction(async (txn) => {
+			await txn.client.query(
+				`INSERT INTO repositories
+				 (forge_id, forge_repo_id, owner_id, repo_name, webhook_secret)
+				 VALUES ($1, $2, $3, $4, $5)`,
+				[1, "repo0002", userA.user_id, "otheruser/otherrepo", "secret"],
+			);
+		});
+
+		const response = await request
+			.get("/v0/repos/available")
+			.set("Cookie", `sessionID=${userB.session_id}`)
+			.expect(200);
+
+		expect(response.body).toEqual([]);
+	});
+
 	it("listAvailableRepos returns 401 if not authenticated", async () => {
 		await request
 			.get("/v0/repos/available")
@@ -241,7 +256,6 @@ describe("Repository API tests", () => {
 			.post("/v0/repo")
 			.set("Cookie", `sessionID=${testData.session_id}`)
 			.send({
-				forge: 1,
 				forge_repo_id: "repo0001",
 			})
 			.expect(200);
@@ -277,6 +291,40 @@ describe("Repository API tests", () => {
 		]);
 	});
 
+	it("listConfiguredRepos includes accessible repos configured by another user", async () => {
+		const userA = await createTestUser(app);
+		const userB = await createTestUser(app, { authCode: "testCode2" });
+
+		await transaction(async (txn) => {
+			await txn.client.query(
+				`INSERT INTO repositories
+				 (forge_id, forge_repo_id, owner_id, repo_name, webhook_secret)
+				 VALUES ($1, $2, $3, $4, $5)`,
+				[1, "repo0002", userA.user_id, "otheruser/otherrepo", "secret"],
+			);
+		});
+
+		const response = await request
+			.get("/v0/repos/configured")
+			.set("Cookie", `sessionID=${userB.session_id}`)
+			.expect(200);
+
+		expect(response.body).toEqual([
+			{
+				configured_at: expect.any(String),
+				repo: {
+					repo_id: expect.any(Number),
+					forge_repo_id: "repo0002",
+					full_name: "otheruser/otherrepo",
+					forge: {
+						id: 1,
+						name: "gitea",
+					},
+				},
+			},
+		]);
+	});
+
 	it("listConfiguredRepos returns 401 if not authenticated", async () => {
 		await request
 			.get("/v0/repos/configured")
@@ -286,14 +334,13 @@ describe("Repository API tests", () => {
 			});
 	});
 
-	it("getRepo returns 404 when trying to access another user's repo", async () => {
+	it("getRepo returns 404 when user cannot access the repo on the forge", async () => {
 		const userA = await createTestUser(app);
 
 		const createResponse = await request
 			.post("/v0/repo")
 			.set("Cookie", `sessionID=${userA.session_id}`)
 			.send({
-				forge: 1,
 				forge_repo_id: "repo0001",
 			})
 			.expect(200);
@@ -304,22 +351,19 @@ describe("Repository API tests", () => {
 		const userB = await createTestUser(app, { authCode: "testCode2" });
 
 		// User B tries to access user A's repo
-		const fetchResponse = await request
+		await request
 			.get(`/v0/repo/${repoId}`)
 			.set("Cookie", `sessionID=${userB.session_id}`)
 			.expect(404);
-
-		expect(fetchResponse.body).toEqual({ error: "Repository not found" });
 	});
 
-	it("reconfigureRepo returns 404 when trying to reconfigure another user's repo", async () => {
+	it("reconfigureRepo returns 404 when user lacks admin access on forge repo", async () => {
 		const userA = await createTestUser(app);
 
 		const createResponse = await request
 			.post("/v0/repo")
 			.set("Cookie", `sessionID=${userA.session_id}`)
 			.send({
-				forge: 1,
 				forge_repo_id: "repo0001",
 			})
 			.expect(200);
@@ -334,26 +378,21 @@ describe("Repository API tests", () => {
 			.put(`/v0/repo/${repoId}`)
 			.set("Cookie", `sessionID=${userB.session_id}`)
 			.expect(404);
-
 		expect(reconfigureResponse.body).toEqual({
 			error: "Repository not found",
 		});
 	});
 
-	// maybe should return 404 instead of 400 to be consistent with the other tests?
-	it("configureRepo returns 400 when trying to configure a repo you don't own on the forge", async () => {
+	it("configureRepo returns 404 when trying to configure a repo without admin access", async () => {
 		const userB = await createTestUser(app, { authCode: "testCode2" });
 
 		// User B tries to configure repo0001, which is owned by testuser on the forge
-		const response = await request
+		await request
 			.post("/v0/repo")
 			.set("Cookie", `sessionID=${userB.session_id}`)
 			.send({
-				forge: 1,
 				forge_repo_id: "repo0001", // owned by testuser (user id 1), not otheruser
 			})
-			.expect(400);
-
-		expect(response.body).toHaveProperty("error");
+			.expect(404);
 	});
 });

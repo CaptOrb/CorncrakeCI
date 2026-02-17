@@ -10,7 +10,12 @@ import type {
 import type { t_ForgeRepository } from "../../../generated/server/models";
 import { unwrap } from "../../../util/typing";
 import { AuthError, NotFoundError } from "./../errors";
-import type { Forge, ForgeWithUser, TokenInfo } from "./../forge";
+import {
+	AccessLevel,
+	type Forge,
+	type ForgeWithUser,
+	type TokenInfo,
+} from "./../forge";
 import type { ForgeUser } from "./../forgeuser";
 
 class HttpError extends Error {
@@ -191,6 +196,10 @@ export class GiteaForgeWithUser implements ForgeWithUser {
 		private client: ApiClient,
 	) {}
 
+	getForgeId(): number {
+		return this.forgeId;
+	}
+
 	async getUserInfo(): Promise<ForgeUser> {
 		const res = await this.client.userGetCurrent();
 		const user = await successJson(res);
@@ -254,6 +263,36 @@ export class GiteaForgeWithUser implements ForgeWithUser {
 			full_name: unwrap(repo.full_name),
 			html_url: unwrap(repo.html_url),
 		};
+	}
+
+	async checkAccess(forgeRepoId: string, level: AccessLevel): Promise<void> {
+		const res = await this.client.repoGetById({ id: Number(forgeRepoId) });
+		if (res.status === 404) {
+			throw new NotFoundError(
+				`Repository ${forgeRepoId} does not exist on the forge.`,
+			);
+		}
+		const repo = await successJson(res);
+		const permissions = repo.permissions;
+
+		let hasAccess: boolean;
+		switch (level) {
+			case AccessLevel.Read:
+				hasAccess = permissions?.pull === true;
+				break;
+			case AccessLevel.Write:
+				hasAccess = permissions?.push === true;
+				break;
+			case AccessLevel.Admin:
+				hasAccess = permissions?.admin === true;
+				break;
+			default:
+				throw new Error(`Unhandled access level: ${level}`);
+		}
+
+		if (!hasAccess) {
+			throw new NotFoundError();
+		}
 	}
 
 	async validateToken(): Promise<boolean> {

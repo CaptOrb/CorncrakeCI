@@ -2,8 +2,9 @@ import { afterEach, beforeEach } from "vitest";
 import { transaction } from "../../src/db/stores";
 import type { t_ForgeRepository } from "../../src/generated/server/models";
 import { _forgeMap } from "../../src/services/forges";
-import { NotFoundError } from "../../src/services/forges/errors";
+import { AuthError, NotFoundError } from "../../src/services/forges/errors";
 import type {
+	AccessLevel,
 	Forge,
 	ForgeWithUser,
 	TokenInfo,
@@ -132,6 +133,10 @@ class TestForgeWithUser implements ForgeWithUser {
 		private user: ForgeUser | null,
 	) {}
 
+	getForgeId(): number {
+		return this.forgeId;
+	}
+
 	async getUserInfo(): Promise<ForgeUser> {
 		if (!this.user) throw new Error("invalid access token");
 		return this.user;
@@ -177,6 +182,20 @@ class TestForgeWithUser implements ForgeWithUser {
 			full_name: repo.name,
 			html_url: `https://example.com/${repo.name}`,
 		};
+	}
+
+	async checkAccess(forgeRepoId: string, _level: AccessLevel): Promise<void> {
+		if (!this.user) {
+			throw new AuthError("Not authenticated");
+		}
+		const repo = this.controller.repositories.get(forgeRepoId);
+		if (!repo) {
+			throw new NotFoundError("Repository not found");
+		}
+		// In the test forge, the owner has all access levels for now
+		if (repo.owner !== this.user.id) {
+			throw new NotFoundError("Repository not found");
+		}
 	}
 
 	async validateToken(): Promise<boolean> {

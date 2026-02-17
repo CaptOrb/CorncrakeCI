@@ -8,6 +8,7 @@ import { GiteaForge } from "./gitea";
 
 // Re-export error classes
 export { AuthError, NotFoundError } from "./errors";
+export { AccessLevel } from "./forge";
 
 /**
  * Map from forge ID to the forge instance.

@@ -49,28 +49,40 @@ export class RepositoryStore {
 		return { repo_id: repository.repo_id };
 	}
 
+	/**
+	 * Lists repositories that are configured for the given forge and repository IDs.
+	 *
+	 * Only returns repositories that:
+	 *   - belong to the provided `forge_id`
+	 * 	 - match one of the provided `forge_repo_ids`
+	 *   - have a non-null `webhook_secret` (as the repo is configured)
+	 * @param forge_id
+	 * @param forge_repo_ids
+	 * @returns Array of configured repositories with owner and forge info
+	 */
 	async listConfiguredRepositories(
-		ownerId: number,
+		forge_id: number,
+		forge_repo_ids: string[],
 	): Promise<t_RepositoryConfig[]> {
+		if (forge_repo_ids.length === 0) return [];
+
 		const result = await this.client.query(
 			`
-	    SELECT
-	      r.forge_repo_id,
-	      r.repo_name,
-	      r.created_at,
-		  r.repo_id,
-	      f.forge_id,
-	      f.display_name,
+			SELECT
+			r.repo_id,
+			r.forge_id,
+			r.forge_repo_id,
+			r.repo_name,
+			r.created_at,
 
-	      u.forge_user_id,
-	      u.forge_username
-	    FROM repositories r
-	    JOIN forges f ON r.forge_id = f.forge_id
-	    JOIN users u ON r.owner_id = u.user_id
-	    WHERE r.owner_id = $1
-	      AND r.webhook_secret IS NOT NULL;
-	    `,
-			[ownerId],
+			f.display_name
+			FROM repositories r
+			JOIN forges f ON r.forge_id = f.forge_id
+			WHERE r.webhook_secret IS NOT NULL
+			AND r.forge_id = $1
+			AND r.forge_repo_id = ANY($2::text[]);
+    `,
+			[forge_id, forge_repo_ids],
 		);
 
 		return result.rows.map((row) => ({
@@ -124,14 +136,26 @@ export class RepositoryStore {
 		return result.rows[0];
 	}
 
-	async getConfiguredRepositoryForgeIds(ownerId: number): Promise<Set<string>> {
+	/**
+	 * Returns the subset of forgeRepoIds that are configured (have a webhook_secret)
+	 * for a given forgeId.
+	 */
+
+	async getConfiguredRepoIds(
+		forgeId: number,
+		forgeRepoIds: string[],
+	): Promise<Set<string>> {
+		if (forgeRepoIds.length === 0) return new Set();
+
 		const result = await this.client.query(
 			`
 			SELECT forge_repo_id
 			FROM repositories
-			WHERE owner_id = $1 AND webhook_secret IS NOT NULL
+			WHERE webhook_secret IS NOT NULL
+			AND forge_id = $1
+			AND forge_repo_id = ANY($2::text[])
 			`,
-			[ownerId],
+			[forgeId, forgeRepoIds],
 		);
 
 		const configuredRepoIds = new Set<string>();

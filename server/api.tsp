@@ -96,7 +96,6 @@ op listConfiguredRepos(): Body<RepositoryConfig[]> | (UnauthorizedResponse &
 @summary("Configure a new repository for MOLCI")
 op configureRepo(
   @body body: {
-    forge: integer;
     forge_repo_id: string;
   },
 ):

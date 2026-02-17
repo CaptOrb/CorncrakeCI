@@ -11,6 +11,7 @@ import type {
 import type { t_ConfigureRepoRequestBodySchema } from "../../generated/server/models";
 import { parseKdlConfigs } from "../../pipeline";
 import {
+	AccessLevel,
 	AuthError,
 	getForgeWithUser,
 	listAvailableForges,
@@ -47,7 +48,7 @@ export const checkPipelines: CheckPipelines = async (
 	const { ref } = req.body;
 
 	const repository = await transaction(async (txn) => {
-		return txn.repositories.getRepositoryById(molciRepoId, userId);
+		return txn.repositories.getRepositoryById(molciRepoId);
 	});
 
 	if (!repository) {
@@ -55,6 +56,7 @@ export const checkPipelines: CheckPipelines = async (
 	}
 
 	const forge = await getForgeWithUser(userId);
+	await forge.checkAccess(repository.forge_repo_id, AccessLevel.Read);
 	const molciConfig = await forge.getMolciConfig(repository.forge_repo_id, ref);
 
 	const { results } = parseKdlConfigs(molciConfig.configFiles);
@@ -75,12 +77,15 @@ export const listAvailableRepos: ListAvailableRepos = async (
 	}
 
 	const forge = await getForgeWithUser(userId);
-	const [repos, configuredRepoIds] = await Promise.all([
-		forge.listRepositories(),
-		transaction(async (txn) => {
-			return txn.repositories.getConfiguredRepositoryForgeIds(userId);
-		}),
-	]);
+	const repos = await forge.listRepositories();
+	const forgeRepoIds = repos.map((r) => r.forge_repo_id);
+
+	const configuredRepoIds = await transaction(async (txn) => {
+		return txn.repositories.getConfiguredRepoIds(
+			forge.getForgeId(),
+			forgeRepoIds,
+		);
+	});
 
 	const availableRepos = repos.filter(
 		(repo) => !configuredRepoIds.has(repo.forge_repo_id),
@@ -95,28 +100,22 @@ export const configureRepo: ConfigureRepo = async (_params, respond, req) => {
 		throw new AuthError("Not authenticated");
 	}
 
-	const { forge, forge_repo_id } = req.body as t_ConfigureRepoRequestBodySchema;
+	const { forge_repo_id } = req.body as t_ConfigureRepoRequestBodySchema;
 
-	try {
-		const forgeClient = await getForgeWithUser(userId);
-		const repoDetails = await forgeClient.getRepository(forge_repo_id);
+	const forgeClient = await getForgeWithUser(userId);
+	await forgeClient.checkAccess(forge_repo_id, AccessLevel.Admin);
+	const repoDetails = await forgeClient.getRepository(forge_repo_id);
 
-		const repository = await transaction(async (txn) => {
-			return await txn.repositories.createOrUpdateRepository(
-				forge,
-				forge_repo_id,
-				userId,
-				repoDetails.full_name,
-			);
-		});
+	const repository = await transaction(async (txn) => {
+		return await txn.repositories.createOrUpdateRepository(
+			repoDetails.forge.id,
+			forge_repo_id,
+			userId,
+			repoDetails.full_name,
+		);
+	});
 
-		return respond.with200().body({ repo_id: repository.repo_id });
-	} catch (error) {
-		if (error instanceof NotFoundError) {
-			return respond.with400().body({ error: error.message });
-		}
-		throw error;
-	}
+	return respond.with200().body({ repo_id: repository.repo_id });
 };
 
 export const listConfiguredRepos: ListConfiguredRepos = async (
@@ -130,9 +129,14 @@ export const listConfiguredRepos: ListConfiguredRepos = async (
 		throw new AuthError("Not authenticated");
 	}
 
-	const configuredRepos = await transaction(async (txn) => {
-		return await txn.repositories.listConfiguredRepositories(userId);
-	});
+	const forge = await getForgeWithUser(userId);
+	const forge_id = forge.getForgeId();
+	const accessibleRepos = await forge.listRepositories();
+	const forge_repo_ids = accessibleRepos.map((r) => r.forge_repo_id);
+
+	const configuredRepos = await transaction((txn) =>
+		txn.repositories.listConfiguredRepositories(forge_id, forge_repo_ids),
+	);
 
 	return respond.with200().body(configuredRepos);
 };
@@ -152,7 +156,7 @@ export const reconfigureRepo: ReconfigureRepo = async (
 
 	// Fetch repo details from DB so we can get associated forge
 	const dbRepo = await transaction(async (txn) =>
-		txn.repositories.getRepositoryById(repoId, userId),
+		txn.repositories.getRepositoryById(repoId),
 	);
 
 	if (!dbRepo) {
@@ -160,6 +164,7 @@ export const reconfigureRepo: ReconfigureRepo = async (
 	}
 
 	const forge = await getForgeWithUser(userId);
+	await forge.checkAccess(dbRepo.forge_repo_id, AccessLevel.Admin);
 	const forgeRepo = await forge.getRepository(dbRepo.forge_repo_id);
 
 	// Update DB for the reconfiguredRepo
@@ -172,7 +177,7 @@ export const reconfigureRepo: ReconfigureRepo = async (
 			forgeRepo.full_name,
 		);
 
-		return (await txn.repositories.getRepositoryById(repoId, userId))!;
+		return (await txn.repositories.getRepositoryById(repoId))!;
 	});
 
 	return respond.with200().body({
@@ -206,7 +211,7 @@ export const getRepo: GetRepo = async (
 	const molciRepoId = params.id;
 
 	const repository = await transaction(async (txn) => {
-		return txn.repositories.getRepositoryById(molciRepoId, userId);
+		return txn.repositories.getRepositoryById(molciRepoId);
 	});
 
 	if (!repository) {
@@ -214,6 +219,7 @@ export const getRepo: GetRepo = async (
 	}
 
 	const forge = await getForgeWithUser(userId);
+	await forge.checkAccess(repository.forge_repo_id, AccessLevel.Read);
 	const forgeRepo = await forge.getRepository(repository.forge_repo_id);
 
 	return respond.with200().body({
