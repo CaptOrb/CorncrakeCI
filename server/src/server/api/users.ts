@@ -21,6 +21,7 @@ export const whoAmI: WhoAmI = async (_params, respond, req) => {
 		forge: {
 			id: userInfo.forge_id,
 			name: forge.name,
+			logo_url: forge.logoUrl,
 		},
 		user: {
 			id: userInfo.user_id,
