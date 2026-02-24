@@ -14,6 +14,13 @@ export async function connectDB(newPool: Pool): Promise<void> {
 
 	pool = newPool;
 
+	// Log idle pool errors rather than letting them become uncaught exceptions.
+	// A common case is 57P01 ("terminating connection due to administrator
+	// command")
+	pool.on("error", (err) => {
+		console.error("Database pool error:", err);
+	});
+
 	// Check the connection upfront
 	try {
 		const client = await pool.connect();

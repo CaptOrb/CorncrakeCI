@@ -73,6 +73,13 @@ export async function setupDb(): Promise<SetupDbResult> {
 			max: 1,
 		});
 
+		// Log idle pool errors rather than letting them become uncaught exceptions.
+		// A common case is 57P01 ("terminating connection due to administrator
+		// command")
+		pool.on("error", (err) => {
+			console.error(`Pool error during test (db ${dbName}}):`, err);
+		});
+
 		// Test the connection
 		const testClient = await pool.connect();
 		testClient.release();
