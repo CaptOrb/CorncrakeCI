@@ -50,8 +50,8 @@ export function testForgeHelper(): { controller?: TestForgeController } {
 export class TestForge implements Forge {
 	public name: string = "TestForge";
 	public readonly logoUrl: string | undefined = undefined;
-	public readonly molciBaseUrl: string =
-		"http://forge-internal.molci.invalid:1234";
+	public readonly corncrakeciBaseUrl: string =
+		"http://forge-internal.corncrakeci.invalid:1234";
 
 	constructor(
 		private _controller: TestForgeController,
@@ -232,7 +232,7 @@ class TestForgeWithUser implements ForgeWithUser {
 		// Test implementation - just succeed
 	}
 
-	async getMolciConfig(
+	async getCorncrakeciConfig(
 		forgeRepoId: string,
 		_ref?: string,
 	): Promise<{ path: string; configFiles: Map<string, string> }> {
@@ -241,7 +241,7 @@ class TestForgeWithUser implements ForgeWithUser {
 		const configs = this.controller.configs.get(forgeRepoId);
 
 		return {
-			path: ".molci",
+			path: ".corncrake",
 			configFiles: configs || new Map<string, string>(),
 		};
 	}
@@ -251,7 +251,7 @@ class TestForgeWithUser implements ForgeWithUser {
 		_sha: string,
 		_state: "success" | "failure" | "error" | "pending",
 		_description: string,
-		_context = "molci/pipeline-validation",
+		_context = "corncrake/pipeline-validation",
 		_targetUrl?: string,
 	): Promise<void> {
 		if (!this.user) throw new Error("invalid access token");

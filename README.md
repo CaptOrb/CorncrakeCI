@@ -1,10 +1,10 @@
-# MolCI
+# CorncrakeCI
 
 [![CI status badge](https://ci.emunest.net/api/badges/5/status.svg)](https://ci.emunest.net/repos/5)
 
 ## About
 
-MolCI is an in-progress self-hosted CI system.
+CorncrakeCI is an in-progress self-hosted CI system.
 
 ## Prerequisites
 * Docker

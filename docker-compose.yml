@@ -1,20 +1,20 @@
 services:
-  molci-db:
+  corncrakeci-db:
     image: postgres:17
-    container_name: molci-db
+    container_name: corncrakeci-db
     restart: unless-stopped
     env_file:
       - ./server/.env
     environment:
-      POSTGRES_USER: ${MOLCI_DB_USER}
-      POSTGRES_PASSWORD: ${MOLCI_DB_PASSWORD}
-      POSTGRES_DB: ${MOLCI_DB_NAME}
+      POSTGRES_USER: ${CORNCRAKECI_DB_USER}
+      POSTGRES_PASSWORD: ${CORNCRAKECI_DB_PASSWORD}
+      POSTGRES_DB: ${CORNCRAKECI_DB_NAME}
     ports:
       - "5432:5432"
     volumes:
-      - molci_postgres_data:/var/lib/postgresql/data
+      - corncrakeci_postgres_data:/var/lib/postgresql/data
     networks:
-      - molci_network
+      - corncrakeci_network
 
   gitea-db:
     image: postgres:17
@@ -31,7 +31,7 @@ services:
     volumes:
       - gitea_postgres_data:/var/lib/postgresql/data
     networks:
-      - molci_network
+      - corncrakeci_network
 
   gitea:
     image: docker.gitea.com/gitea:1.24.5
@@ -57,14 +57,14 @@ services:
       - ./gitea:/data
       - /etc/localtime:/etc/localtime:ro
     networks:
-      - molci_network
+      - corncrakeci_network
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
 volumes:
-  molci_postgres_data:
+  corncrakeci_postgres_data:
   gitea_postgres_data:
 
 networks:
-  molci_network:
+  corncrakeci_network:
     driver: bridge

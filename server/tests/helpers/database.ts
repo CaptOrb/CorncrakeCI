@@ -6,7 +6,7 @@ import { migrate } from "postgres-migrations";
 import { afterEach, beforeEach } from "vitest";
 import { _setPool } from "../../src/config/db";
 
-const TEMPLATE_DB_NAME = "molci_test_template";
+const TEMPLATE_DB_NAME = "corncrakeci_test_template";
 
 /**
  * Result of setupDb containing the pool and cleanup function
@@ -53,7 +53,7 @@ export async function setupDb(): Promise<SetupDbResult> {
 	// Generate a unique DB name
 	// ideally we'd base it off the test name, but those are quite verbose...
 	// console.log("test name", expect.getState().currentTestName);
-	const dbName = `molci_test_${crypto.randomBytes(6).toString("hex")}`;
+	const dbName = `corncrakeci_test_${crypto.randomBytes(6).toString("hex")}`;
 
 	let pool: Pool | null = null;
 
@@ -158,7 +158,7 @@ export async function setupDb(): Promise<SetupDbResult> {
 			throw new Error(
 				`Failed to setup test database: ${errorMessage}\n` +
 					`\n Tip: Make sure your Docker container is running:\n` +
-					`   docker compose up -d molci-db\n` +
+					`   docker compose up -d corncrakeci-db\n` +
 					`   Or start all services: docker compose up -d`,
 			);
 		}

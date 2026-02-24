@@ -6,12 +6,12 @@ using Http;
 using OpenAPI;
 
 /**
- * OpenAPI spec for MOLCI backend. This API allows users to log in via a Git forge (Gitea), list repositories and handle configuration.
+ * OpenAPI spec for CORNCRAKECI backend. This API allows users to log in via a Git forge (Gitea), list repositories and handle configuration.
  *
  */
-@service(#{ title: "MOLCI API" })
+@service(#{ title: "CORNCRAKECI API" })
 @info(#{ version: "0.1.0" })
-namespace MOLCIAPI;
+namespace CorncrakeCIAPI;
 
 model Error {
   /**
@@ -87,13 +87,13 @@ op listAvailableRepos():
 
 @route("/repos/configured")
 @get
-@summary("List repositories already configured in MOLCI")
+@summary("List repositories already configured in CORNCRAKECI")
 op listConfiguredRepos(): Body<RepositoryConfig[]> | (UnauthorizedResponse &
   Error) | InternalError;
 
 @route("/repo")
 @post
-@summary("Configure a new repository for MOLCI")
+@summary("Configure a new repository for CORNCRAKECI")
 op configureRepo(
   @body body: {
     forge_repo_id: string;
@@ -123,7 +123,7 @@ op getRepo(
 
 @route("/repo/{id}")
 @put
-@summary("Reconfigure a repository for MOLCI")
+@summary("Reconfigure a repository for CORNCRAKECI")
 op reconfigureRepo(
   /**
    * Repository ID

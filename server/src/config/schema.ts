@@ -16,7 +16,7 @@ const ForgeInstanceSchema = v.pipe(
 		name: v.optional(v.string()),
 		url: v.string(), // Public URL for OAuth redirects (browser-accessible)
 		internalurl: v.optional(v.string()), // Internal URL for server-to-server API calls for docker
-		appbaseurloverride: v.optional(v.string()), // Override of the MOLCI base URL, in case the Forge can't access MOLCI over the normal public base URL
+		appbaseurloverride: v.optional(v.string()), // Override of the CORNCRAKECI base URL, in case the Forge can't access CORNCRAKECI over the normal public base URL
 		clientid: v.string(),
 		clientsecret: v.string(),
 		redirecturi: v.string(),
@@ -64,7 +64,7 @@ const AppConfigSchema = v.object({
 		v.check((s) => !s.endsWith("/"), "Must not end with /"),
 	),
 	// Whether we will trust reverse proxy headers.
-	// Since MOLCI should be run behind a reverse proxy, this is assumed true by default.
+	// Since corncrakeci should be run behind a reverse proxy, this is assumed true by default.
 	trustproxy: v.optional(v.boolean(), true),
 	bindaddress: v.pipe(v.optional(v.string(), "127.0.0.1"), v.ip()),
 	encryptionkey: v.pipe(

@@ -18,17 +18,17 @@ export interface Forge {
 	readonly name: string;
 	readonly logoUrl: string | undefined;
 	/**
-	 * Effective base URL of MOLCI that should be presented to the Forge, for Forge-to-MOLCI
+	 * Effective base URL of CORNCRAKECI that should be presented to the Forge, for Forge-to-CORNCRAKECI
 	 * requests (currently just webhooks).
 	 *
 	 * Differs from the normal public base URL when the Forge is running in Docker
-	 * but MOLCI is running outside; in that case `http://host.docker.internal:<port>`
+	 * but CORNCRAKECI is running outside; in that case `http://host.docker.internal:<port>`
 	 * would be used.
 	 *
-	 * NOTE: This does NOT apply to links to the MOLCI web UI that are intended to be shown
+	 * NOTE: This does NOT apply to links to the CORNCRAKECI web UI that are intended to be shown
 	 * to browser users rather than the Forge's internal requests!
 	 */
-	readonly molciBaseUrl: string;
+	readonly corncrakeciBaseUrl: string;
 
 	getAuthorizationUrl(): { url: string; state: string; codeVerifier: string };
 
@@ -68,7 +68,7 @@ export interface ForgeWithUser {
 
 	deleteWebhook(forgeRepoId: string, webhookId: string): Promise<void>;
 
-	getMolciConfig(
+	getCorncrakeciConfig(
 		forgeRepoId: string,
 		ref: string,
 	): Promise<{ path: string; configFiles: Map<string, string> }>;

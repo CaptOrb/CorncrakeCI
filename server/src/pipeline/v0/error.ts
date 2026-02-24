@@ -5,7 +5,7 @@ import type * as KDL from "@bgotink/kdl";
  * to help with their problems.
  */
 export enum DocRef {
-	MOLCI_VERSION = "molci-version",
+	CORNCRAKECI_VERSION = "corncrakeci-version",
 }
 
 export interface V0ParseError {

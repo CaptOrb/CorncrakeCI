@@ -42,14 +42,14 @@ describe("checkPipelines endpoint", () => {
 	});
 
 	it("validates a valid pipeline configuration", async () => {
-		const validConfig = `molci version=v0
+		const validConfig = `corncrake version=v0
         job "test" {
             step "echo hello"
         }`;
 
 		forge.controller!.setRepoConfigs(
 			"repo0001",
-			new Map([[".molci/ci.kdl", validConfig]]),
+			new Map([[".corncrake/ci.kdl", validConfig]]),
 		);
 
 		const response = await request
@@ -61,14 +61,14 @@ describe("checkPipelines endpoint", () => {
 	});
 
 	it("returns errors for invalid pipeline configuration", async () => {
-		const invalidConfig = `molci version=v0
+		const invalidConfig = `corncrake version=v0
         job {
             step "echo hello"
         }`;
 
 		forge.controller!.setRepoConfigs(
 			"repo0001",
-			new Map([[".molci/ci.kdl", invalidConfig]]),
+			new Map([[".corncrake/ci.kdl", invalidConfig]]),
 		);
 
 		const response = await request
@@ -80,7 +80,7 @@ describe("checkPipelines endpoint", () => {
 		expect(response.body.pipelines).toMatchInlineSnapshot(`
 			[
 			  {
-			    "content": "molci version=v0
+			    "content": "corncrake version=v0
 			        job {
 			            step "echo hello"
 			        }",
@@ -93,7 +93,7 @@ describe("checkPipelines endpoint", () => {
 			        "startLine": 2,
 			      },
 			    ],
-			    "path": ".molci/ci.kdl",
+			    "path": ".corncrake/ci.kdl",
 			  },
 			]
 		`);

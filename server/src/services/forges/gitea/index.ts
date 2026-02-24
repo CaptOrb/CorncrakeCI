@@ -85,7 +85,7 @@ export class GiteaForge implements Forge {
 	private publicUrl: string; // For OAuth authorisation URL (browser-accessible) in docker demo
 	public name: string;
 	public readonly logoUrl: string | undefined;
-	public readonly molciBaseUrl: string;
+	public readonly corncrakeciBaseUrl: string;
 
 	constructor(
 		private forgeId: number,
@@ -96,8 +96,9 @@ export class GiteaForge implements Forge {
 		this.publicUrl = config.url;
 		this.name = config.name;
 		this.logoUrl = config.logourl ?? `${this.baseUrl}/assets/img/logo.svg`;
-		// If this forge has a custom MOLCI base URL set, use that, otherwise use the normal MOLCI base URL.
-		this.molciBaseUrl = config.appbaseurloverride ?? appConfig.app.baseurl;
+		// If this forge has a custom CORNCRAKECI base URL set, use that, otherwise use the normal CORNCRAKECI base URL.
+		this.corncrakeciBaseUrl =
+			config.appbaseurloverride ?? appConfig.app.baseurl;
 
 		if (!config.clientid || !config.clientsecret) {
 			throw new Error("Gitea OAuth2 credentials not configured");
@@ -366,19 +367,19 @@ export class GiteaForgeWithUser implements ForgeWithUser {
 		}
 	}
 
-	async getMolciConfig(
+	async getCorncrakeciConfig(
 		forgeRepoId: string,
 		ref: string,
 	): Promise<{ path: string; configFiles: Map<string, string> }> {
 		const repoQueryParts = await this.getRepoQueryParts(forgeRepoId);
 
-		const molciContentsRes = await this.client.repoGetContents({
+		const corncrakeciContentsRes = await this.client.repoGetContents({
 			...repoQueryParts,
-			filepath: ".molci",
+			filepath: ".corncrake",
 			ref,
 		});
 
-		if (molciContentsRes.status === 404) {
+		if (corncrakeciContentsRes.status === 404) {
 			//return empty configs
 			return {
 				path: "",
@@ -386,17 +387,17 @@ export class GiteaForgeWithUser implements ForgeWithUser {
 			};
 		}
 
-		const molciContents = (await successJson(
-			molciContentsRes,
+		const corncrakeciContents = (await successJson(
+			corncrakeciContentsRes,
 		)) as t_ContentsResponse[];
 
 		const configFiles = new Map<string, string>();
-		for (const item of molciContents) {
+		for (const item of corncrakeciContents) {
 			if (item.name!.endsWith(".kdl") && item.type! === "file") {
 				try {
 					const fileRes = await this.client.repoGetRawFile({
 						...repoQueryParts,
-						filepath: `.molci/${item.name}`,
+						filepath: `.corncrake/${item.name}`,
 						ref,
 					});
 
@@ -406,8 +407,6 @@ export class GiteaForgeWithUser implements ForgeWithUser {
 							configFiles.set(item.name!, fileContent);
 						}
 					} else {
-						// repoGetRawFile returns either 200 or 404 but aren't we just fetching the files that exists in .molci..?
-						// I guess we can check regardless to be defensive
 						console.warn(
 							`Failed to fetch KDL file ${item.name}:`,
 							fileRes.status,
@@ -420,7 +419,7 @@ export class GiteaForgeWithUser implements ForgeWithUser {
 		}
 
 		return {
-			path: ".molci",
+			path: ".corncrake",
 			configFiles,
 		};
 	}
@@ -430,7 +429,7 @@ export class GiteaForgeWithUser implements ForgeWithUser {
 		sha: string,
 		state: "success" | "failure" | "error" | "pending",
 		description: string,
-		context = "molci/pipeline-validation",
+		context = "corncrake/pipeline-validation",
 		targetUrl?: string,
 	): Promise<void> {
 		const repoQueryParts = await this.getRepoQueryParts(forgeRepoId);

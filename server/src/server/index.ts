@@ -143,7 +143,7 @@ export async function createApiServer({
 				`/${apiVersion}/swagger`,
 				swaggerUi.serve,
 				swaggerUi.setup(apiOpenapiWithBase, {
-					customSiteTitle: `MOLCI API ${apiVersion}`,
+					customSiteTitle: `CORNCRAKECI API ${apiVersion}`,
 				}),
 			);
 		}

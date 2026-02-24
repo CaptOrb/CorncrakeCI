@@ -18,15 +18,15 @@ async function cleanupExistingWebhooks(
 	forge: ForgeWithUser,
 	repoId: number,
 	forgeRepoId: string,
-	molciBaseUrl: string,
+	corncrakeciBaseUrl: string,
 	helpers: JobHelpers,
 ): Promise<void> {
 	try {
 		const existingWebhooks = await forge.listWebhooks(forgeRepoId);
-		const molciWebhookUrlPrefix = `${molciBaseUrl}/api/_webhooks/`;
+		const corncrakeciWebhookUrlPrefix = `${corncrakeciBaseUrl}/api/_webhooks/`;
 
 		for (const webhook of existingWebhooks) {
-			if (webhook.url?.startsWith(molciWebhookUrlPrefix)) {
+			if (webhook.url?.startsWith(corncrakeciWebhookUrlPrefix)) {
 				try {
 					await forge.deleteWebhook(forgeRepoId, webhook.id);
 					helpers.logger.info(
@@ -75,13 +75,13 @@ export async function setup_webhooks(payload: unknown, helpers: JobHelpers) {
 		const forgeOnly = mustGetForge(repoResult.forge_id);
 		const forge = forgeOnly.withUser(accessToken);
 
-		const webhookUrl = `${forgeOnly.molciBaseUrl}/api/_webhooks/${repoId}`;
+		const webhookUrl = `${forgeOnly.corncrakeciBaseUrl}/api/_webhooks/${repoId}`;
 
 		await cleanupExistingWebhooks(
 			forge,
 			repoId,
 			repoResult.forge_repo_id,
-			forgeOnly.molciBaseUrl,
+			forgeOnly.corncrakeciBaseUrl,
 			helpers,
 		);
 

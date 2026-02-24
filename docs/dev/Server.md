@@ -1,11 +1,11 @@
-# MOLCI Server Development
+# CORNCRAKECI Server Development
 
 ## Docker Networking Notes
 ### Firewall Configuration
 We use host.docker.internal for cross-platform compatibility (Linux/Windows/). On Linux, you may need to allow Docker networks through the firewall
 
 ```
-sudo ufw allow from 172.21.0.0/16 to any port 3000 comment 'MOLCI custom network'
+sudo ufw allow from 172.21.0.0/16 to any port 3000 comment 'CORNCRAKECI custom network'
 sudo ufw allow from 172.17.0.0/16 to any port 3000 comment 'Docker default bridge'
 ```
 

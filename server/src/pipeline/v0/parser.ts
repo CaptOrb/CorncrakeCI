@@ -39,9 +39,9 @@ export class V0Parser {
 			throw new FatalParseError();
 		}
 
-		if (versionHeader.getName() !== "molci") {
+		if (versionHeader.getName() !== "corncrake") {
 			this.errors.push({
-				message: `Expected first node to be 'molci', got '${versionHeader.getName()}'`,
+				message: `Expected first node to be 'corncrake', got '${versionHeader.getName()}'`,
 				elements: [versionHeader],
 			});
 		}
@@ -56,7 +56,7 @@ export class V0Parser {
 
 		if (!versionNodeParse.ok) {
 			// Enhance the errors that were added
-			versionNodeParse.errors.setDocRef(DocRef.MOLCI_VERSION);
+			versionNodeParse.errors.setDocRef(DocRef.CORNCRAKECI_VERSION);
 		}
 
 		if (this.errors.length > 0) throw new FatalParseError();

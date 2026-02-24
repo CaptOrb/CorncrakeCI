@@ -1,7 +1,7 @@
-# Compose file to launch the necessary services for running the MOLCI test suite.
+# Compose file to launch the necessary services for running the CORNCRAKECI test suite.
 
 services:
-  molci-test-postgres:
+  corncrakeci-test-postgres:
     image: postgres:17
 
     # Turn off crash-safety features (for speed)
@@ -23,9 +23,9 @@ services:
       - /var/lib/postgresql/data
 
     environment:
-      POSTGRES_USER: molcitest
-      POSTGRES_PASSWORD: molcitest
-      POSTGRES_DB: molcitest
+      POSTGRES_USER: corncrakecitest
+      POSTGRES_PASSWORD: corncrakecitest
+      POSTGRES_DB: corncrakecitest
 
     ports:
       # Remap port to 15432 to not conflict with other database.

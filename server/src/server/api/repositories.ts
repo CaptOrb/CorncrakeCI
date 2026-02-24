@@ -44,11 +44,11 @@ export const checkPipelines: CheckPipelines = async (
 		throw new AuthError("Not authenticated");
 	}
 
-	const molciRepoId = params.id;
+	const corncrakeciRepoId = params.id;
 	const { ref } = req.body;
 
 	const repository = await transaction(async (txn) => {
-		return txn.repositories.getRepositoryById(molciRepoId);
+		return txn.repositories.getRepositoryById(corncrakeciRepoId);
 	});
 
 	if (!repository) {
@@ -57,9 +57,12 @@ export const checkPipelines: CheckPipelines = async (
 
 	const forge = await getForgeWithUser(userId);
 	await forge.checkAccess(repository.forge_repo_id, AccessLevel.Read);
-	const molciConfig = await forge.getMolciConfig(repository.forge_repo_id, ref);
+	const corncrakeciConfig = await forge.getCorncrakeciConfig(
+		repository.forge_repo_id,
+		ref,
+	);
 
-	const { results } = parseKdlConfigs(molciConfig.configFiles);
+	const { results } = parseKdlConfigs(corncrakeciConfig.configFiles);
 
 	return respond.with200().body({
 		pipelines: results,
@@ -208,10 +211,10 @@ export const getRepo: GetRepo = async (
 		throw new AuthError("Not authenticated");
 	}
 
-	const molciRepoId = params.id;
+	const corncrakeciRepoId = params.id;
 
 	const repository = await transaction(async (txn) => {
-		return txn.repositories.getRepositoryById(molciRepoId);
+		return txn.repositories.getRepositoryById(corncrakeciRepoId);
 	});
 
 	if (!repository) {

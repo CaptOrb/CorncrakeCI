@@ -85,12 +85,12 @@ export const handleWebhook = async (req: RawBodyRequest, res: Response) => {
 				return res.status(400).json({ error: "Could not parse webhook body" });
 			}
 
-			const molciConfig = await forge.getMolciConfig(
+			const corncrakeciConfig = await forge.getCorncrakeciConfig(
 				repo.forge_repo_id,
 				parsed.output.pull_request.head.sha,
 			);
 
-			const { results } = parseKdlConfigs(molciConfig.configFiles);
+			const { results } = parseKdlConfigs(corncrakeciConfig.configFiles);
 			await reportPipelineErrors(
 				forge,
 				repo.forge_repo_id,
@@ -111,12 +111,12 @@ export const handleWebhook = async (req: RawBodyRequest, res: Response) => {
 				return res.status(400).json({ error: "Could not parse webhook body" });
 			}
 
-			const molciConfig = await forge.getMolciConfig(
+			const corncrakeciConfig = await forge.getCorncrakeciConfig(
 				repo.forge_repo_id,
 				parsed.output.after, // only the latest commit on a branch matters
 			);
 
-			const { results } = parseKdlConfigs(molciConfig.configFiles);
+			const { results } = parseKdlConfigs(corncrakeciConfig.configFiles);
 
 			await reportPipelineErrors(
 				forge,
@@ -158,7 +158,7 @@ async function reportPipelineErrors(
 				sha,
 				"failure",
 				"pipeline failed:",
-				"molci/pipeline-validation",
+				"corncrake/pipeline-validation",
 				errorPageUrl,
 			);
 		} catch (error) {

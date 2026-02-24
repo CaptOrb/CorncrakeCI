@@ -28,32 +28,35 @@ function parse(_file: "parseFile", text: string): V0File {
 
 describe("V0Parser tests", () => {
 	it("parses an empty file", () => {
-		const out = parse("parseFile", `molci version=v0`);
+		const out = parse("parseFile", `corncrake version=v0`);
 		expect(out).toEqual({
 			uses: [],
 			workflows: [],
 		});
 	});
 
-	it("parses an empty file - but molci version is invalid", () => {
-		expect(() => parse("parseFile", `molci version=v1`)).toThrow(
+	it("parses an empty file - but corncrake version is invalid", () => {
+		expect(() => parse("parseFile", `corncrake version=v1`)).toThrow(
 			'Invalid type: Expected "v0" but received "v1"',
 		);
 	});
 
-	it("fails when the molci header has an extra unused property", () => {
+	it("fails when the corncrake header has an extra unused property", () => {
 		expect(() =>
-			parse("parseFile", `molci version=v0 somenonsensehere=othernonsensehere`),
-		).toThrow("Unexpected property 'somenonsensehere' on node 'molci'");
+			parse(
+				"parseFile",
+				`corncrake version=v0 somenonsensehere=othernonsensehere`,
+			),
+		).toThrow("Unexpected property 'somenonsensehere' on node 'corncrake'");
 	});
 
-	it("fails when the molci header is missing", () => {
+	it("fails when the corncrake header is missing", () => {
 		expect(() => parse("parseFile", ``)).toThrow("Missing version header");
 	});
 
-	it("fails when the first node is not 'molci'", () => {
-		expect(() => parse("parseFile", `notmolci version=v0`)).toThrow(
-			"Expected first node to be 'molci', got 'notmolci'",
+	it("fails when the first node is not 'corncrake'", () => {
+		expect(() => parse("parseFile", `notcorncrakeci version=v0`)).toThrow(
+			"Expected first node to be 'corncrake', got 'notcorncrakeci'",
 		);
 	});
 
@@ -87,7 +90,7 @@ describe("V0Parser tests", () => {
 		it("parses a single top-level job (implicit stage)", () => {
 			const out = parse(
 				"parseFile",
-				`molci version=v0
+				`corncrake version=v0
 
 			job "build" {
 				step "pnpm install"
@@ -102,12 +105,12 @@ describe("V0Parser tests", () => {
 				      "end": {
 				        "column": 5,
 				        "line": 5,
-				        "offset": 63,
+				        "offset": 67,
 				      },
 				      "start": {
 				        "column": 4,
 				        "line": 3,
-				        "offset": 21,
+				        "offset": 25,
 				      },
 				    },
 				    "stages": [
@@ -120,12 +123,12 @@ describe("V0Parser tests", () => {
 				              "end": {
 				                "column": 5,
 				                "line": 5,
-				                "offset": 63,
+				                "offset": 67,
 				              },
 				              "start": {
 				                "column": 4,
 				                "line": 3,
-				                "offset": 21,
+				                "offset": 25,
 				              },
 				            },
 				            "steps": [
@@ -136,12 +139,12 @@ describe("V0Parser tests", () => {
 				                  "end": {
 				                    "column": 24,
 				                    "line": 4,
-				                    "offset": 58,
+				                    "offset": 62,
 				                  },
 				                  "start": {
 				                    "column": 5,
 				                    "line": 4,
-				                    "offset": 39,
+				                    "offset": 43,
 				                  },
 				                },
 				              },
@@ -153,12 +156,12 @@ describe("V0Parser tests", () => {
 				          "end": {
 				            "column": 5,
 				            "line": 5,
-				            "offset": 63,
+				            "offset": 67,
 				          },
 				          "start": {
 				            "column": 4,
 				            "line": 3,
-				            "offset": 21,
+				            "offset": 25,
 				          },
 				        },
 				      },
@@ -176,7 +179,7 @@ describe("V0Parser tests", () => {
 		it("parses an explicit stage with multiple jobs", () => {
 			const out = parse(
 				"parseFile",
-				`molci version=v0
+				`corncrake version=v0
 
 			stage "test" {
 				job "run tests" {
@@ -196,12 +199,12 @@ describe("V0Parser tests", () => {
 				      "end": {
 				        "column": 5,
 				        "line": 10,
-				        "offset": 138,
+				        "offset": 142,
 				      },
 				      "start": {
 				        "column": 4,
 				        "line": 3,
-				        "offset": 21,
+				        "offset": 25,
 				      },
 				    },
 				    "stages": [
@@ -214,12 +217,12 @@ describe("V0Parser tests", () => {
 				              "end": {
 				                "column": 6,
 				                "line": 6,
-				                "offset": 85,
+				                "offset": 89,
 				              },
 				              "start": {
 				                "column": 5,
 				                "line": 4,
-				                "offset": 40,
+				                "offset": 44,
 				              },
 				            },
 				            "steps": [
@@ -230,12 +233,12 @@ describe("V0Parser tests", () => {
 				                  "end": {
 				                    "column": 22,
 				                    "line": 5,
-				                    "offset": 79,
+				                    "offset": 83,
 				                  },
 				                  "start": {
 				                    "column": 6,
 				                    "line": 5,
-				                    "offset": 63,
+				                    "offset": 67,
 				                  },
 				                },
 				              },
@@ -248,12 +251,12 @@ describe("V0Parser tests", () => {
 				              "end": {
 				                "column": 6,
 				                "line": 9,
-				                "offset": 133,
+				                "offset": 137,
 				              },
 				              "start": {
 				                "column": 5,
 				                "line": 7,
-				                "offset": 90,
+				                "offset": 94,
 				              },
 				            },
 				            "steps": [
@@ -264,12 +267,12 @@ describe("V0Parser tests", () => {
 				                  "end": {
 				                    "column": 25,
 				                    "line": 8,
-				                    "offset": 127,
+				                    "offset": 131,
 				                  },
 				                  "start": {
 				                    "column": 6,
 				                    "line": 8,
-				                    "offset": 108,
+				                    "offset": 112,
 				                  },
 				                },
 				              },
@@ -281,12 +284,12 @@ describe("V0Parser tests", () => {
 				          "end": {
 				            "column": 5,
 				            "line": 10,
-				            "offset": 138,
+				            "offset": 142,
 				          },
 				          "start": {
 				            "column": 4,
 				            "line": 3,
-				            "offset": 21,
+				            "offset": 25,
 				          },
 				        },
 				      },
@@ -299,7 +302,7 @@ describe("V0Parser tests", () => {
 		it("parses step with optional image", () => {
 			const out = parse(
 				"parseFile",
-				`molci version=v0
+				`corncrake version=v0
 
 			job "test" {
 				step "echo hello"
@@ -321,7 +324,7 @@ describe("V0Parser tests", () => {
 	it("parses job with needs declarations", () => {
 		const out = parse(
 			"parseFile",
-			`molci version=v0
+			`corncrake version=v0
 
 		job "build" {
 			step "pnpm run build"
@@ -346,7 +349,7 @@ describe("V0Parser tests", () => {
 		expect(() =>
 			parse(
 				"parseFile",
-				`molci version=v0
+				`corncrake version=v0
 
 				stage {
 					job "invalid" {
@@ -361,7 +364,7 @@ describe("V0Parser tests", () => {
 		expect(() =>
 			parse(
 				"parseFile",
-				`molci version=v0
+				`corncrake version=v0
 
 				job {
 					step "echo hi"
@@ -374,7 +377,7 @@ describe("V0Parser tests", () => {
 		expect(() =>
 			parse(
 				"parseFile",
-				`molci version=v0
+				`corncrake version=v0
 
 			job "test" {
 				invalid "something"
@@ -387,7 +390,7 @@ describe("V0Parser tests", () => {
 		expect(() =>
 			parse(
 				"parseFile",
-				`molci version=v0
+				`corncrake version=v0
 				job a {
 				}
 
@@ -401,7 +404,7 @@ describe("V0Parser tests", () => {
 		expect(() =>
 			parse(
 				"parseFile",
-				`molci version=v0
+				`corncrake version=v0
 				stage a {
 				}
 
@@ -415,7 +418,7 @@ describe("V0Parser tests", () => {
 		expect(() =>
 			parse(
 				"parseFile",
-				`molci version=v0
+				`corncrake version=v0
 				stage b {
 					job a {
 					}
@@ -431,7 +434,7 @@ describe("V0Parser tests", () => {
 		expect(() =>
 			parse(
 				"parseFile",
-				`molci version=v0
+				`corncrake version=v0
 				job a {
 				}
 
@@ -444,7 +447,7 @@ describe("V0Parser tests", () => {
 	it("allows jobs with the same name in different stages", () => {
 		const out = parse(
 			"parseFile",
-			`molci version=v0
+			`corncrake version=v0
 			stage a {
 				job jobName {
 				}
@@ -462,12 +465,12 @@ describe("V0Parser tests", () => {
 			    "end": {
 			      "column": 5,
 			      "line": 5,
-			      "offset": 58,
+			      "offset": 62,
 			    },
 			    "start": {
 			      "column": 4,
 			      "line": 2,
-			      "offset": 20,
+			      "offset": 24,
 			    },
 			  },
 			  "stages": [
@@ -480,12 +483,12 @@ describe("V0Parser tests", () => {
 			            "end": {
 			              "column": 6,
 			              "line": 4,
-			              "offset": 53,
+			              "offset": 57,
 			            },
 			            "start": {
 			              "column": 5,
 			              "line": 3,
-			              "offset": 34,
+			              "offset": 38,
 			            },
 			          },
 			          "steps": [],
@@ -496,12 +499,12 @@ describe("V0Parser tests", () => {
 			        "end": {
 			          "column": 5,
 			          "line": 5,
-			          "offset": 58,
+			          "offset": 62,
 			        },
 			        "start": {
 			          "column": 4,
 			          "line": 2,
-			          "offset": 20,
+			          "offset": 24,
 			        },
 			      },
 			    },
@@ -514,12 +517,12 @@ describe("V0Parser tests", () => {
 			            "end": {
 			              "column": 6,
 			              "line": 8,
-			              "offset": 95,
+			              "offset": 99,
 			            },
 			            "start": {
 			              "column": 5,
 			              "line": 7,
-			              "offset": 76,
+			              "offset": 80,
 			            },
 			          },
 			          "steps": [],
@@ -530,12 +533,12 @@ describe("V0Parser tests", () => {
 			        "end": {
 			          "column": 5,
 			          "line": 9,
-			          "offset": 100,
+			          "offset": 104,
 			        },
 			        "start": {
 			          "column": 4,
 			          "line": 6,
-			          "offset": 62,
+			          "offset": 66,
 			        },
 			      },
 			    },
@@ -545,7 +548,7 @@ describe("V0Parser tests", () => {
 	});
 
 	it("accumulates errors - reports both undefined job name and undefined step", () => {
-		const doc = parseKDL(`molci version=v0
+		const doc = parseKDL(`corncrake version=v0
 
 		job {
 			step
@@ -563,7 +566,7 @@ describe("V0Parser tests", () => {
 	it("parses use block with resources", () => {
 		const out = parse(
 			"parseFile",
-			`molci version=v0
+			`corncrake version=v0
 
 		use {
 			image rust "rust:1.59"

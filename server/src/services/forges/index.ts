@@ -71,7 +71,7 @@ export function listAvailableForges(): Array<{
 }
 
 /**
- * Gets a ForgeWithUser for a given molciuser ID, automatically refreshing the access token if it's about to expire.
+ * Gets a ForgeWithUser for a given corncrakeci user ID, automatically refreshing the access token if it's about to expire.
  * @throws {AuthError} if user not found, tokens missing, or token refresh fails
  */
 export async function getForgeWithUser(userId: number): Promise<ForgeWithUser> {

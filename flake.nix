@@ -1,5 +1,5 @@
 {
-  description = "MOLCI Continuous Integration system";
+  description = "CornCrakeCI Continuous Integration system";
 
   inputs = {
     nixpkgs.url = "nixpkgs/nixos-25.11";
@@ -12,7 +12,7 @@
       lib = pkgs.lib;
 
       server = pkgs.stdenv.mkDerivation {
-        pname = "molci-server";
+        pname = "corncrakeci-server";
         version = "0.0.0";
 
         src = lib.cleanSource ./server;
@@ -20,7 +20,7 @@
         pnpmDeps = pkgs.pnpm.fetchDeps {
           inherit (pkgs.stdenv) system;
           src = lib.cleanSource ./server;
-          pname = "molci-server";
+          pname = "corncrakeci-server";
           version = "0.0.0";
           hash = "sha256-mSJuadvDL8/Tf6IJG3i0Un+lWLUhO02elZtrpS1K2oY=";
 
@@ -65,19 +65,19 @@
 
         installPhase = ''
           runHook preInstall
-          mkdir -p $out/libexec/molci-server $out/bin
-          cp -r dist -T $out/libexec/molci-server/dist
+          mkdir -p $out/libexec/corncrakeci-server $out/bin
+          cp -r dist -T $out/libexec/corncrakeci-server/dist
           cp -r migrations -T $out/libexec/migrations
-          cp -r node_modules -T $out/libexec/molci-server/node_modules
+          cp -r node_modules -T $out/libexec/corncrakeci-server/node_modules
 
           # stops graphile-worker from hitting EACCES at the root
           # due to cosmiconfig search behaviour
           # https://github.com/graphile/worker/issues/571
-          echo "{}" > $out/libexec/molci-server/.graphile-workerrc
+          echo "{}" > $out/libexec/corncrakeci-server/.graphile-workerrc
 
-          makeWrapper ${pkgs.nodejs_24}/bin/node $out/bin/molci-server \
-            --add-flags "$out/libexec/molci-server/dist/index.js" \
-            --chdir "$out/libexec/molci-server"
+          makeWrapper ${pkgs.nodejs_24}/bin/node $out/bin/corncrakeci-server \
+            --add-flags "$out/libexec/corncrakeci-server/dist/index.js" \
+            --chdir "$out/libexec/corncrakeci-server"
 
           runHook postInstall
         '';
@@ -101,6 +101,6 @@
     }) // (let
       forAllNixosSystems = nixpkgs.lib.genAttrs ["x86_64-linux" "aarch64-linux"];
     in {
-#       nixosModules.molci = import ./nixos_module.nix self;
+#       nixosModules.corncrakeci = import ./nixos_module.nix self;
     });
 }

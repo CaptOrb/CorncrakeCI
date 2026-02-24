@@ -28,8 +28,8 @@ tasks:
       - |
         i=0
         while [ "$i" -lt 60 ]; do
-          if {{.COMPOSE}} -f docker-compose.test.yml exec -T molci-test-postgres \
-            pg_isready -U molcitest -d molcitest >/dev/null 2>&1; then
+          if {{.COMPOSE}} -f docker-compose.test.yml exec -T corncrakeci-test-postgres \
+            pg_isready -U corncrakecitest -d corncrakecitest >/dev/null 2>&1; then
             exit 0
           fi
           i=$((i + 1))
