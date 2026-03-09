@@ -73,6 +73,8 @@ export interface ForgeWithUser {
 		ref: string,
 	): Promise<{ path: string; configFiles: Map<string, string> }>;
 
+	listBranches(forgeRepoId: string): Promise<string[]>;
+
 	createCommitStatus(
 		forgeRepoId: string,
 		sha: string,

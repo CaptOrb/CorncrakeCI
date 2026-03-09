@@ -13,7 +13,10 @@ import { ZodError } from "zod";
 import { config } from "../config";
 import { connectDB } from "../config/db";
 import v0OpenApi from "../generated/api/@typespec/openapi3/openapi.json";
-import { createRouter } from "../generated/server/generated";
+import {
+	createRouter,
+	type Implementation,
+} from "../generated/server/generated";
 import { runJobs } from "../jobs/graphile-worker";
 import authRouter from "../server/routes/auth";
 import { createForgesFromConfig } from "../services/forges";
@@ -24,13 +27,14 @@ import {
 	configureRepo,
 	getRepo,
 	listAvailableRepos,
+	listBranches,
 	listConfiguredRepos,
 	listForges,
 	reconfigureRepo,
 } from "./api/repositories";
 import { whoAmI } from "./api/users";
 import { handleWebhook } from "./api/webhooks";
-import { BaseError } from "./errors";
+import { BaseError, NotImplementedError } from "./errors";
 
 const OPENAPI_DEFINITIONS = {
 	v0: v0OpenApi,
@@ -113,18 +117,35 @@ export async function createApiServer({
 
 	// the v0 signals that this is currently unversioned and we will change the API.
 	// In the future, we will have a more stable v1 API.
+	const notImplemented = () => {
+		throw new NotImplementedError();
+	};
+
 	app.use(
 		"/v0",
 		createRouter({
 			listForges,
 			listAvailableRepos,
+			listBranches,
 			listConfiguredRepos,
 			getRepo,
 			checkPipelines,
 			configureRepo,
 			reconfigureRepo,
 			whoAmI,
-		}),
+			listPipelines: notImplemented,
+			getPipeline: notImplemented,
+			cancelPipeline: notImplemented,
+			retryPipeline: notImplemented,
+			dispatchPipeline: notImplemented,
+			getJob: notImplemented,
+			retryJob: notImplemented,
+			getJobLogs: notImplemented,
+			getStepLogs: notImplemented,
+			listJobArtifacts: notImplemented,
+			downloadArtifact: notImplemented,
+			listRunners: notImplemented,
+		} satisfies Implementation),
 	);
 
 	// the Forge login endpoints are kept externally from the OpenAPI-defined API

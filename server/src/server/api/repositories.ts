@@ -4,6 +4,7 @@ import type {
 	ConfigureRepo,
 	GetRepo,
 	ListAvailableRepos,
+	ListBranches,
 	ListConfiguredRepos,
 	ListForges,
 	ReconfigureRepo,
@@ -32,6 +33,27 @@ export const listForges: ListForges = async (
 			logo_url: forge.logoUrl,
 		})),
 	);
+};
+
+export const listBranches: ListBranches = async ({ params }, respond, req) => {
+	const userId = req.session?.userId;
+	if (!userId) {
+		throw new AuthError("Not authenticated");
+	}
+
+	const repository = await transaction(async (txn) => {
+		return txn.repositories.getRepositoryById(params.id);
+	});
+
+	if (!repository) {
+		throw new NotFoundError("Repository not found");
+	}
+
+	const forge = await getForgeWithUser(userId);
+	await forge.checkAccess(repository.forge_repo_id, AccessLevel.Read);
+	const branches = await forge.listBranches(repository.forge_repo_id);
+
+	return respond.with200().body(branches);
 };
 
 export const checkPipelines: CheckPipelines = async (

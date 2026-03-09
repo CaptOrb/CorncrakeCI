@@ -246,6 +246,11 @@ class TestForgeWithUser implements ForgeWithUser {
 		};
 	}
 
+	async listBranches(_forgeRepoId: string): Promise<string[]> {
+		if (!this.user) throw new Error("invalid access token");
+		return ["main", "dev"];
+	}
+
 	async createCommitStatus(
 		_forgeRepoId: string,
 		_sha: string,

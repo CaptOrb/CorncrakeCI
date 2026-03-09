@@ -305,6 +305,16 @@ export class GiteaForgeWithUser implements ForgeWithUser {
 		}
 	}
 
+	async listBranches(forgeRepoId: string): Promise<string[]> {
+		const repoQueryParts = await this.getRepoQueryParts(forgeRepoId);
+		const res = await this.client.repoListBranches({
+			...repoQueryParts,
+			limit: 0,
+		});
+		const branches = await successJson(res);
+		return branches.map((b) => unwrap(b.name));
+	}
+
 	async createWebhook(
 		forgeRepoId: string,
 		webhookUrl: string,
