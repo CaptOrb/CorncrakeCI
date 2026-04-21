@@ -62,11 +62,27 @@ export class V0Parser {
 		if (this.errors.length > 0) throw new FatalParseError();
 
 		const uses = [];
+
 		const workflows: WorkflowDeclaration[] = [];
+
+		// Stages belonging to the implicit workflow (i.e. stages not wrapped in an explicit workflow block)
 		const implicitWorkflowStages: StageDeclaration[] = [];
 
 		// Track job and stage names to detect conflicts
+		// These names are scoped to the workflow (in this case, the implicit workflow)
 		const reservedNames = new Map<string, KDL.Node>();
+
+		const reserveName = (name: string, node: KDL.Node) => {
+			if (reservedNames.has(name)) {
+				this.errors.push({
+					message: `Duplicate name '${name}'`,
+					elements: [node, reservedNames.get(name)!],
+				});
+			} else {
+				reservedNames.set(name, node);
+			}
+		};
+
 		// Parse remaining nodes
 		for (const node of nodes.slice(1)) {
 			const nodeName = node.getName();
@@ -77,33 +93,20 @@ export class V0Parser {
 			} else if (nodeName === "stage") {
 				const stage = this.parseStage(node);
 				if (stage) {
-					// Check for duplicate stage name
-					if (reservedNames.has(stage.name!)) {
-						this.errors.push({
-							message: `Duplicate name '${stage.name}'`,
-							elements: [node, reservedNames.get(stage.name!)!],
-						});
-					} else {
-						reservedNames.set(stage.name!, node);
-					}
+					// Check for duplicate stage name and reserve
+					reserveName(stage.name, node);
+
 					implicitWorkflowStages.push(stage);
 				}
 			} else if (nodeName === "job") {
 				// Implicit stage: single job
 				const job = this.parseJob(node);
 				if (job) {
-					// Check for duplicate job name
-					if (reservedNames.has(job.name)) {
-						this.errors.push({
-							message: `Duplicate name '${job.name}'`,
-							elements: [node, reservedNames.get(job.name)!],
-						});
-					} else {
-						reservedNames.set(job.name, node);
-					}
+					// Check for duplicate job name and reserve
+					reserveName(job.name, node);
 
 					implicitWorkflowStages.push({
-						name: job.name, // stage gets same name as job
+						name: job.name, // implicit stage gets same name as job
 						span: job.span,
 						jobs: [job],
 					});
@@ -116,6 +119,7 @@ export class V0Parser {
 			}
 		}
 
+		// Only build the implicit workflow if it has some contents
 		if (implicitWorkflowStages.length > 0) {
 			workflows.push({
 				name: null, // implicit workflow

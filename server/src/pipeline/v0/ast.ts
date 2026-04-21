@@ -30,9 +30,12 @@ export type WorkflowDeclaration = {
 
 export type StageDeclaration = {
 	/**
-	 * Null if this is an implicit workflow.
+	 * Name of the stage.
+	 *
+	 * When a job is not defined in a stage explicitly, it is wrapped in an 'implicit stage'
+	 * and that stage has the same name as the job.
 	 */
-	name: string | null;
+	name: string;
 	span: Span;
 
 	jobs: JobDeclaration[];
