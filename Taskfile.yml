@@ -11,10 +11,65 @@ vars:
 
 tasks:
   generate:
-    desc: Run codegen for server package
+    desc: Run all codegen (API types + DB types)
+    cmds:
+      - task: "generate:api"
+      - task: "generate:db"
+
+  "generate:api":
+    desc: Run API codegen for server package
     dir: server
     cmds:
-      - pnpm run generate
+      - pnpm run generate:api
+
+  "generate:db:compose:up":
+    desc: Start a temporary database for schema codegen and wait for readiness
+    dir: server
+    internal: true
+    preconditions:
+      - sh: test -n "{{.COMPOSE}}"
+        msg: Neither 'podman compose' nor 'docker compose' is available.
+    cmds:
+      - "{{.COMPOSE}} -f docker-compose.test.yml up -d"
+      - |
+        i=0
+        while [ "$i" -lt 60 ]; do
+          if {{.COMPOSE}} -f docker-compose.test.yml exec -T corncrakeci-test-postgres \
+            pg_isready -U corncrakecitest -d corncrakecitest >/dev/null 2>&1; then
+            exit 0
+          fi
+          i=$((i + 1))
+          sleep 1
+        done
+
+        echo "Postgres container did not become ready in time." >&2
+        exit 1
+
+  "generate:db:compose:down":
+    desc: Stop the temporary database used for schema codegen
+    dir: server
+    internal: true
+    preconditions:
+      - sh: test -n "{{.COMPOSE}}"
+        msg: Neither 'podman compose' nor 'docker compose' is available.
+    cmds:
+      - "{{.COMPOSE}} -f docker-compose.test.yml down -v --remove-orphans"
+
+  "generate:db":
+    desc: Generate Kysely types from the database schema (migrate a temp DB, then run Kanel)
+    dir: server
+    sources:
+      - migrations/*.sql
+      - .kanelrc.cjs
+    generates:
+      - src/db/schema/**/*.ts
+    env:
+      DB_URI: postgresql://corncrakecitest:corncrakecitest@localhost:15432/corncrakecitest
+    cmds:
+      - defer: { task: "generate:db:compose:down" }
+      - task: "generate:db:compose:up"
+      - pnpm run migrate
+      - pnpm run generate:db:types
 
   "test:compose:up":
     desc: Start test database via compose and wait for readiness
@@ -51,7 +106,7 @@ tasks:
   test:
     desc: Run server tests (generate first, then run with test DB compose stack)
     deps:
-      - generate
+      - "generate:api"
     cmds:
       - defer: { task: "test:compose:down" }
       - task: "test:compose:up"

@@ -1,4 +1,5 @@
-import type { PoolClient } from "pg";
+import type { Transaction as KyselyTransaction } from "kysely";
+import type Database from "../schema/Database";
 import { RepositoryStore } from "./repo";
 import { UserStore } from "./user";
 
@@ -6,8 +7,8 @@ export class Transaction {
 	public users: UserStore;
 	public repositories: RepositoryStore;
 
-	constructor(public client: PoolClient) {
-		this.users = new UserStore(this.client);
-		this.repositories = new RepositoryStore(this.client);
+	constructor(public kysely: KyselyTransaction<Database>) {
+		this.users = new UserStore(this.kysely);
+		this.repositories = new RepositoryStore(this.kysely);
 	}
 }

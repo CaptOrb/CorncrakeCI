@@ -1,4 +1,5 @@
 import { afterEach, beforeEach } from "vitest";
+import type { ForgeId } from "../../src/db/schema/public/Forges";
 import { transaction } from "../../src/db/stores";
 import type { t_ForgeRepository } from "../../src/generated/server/models";
 import { _forgeMap } from "../../src/services/forges";
@@ -18,7 +19,7 @@ import type { ForgeUser } from "../../src/services/forges/forgeuser";
  * Cleans up the database after the tests.
  */
 export function testForgeHelper(): { controller?: TestForgeController } {
-	const forgeId = 1;
+	const forgeId = 1 as ForgeId;
 	const out: { controller?: TestForgeController } = {};
 
 	beforeEach(async () => {
@@ -28,11 +29,10 @@ export function testForgeHelper(): { controller?: TestForgeController } {
 
 		try {
 			await transaction(async (txn) => {
-				await txn.client.query(
-					`INSERT INTO forges (forge_id, display_name)
-					VALUES ($1, $2)`,
-					[forgeId, "gitea"],
-				);
+				await txn.kysely
+					.insertInto("forges")
+					.values({ forge_id: forgeId, display_name: "gitea" })
+					.execute();
 			});
 		} catch {
 			// nop
@@ -55,7 +55,7 @@ export class TestForge implements Forge {
 
 	constructor(
 		private _controller: TestForgeController,
-		public forgeId: number,
+		public forgeId: ForgeId,
 	) {}
 
 	// Expose controller publicly for tests
@@ -128,12 +128,12 @@ export class TestForge implements Forge {
 
 class TestForgeWithUser implements ForgeWithUser {
 	constructor(
-		private forgeId: number,
+		private forgeId: ForgeId,
 		private controller: TestForgeController,
 		private user: ForgeUser | null,
 	) {}
 
-	getForgeId(): number {
+	getForgeId(): ForgeId {
 		return this.forgeId;
 	}
 

@@ -1,12 +1,17 @@
 import type { JobHelpers } from "graphile-worker";
+import { sql } from "kysely";
 import * as v from "valibot";
 import { config } from "../config";
+import type { UserId } from "../db/schema/public/Users";
 import { transaction } from "../db/stores";
 import { mustGetForge, userTokenMutexes } from "../services/forges";
 import { findUserById, getTokenInfo, updateTokens } from "../services/user";
 
 export const RefreshTokensPayload = v.object({
-	userId: v.number(),
+	userId: v.pipe(
+		v.number(),
+		v.transform((n) => n as UserId),
+	),
 });
 export type RefreshTokensPayload = v.InferOutput<typeof RefreshTokensPayload>;
 
@@ -54,21 +59,18 @@ export async function refresh_tokens(payload: unknown, helpers: JobHelpers) {
  * https://worker.graphile.org/docs/job-key#replacingupdating-jobs
  */
 export async function scheduleRefreshTokenJob(
-	userId: number,
+	userId: UserId,
 	refreshTokenExpiresAt: Date,
 ): Promise<void> {
 	const thresholdMs = config.app.refreshtokenthreshold * 1000;
 	const runAt = new Date(refreshTokenExpiresAt.getTime() - thresholdMs);
 
 	await transaction(async (txn) => {
-		await txn.client.query(
-			`SELECT graphile_worker.add_job(
-				'refresh_tokens',
-				$1,
-				job_key := $2,
-				run_at := $3
-			)`,
-			[{ userId } satisfies RefreshTokensPayload, `refresh:${userId}`, runAt],
-		);
+		await sql`SELECT graphile_worker.add_job(
+			'refresh_tokens',
+			${JSON.stringify({ userId } satisfies RefreshTokensPayload)}::json,
+			job_key := ${`refresh:${userId}`},
+			run_at := ${runAt}
+		)`.execute(txn.kysely);
 	});
 }

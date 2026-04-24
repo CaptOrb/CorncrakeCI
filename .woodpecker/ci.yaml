@@ -43,7 +43,8 @@ steps:
       - "log_line_prefix=%m [%p] %u@%d "
 
   - name: server
-    image: guergeiro/pnpm:22-10-slim
+    # We need the full image as the `-slim` one doesn't provide `git`
+    image: guergeiro/pnpm:22-10
     environment:
       NODE_ENV: test
       DB_URI: postgresql://corncrakecitest:corncrakecitest@postgres:5432/corncrakecitest
@@ -52,9 +53,20 @@ steps:
       - cd server
       - pnpm install --frozen-lockfile
 
-      - pnpm run generate
+      - pnpm run generate:api
 
       - touch .env
+
+      # Generate DB types and check the committed ones are up to date with migrations
+      - >-
+        APP_BASEURL=https://example.invalid
+        APP_ENCRYPTIONKEY=0000000000000000000000000000000000000000000000000000000000000000
+        SESSION_SECRET=for-testing-only-do-not-use-in-production
+        pnpm run migrate
+
+      - pnpm run generate:db:types
+      - |-
+        git diff --exit-code src/db/schema/ || { echo "ERROR: Generated DB types are out of date. Run 'task generate:db' and commit the result."; exit 1; }
 
       - pnpm run check
       - pnpm run build

@@ -154,3 +154,5 @@ server/src/generated/
 
 # Nix flake build output
 /result
+
+/.task

@@ -4,6 +4,7 @@
 import { promisify } from "node:util";
 import { type Request, type Response, Router } from "express";
 import { config } from "../../config";
+import type { ForgeId } from "../../db/schema/public/Forges";
 import { mustGetForge } from "../../services/forges";
 import { getOrCreateUser } from "../../services/user";
 
@@ -45,11 +46,12 @@ authRouter.get("/login/:forgeId", (req: Request, res: Response) => {
 		return;
 	}
 
-	const forgeId = parseInt(forgeIdParam, 10);
-	if (Number.isNaN(forgeId)) {
+	const forgeIdNum = parseInt(forgeIdParam, 10);
+	if (Number.isNaN(forgeIdNum)) {
 		res.status(400).json({ error: "Invalid forgeId" });
 		return;
 	}
+	const forgeId = forgeIdNum as ForgeId;
 
 	try {
 		const forge = mustGetForge(forgeId);

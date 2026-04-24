@@ -4,6 +4,8 @@ import type { Pool } from "pg";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 import { beforeEach, describe, expect, it } from "vitest";
+import type { ForgeId } from "../../src/db/schema/public/Forges";
+import type { RepoId } from "../../src/db/schema/public/Repositories";
 import { transaction } from "../../src/db/stores";
 import { setup_webhooks } from "../../src/jobs/setup-webhooks";
 import { createApiServer } from "../../src/server";
@@ -86,9 +88,9 @@ describe("Repository API tests", () => {
 			})
 			.expect(200);
 
-		const repoId = initConfiguredRepo.body.repo_id;
+		const repoId = initConfiguredRepo.body.repo_id as RepoId;
 
-		const testForge = _forgeMap.get(1) as TestForge;
+		const testForge = _forgeMap.get(1 as ForgeId) as TestForge;
 		const repo = testForge.controller.repositories.get("repo0001");
 
 		// Reconfigure the repo
@@ -121,7 +123,7 @@ describe("Repository API tests", () => {
 		expect(createResponse.body).toHaveProperty("repo_id");
 		expect(createResponse.body.repo_id).toBeTypeOf("number");
 
-		const repoId = createResponse.body.repo_id;
+		const repoId = createResponse.body.repo_id as RepoId;
 
 		const fetchResponse = await request
 			.get(`/v0/repo/${repoId}`)
@@ -150,7 +152,7 @@ describe("Repository API tests", () => {
 			})
 			.expect(200);
 
-		const repoId = createResponse.body.repo_id;
+		const repoId = createResponse.body.repo_id as RepoId;
 
 		// no session ID cookie
 		const fetchResponse = await request.get(`/v0/repo/${repoId}`).expect(401);
@@ -177,7 +179,7 @@ describe("Repository API tests", () => {
 			})
 			.expect(200);
 
-		const repoId = createResponse.body.repo_id;
+		const repoId = createResponse.body.repo_id as RepoId;
 
 		// no session ID cookie
 		const fetchResponse = await request.get(`/v0/repo/${repoId}`).expect(401);
@@ -224,12 +226,16 @@ describe("Repository API tests", () => {
 		const userB = await createTestUser(app, { authCode: "testCode2" });
 
 		await transaction(async (txn) => {
-			await txn.client.query(
-				`INSERT INTO repositories
-				 (forge_id, forge_repo_id, owner_id, repo_name, webhook_secret)
-				 VALUES ($1, $2, $3, $4, $5)`,
-				[1, "repo0002", userA.user_id, "otheruser/otherrepo", "secret"],
-			);
+			await txn.kysely
+				.insertInto("repositories")
+				.values({
+					forge_id: 1 as ForgeId,
+					forge_repo_id: "repo0002",
+					owner_id: userA.user_id,
+					repo_name: "otheruser/otherrepo",
+					webhook_secret: "secret",
+				})
+				.execute();
 		});
 
 		const response = await request
@@ -296,12 +302,16 @@ describe("Repository API tests", () => {
 		const userB = await createTestUser(app, { authCode: "testCode2" });
 
 		await transaction(async (txn) => {
-			await txn.client.query(
-				`INSERT INTO repositories
-				 (forge_id, forge_repo_id, owner_id, repo_name, webhook_secret)
-				 VALUES ($1, $2, $3, $4, $5)`,
-				[1, "repo0002", userA.user_id, "otheruser/otherrepo", "secret"],
-			);
+			await txn.kysely
+				.insertInto("repositories")
+				.values({
+					forge_id: 1 as ForgeId,
+					forge_repo_id: "repo0002",
+					owner_id: userA.user_id,
+					repo_name: "otheruser/otherrepo",
+					webhook_secret: "secret",
+				})
+				.execute();
 		});
 
 		const response = await request
@@ -345,7 +355,7 @@ describe("Repository API tests", () => {
 			})
 			.expect(200);
 
-		const repoId = createResponse.body.repo_id;
+		const repoId = createResponse.body.repo_id as RepoId;
 
 		// Create second user
 		const userB = await createTestUser(app, { authCode: "testCode2" });
@@ -368,7 +378,7 @@ describe("Repository API tests", () => {
 			})
 			.expect(200);
 
-		const repoId = createResponse.body.repo_id;
+		const repoId = createResponse.body.repo_id as RepoId;
 
 		// Create second user
 		const userB = await createTestUser(app, { authCode: "testCode2" });

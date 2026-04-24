@@ -2,13 +2,17 @@ import crypto from "node:crypto";
 import type { JobHelpers } from "graphile-worker";
 import * as v from "valibot";
 import { config } from "../config";
+import type { RepoId } from "../db/schema/public/Repositories";
 import { transaction } from "../db/stores";
 import { mustGetForge } from "../services/forges";
 import type { ForgeWithUser } from "../services/forges/forge";
 import { decrypt } from "../util/crypto";
 
 export const SetupWebhooksJobPayload = v.object({
-	repoId: v.number(),
+	repoId: v.pipe(
+		v.number(),
+		v.transform((n) => n as RepoId),
+	),
 });
 export type SetupWebhooksJobPayload = v.InferOutput<
 	typeof SetupWebhooksJobPayload
@@ -16,7 +20,7 @@ export type SetupWebhooksJobPayload = v.InferOutput<
 
 async function cleanupExistingWebhooks(
 	forge: ForgeWithUser,
-	repoId: number,
+	repoId: RepoId,
 	forgeRepoId: string,
 	corncrakeciBaseUrl: string,
 	helpers: JobHelpers,

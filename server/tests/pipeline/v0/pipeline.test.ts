@@ -3,6 +3,7 @@ import type { Pool } from "pg";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 import { beforeEach, describe, expect, it } from "vitest";
+import type { ForgeId } from "../../../src/db/schema/public/Forges";
 import { transaction } from "../../../src/db/stores";
 import { createApiServer } from "../../../src/server";
 import { createTestUser, type TestUser } from "../../helpers/auth";
@@ -33,7 +34,7 @@ describe("checkPipelines endpoint", () => {
 
 		await transaction(async (txn) => {
 			return txn.repositories.createOrUpdateRepository(
-				1,
+				1 as ForgeId,
 				"repo0001",
 				testUser.user_id,
 				"testuser/testrepo",

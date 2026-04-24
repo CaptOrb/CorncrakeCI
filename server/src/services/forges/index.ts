@@ -1,6 +1,8 @@
 import { KeyedMutex } from "keyed-mutex";
 import { config } from "../../config";
 import type { ForgeInstanceConfig } from "../../config/schema";
+import type { ForgeId } from "../../db/schema/public/Forges";
+import type { UserId } from "../../db/schema/public/Users";
 import { findUserById, getTokenInfo, updateTokens } from "../user";
 import { AuthError } from "./errors";
 import type { Forge, ForgeWithUser } from "./forge";
@@ -13,19 +15,19 @@ export { AccessLevel } from "./forge";
 /**
  * Map from forge ID to the forge instance.
  */
-export const _forgeMap: Map<number, Forge> = new Map();
+export const _forgeMap: Map<ForgeId, Forge> = new Map();
 
 /**
  * Get a forge from its ID.
  */
-export function getForge(forgeId: number): Forge | null {
+export function getForge(forgeId: ForgeId): Forge | null {
 	return _forgeMap.get(forgeId) || null;
 }
 
 /**
  * Get a forge from its ID, throwing an error if the forge isn't configured.
  */
-export function mustGetForge(forgeId: number): Forge {
+export function mustGetForge(forgeId: ForgeId): Forge {
 	const forge = _forgeMap.get(forgeId);
 	if (!forge) throw new Error(`Forge with ID ${forgeId} not found.`);
 	return forge;
@@ -36,7 +38,10 @@ export function mustGetForge(forgeId: number): Forge {
  * Throws an error if the forge is not enabled or not implemented.
  */
 export function createForgesFromConfig(): void {
-	function makeForge(forgeId: number, forgeConfig: ForgeInstanceConfig): Forge {
+	function makeForge(
+		forgeId: ForgeId,
+		forgeConfig: ForgeInstanceConfig,
+	): Forge {
 		switch (forgeConfig.type) {
 			case "gitea":
 				return new GiteaForge(forgeId, forgeConfig);
@@ -49,14 +54,15 @@ export function createForgesFromConfig(): void {
 		}
 	}
 	for (const [forgeId, forgeConfig] of config.forges) {
-		_forgeMap.set(forgeId, makeForge(forgeId, forgeConfig));
+		const id = forgeId as ForgeId;
+		_forgeMap.set(id, makeForge(id, forgeConfig));
 	}
 }
 
 /**
  * Returns the list of available forge IDs from config.
  */
-export function listAvailableForgeIds(): number[] {
+export function listAvailableForgeIds(): ForgeId[] {
 	return Array.from(_forgeMap.keys());
 }
 
@@ -64,7 +70,7 @@ export function listAvailableForgeIds(): number[] {
  * Returns the list of available forges with their ID and name.
  */
 export function listAvailableForges(): Array<{
-	id: number;
+	id: ForgeId;
 	forge: Forge;
 }> {
 	return Array.from(_forgeMap.entries()).map(([id, forge]) => ({ id, forge }));
@@ -74,7 +80,7 @@ export function listAvailableForges(): Array<{
  * Gets a ForgeWithUser for a given corncrakeci user ID, automatically refreshing the access token if it's about to expire.
  * @throws {AuthError} if user not found, tokens missing, or token refresh fails
  */
-export async function getForgeWithUser(userId: number): Promise<ForgeWithUser> {
+export async function getForgeWithUser(userId: UserId): Promise<ForgeWithUser> {
 	// Lock the user's tokens so that e.g. the background job doesn't
 	// refresh concurrently with us.
 	using _lock = await userTokenMutexes.lock(userId);
@@ -124,4 +130,4 @@ export async function getForgeWithUser(userId: number): Promise<ForgeWithUser> {
  * Mutexes for refreshing/mutating user access and refresh tokens.
  * Keyed by user ID.
  */
-export const userTokenMutexes: KeyedMutex<number> = new KeyedMutex();
+export const userTokenMutexes: KeyedMutex<UserId> = new KeyedMutex();

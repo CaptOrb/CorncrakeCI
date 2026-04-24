@@ -1,14 +1,16 @@
 import type { Application } from "express";
 import supertest from "supertest";
+import type { ForgeId } from "../../src/db/schema/public/Forges";
+import type { UserId } from "../../src/db/schema/public/Users";
 
 export interface TestUser {
-	user_id: number;
-	forge_id: number;
+	user_id: UserId;
+	forge_id: ForgeId;
 	session_id: string;
 }
 
 export interface CreateTestUserOptions {
-	forgeId?: number;
+	forgeId?: ForgeId;
 	authCode?: string; // different auth codes for different users
 }
 
@@ -16,7 +18,7 @@ export async function createTestUser(
 	app: Application,
 	options: CreateTestUserOptions = {},
 ): Promise<TestUser> {
-	const { forgeId = 1, authCode = "testCode" } = options;
+	const { forgeId = 1 as ForgeId, authCode = "testCode" } = options;
 	const request = supertest(app);
 
 	const loginResponse = await request.get(`/auth/login/${forgeId}`);
@@ -70,8 +72,8 @@ export async function createTestUser(
 	const whoami = whoamiResponse.body;
 
 	return {
-		user_id: whoami.user.id,
-		forge_id: whoami.forge.id,
+		user_id: whoami.user.id as UserId,
+		forge_id: whoami.forge.id as ForgeId,
 		session_id: sessionId,
 	};
 }

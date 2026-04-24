@@ -1,3 +1,5 @@
+import type { ForgeId } from "../../db/schema/public/Forges";
+import type { RepoId } from "../../db/schema/public/Repositories";
 import { transaction } from "../../db/stores";
 import type {
 	CheckPipelines,
@@ -42,7 +44,7 @@ export const listBranches: ListBranches = async ({ params }, respond, req) => {
 	}
 
 	const repository = await transaction(async (txn) => {
-		return txn.repositories.getRepositoryById(params.id);
+		return txn.repositories.getRepositoryById(params.id as RepoId);
 	});
 
 	if (!repository) {
@@ -66,7 +68,7 @@ export const checkPipelines: CheckPipelines = async (
 		throw new AuthError("Not authenticated");
 	}
 
-	const corncrakeciRepoId = params.id;
+	const corncrakeciRepoId = params.id as RepoId;
 	const { ref } = req.body;
 
 	const repository = await transaction(async (txn) => {
@@ -133,7 +135,7 @@ export const configureRepo: ConfigureRepo = async (_params, respond, req) => {
 
 	const repository = await transaction(async (txn) => {
 		return await txn.repositories.createOrUpdateRepository(
-			repoDetails.forge.id,
+			repoDetails.forge.id as ForgeId,
 			forge_repo_id,
 			userId,
 			repoDetails.full_name,
@@ -177,7 +179,7 @@ export const reconfigureRepo: ReconfigureRepo = async (
 		throw new AuthError("Not authenticated");
 	}
 
-	const repoId = params.id;
+	const repoId = params.id as RepoId;
 
 	// Fetch repo details from DB so we can get associated forge
 	const dbRepo = await transaction(async (txn) =>
@@ -233,7 +235,7 @@ export const getRepo: GetRepo = async (
 		throw new AuthError("Not authenticated");
 	}
 
-	const corncrakeciRepoId = params.id;
+	const corncrakeciRepoId = params.id as RepoId;
 
 	const repository = await transaction(async (txn) => {
 		return txn.repositories.getRepositoryById(corncrakeciRepoId);

@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
+import type { ForgeId } from "../../src/db/schema/public/Forges";
+import type { UserId } from "../../src/db/schema/public/Users";
 import { transaction } from "../../src/db/stores";
 import { databaseHelper } from "../helpers/database";
 import { testForgeHelper } from "../helpers/forge";
+
+const TEST_FORGE_ID = 1 as ForgeId;
+const MISSING_USER_ID = 99999 as UserId;
 
 describe("UserStore database tests", () => {
 	databaseHelper(); // Setup database
@@ -9,11 +14,15 @@ describe("UserStore database tests", () => {
 
 	it("should insert a new user", async () => {
 		await transaction(async (txn) => {
-			const user = await txn.users.insertUser(1, "test_user_1", "testuser1");
+			const user = await txn.users.insertUser(
+				TEST_FORGE_ID,
+				"test_user_1",
+				"testuser1",
+			);
 
 			expect(user.forge_user_id).toBe("test_user_1");
 			expect(user.forge_username).toBe("testuser1");
-			expect(user.forge_id).toBe(1);
+			expect(user.forge_id).toBe(TEST_FORGE_ID);
 			expect(user.user_id).toBe(1);
 			expect(user.user_id).toBeDefined();
 			expect(typeof user.user_id).toBe("number");
@@ -21,44 +30,58 @@ describe("UserStore database tests", () => {
 	});
 
 	it("should find user by ID", async () => {
-		let userId: number;
+		let userId!: UserId;
 
 		await transaction(async (txn) => {
-			const user = await txn.users.insertUser(1, "find_by_id_user", "finduser");
+			const user = await txn.users.insertUser(
+				TEST_FORGE_ID,
+				"find_by_id_user",
+				"finduser",
+			);
 			userId = user.user_id;
 		});
 
 		await transaction(async (txn) => {
-			const found = await txn.users.findUserById(userId!);
+			const found = await txn.users.findUserById(userId);
 			expect(found).not.toBeNull();
 			expect(found!.forge_user_id).toBe("find_by_id_user");
-			expect(found!.forge_id).toBe(1);
+			expect(found!.forge_id).toBe(TEST_FORGE_ID);
 			expect(found!.user_id).toBe(userId);
 		});
 	});
 
 	it("should find user by forge and forge_user_id", async () => {
 		await transaction(async (txn) => {
-			await txn.users.insertUser(1, "find_by_forge_user", "forgeuser");
+			await txn.users.insertUser(
+				TEST_FORGE_ID,
+				"find_by_forge_user",
+				"forgeuser",
+			);
 		});
 
 		await transaction(async (txn) => {
-			const found = await txn.users.findUserByForge(1, "find_by_forge_user");
+			const found = await txn.users.findUserByForge(
+				TEST_FORGE_ID,
+				"find_by_forge_user",
+			);
 			expect(found).not.toBeNull();
 			expect(found!.forge_user_id).toBe("find_by_forge_user");
-			expect(found!.forge_id).toBe(1);
+			expect(found!.forge_id).toBe(TEST_FORGE_ID);
 		});
 
 		// Test non-existent user
 		await transaction(async (txn) => {
-			const notFound = await txn.users.findUserByForge(1, "non_existent");
+			const notFound = await txn.users.findUserByForge(
+				TEST_FORGE_ID,
+				"non_existent",
+			);
 			expect(notFound).toBeNull();
 		});
 	});
 
 	it("should return null when user not found by ID", async () => {
 		await transaction(async (txn) => {
-			const found = await txn.users.findUserById(99999);
+			const found = await txn.users.findUserById(MISSING_USER_ID);
 			expect(found).toBeNull();
 		});
 	});
@@ -66,7 +89,7 @@ describe("UserStore database tests", () => {
 	it("should create a new user", async () => {
 		await transaction(async (txn) => {
 			const user = await txn.users.getOrCreateUser(
-				1,
+				TEST_FORGE_ID,
 				"get_or_create_user",
 				"getorcreateuser",
 				"new_token",
@@ -76,7 +99,7 @@ describe("UserStore database tests", () => {
 			);
 
 			expect(user.forge_user_id).toBe("get_or_create_user");
-			expect(user.forge_id).toBe(1);
+			expect(user.forge_id).toBe(TEST_FORGE_ID);
 
 			const tokens = await txn.users.getTokenInfo(user.user_id);
 			expect(tokens!.accessToken).toBe("new_token");
@@ -84,12 +107,12 @@ describe("UserStore database tests", () => {
 	});
 
 	it("should return an existing user", async () => {
-		let firstUserId: number;
+		let firstUserId!: UserId;
 
 		// Create a user
 		await transaction(async (txn) => {
 			const user = await txn.users.getOrCreateUser(
-				1,
+				TEST_FORGE_ID,
 				"existing_user",
 				"existinguser",
 				"original_token",
@@ -103,7 +126,7 @@ describe("UserStore database tests", () => {
 		// Get the user again
 		await transaction(async (txn) => {
 			const user = await txn.users.getOrCreateUser(
-				1,
+				TEST_FORGE_ID,
 				"existing_user",
 				"existinguser",
 				"updated_token",
@@ -128,10 +151,10 @@ describe("UserStore database tests", () => {
 	});
 
 	it("should get access and refresh token info for user", async () => {
-		let userId: number;
+		let userId!: UserId;
 		await transaction(async (txn) => {
 			const user = await txn.users.getOrCreateUser(
-				1,
+				TEST_FORGE_ID,
 				"token_user",
 				"tokenuser",
 				"secret_token",
@@ -142,7 +165,7 @@ describe("UserStore database tests", () => {
 			userId = user.user_id;
 		});
 		await transaction(async (txn) => {
-			const tokens = await txn.users.getTokenInfo(userId!);
+			const tokens = await txn.users.getTokenInfo(userId);
 			expect(tokens!.accessToken).toBe("secret_token");
 			expect(tokens!.accessTokenExpiresAt.toISOString()).toBe(
 				"2100-01-01T00:00:00.000Z",
@@ -154,7 +177,7 @@ describe("UserStore database tests", () => {
 		});
 		// Test non-existent user
 		await transaction(async (txn) => {
-			const tokens = await txn.users.getTokenInfo(99999);
+			const tokens = await txn.users.getTokenInfo(MISSING_USER_ID);
 			expect(tokens).toBeNull();
 		});
 	});

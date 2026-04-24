@@ -1,52 +1,50 @@
-import type { PoolClient } from "pg";
+import { sql, type Transaction } from "kysely";
 import type { t_RepositoryConfig } from "../../generated/server/models";
 import type { SetupWebhooksJobPayload } from "../../jobs/setup-webhooks";
+import type Database from "../schema/Database";
+import type { ForgeId } from "../schema/public/Forges";
+import type { RepoId } from "../schema/public/Repositories";
+import type { UserId } from "../schema/public/Users";
 
 type RepositoryCreateResponse = {
-	repo_id: number;
+	repo_id: RepoId;
 };
 
 export class RepositoryStore {
-	constructor(private client: PoolClient) {}
+	constructor(private kysely: Transaction<Database>) {}
 
 	async createOrUpdateRepository(
-		forgeId: number,
+		forgeId: ForgeId,
 		forgeRepoId: string,
-		ownerId: number,
+		ownerId: UserId,
 		repoName: string,
 	): Promise<RepositoryCreateResponse> {
-		const result = await this.client.query(
-			`INSERT INTO repositories
-       (forge_id, forge_repo_id, owner_id, repo_name)
-       VALUES ($1,$2,$3,$4)
-       ON CONFLICT (forge_id, forge_repo_id)
-       DO UPDATE SET
-         repo_name = EXCLUDED.repo_name,
-         updated_at = NOW()
-		RETURNING repo_id`,
-			[forgeId, forgeRepoId, ownerId, repoName],
-		);
-
-		const repository: {
-			repo_id: number;
-		} = result.rows[0];
+		const result = await this.kysely
+			.insertInto("repositories")
+			.values({
+				forge_id: forgeId,
+				forge_repo_id: forgeRepoId,
+				owner_id: ownerId,
+				repo_name: repoName,
+			})
+			.onConflict((oc) =>
+				oc.columns(["forge_id", "forge_repo_id"]).doUpdateSet({
+					repo_name: repoName,
+					updated_at: sql`NOW()`,
+				}),
+			)
+			.returning("repo_id")
+			.executeTakeFirstOrThrow();
 
 		// schedule webhook setup job (for both configureRepo and reconfigureRepo)
 		// The job_key ensures only one job exists per repo
-		await this.client.query(
-			`SELECT graphile_worker.add_job(
-			'setup_webhooks', $1,
-			job_key := $2
-		 )`,
-			[
-				{
-					repoId: repository.repo_id,
-				} satisfies SetupWebhooksJobPayload,
-				`setup_webhooks:${repository.repo_id}`,
-			],
-		);
+		await sql`SELECT graphile_worker.add_job(
+			'setup_webhooks',
+			${JSON.stringify({ repoId: result.repo_id } satisfies SetupWebhooksJobPayload)}::json,
+			job_key := ${`setup_webhooks:${result.repo_id}`}
+		)`.execute(this.kysely);
 
-		return { repo_id: repository.repo_id };
+		return { repo_id: result.repo_id };
 	}
 
 	/**
@@ -61,141 +59,138 @@ export class RepositoryStore {
 	 * @returns Array of configured repositories with owner and forge info
 	 */
 	async listConfiguredRepositories(
-		forge_id: number,
+		forge_id: ForgeId,
 		forge_repo_ids: string[],
 	): Promise<t_RepositoryConfig[]> {
 		if (forge_repo_ids.length === 0) return [];
 
-		const result = await this.client.query(
-			`
-			SELECT
-			r.repo_id,
-			r.forge_id,
-			r.forge_repo_id,
-			r.repo_name,
-			r.created_at,
+		const rows = await this.kysely
+			.selectFrom("repositories as r")
+			.innerJoin("forges as f", "r.forge_id", "f.forge_id")
+			.select([
+				"r.repo_id",
+				"r.forge_id",
+				"r.forge_repo_id",
+				"r.repo_name",
+				"r.created_at",
+				"f.display_name",
+			])
+			.where("r.webhook_secret", "is not", null)
+			.where("r.forge_id", "=", forge_id)
+			.where("r.forge_repo_id", "in", forge_repo_ids)
+			.execute();
 
-			f.display_name
-			FROM repositories r
-			JOIN forges f ON r.forge_id = f.forge_id
-			WHERE r.webhook_secret IS NOT NULL
-			AND r.forge_id = $1
-			AND r.forge_repo_id = ANY($2::text[]);
-    `,
-			[forge_id, forge_repo_ids],
+		return rows.map(
+			(row) =>
+				({
+					repo: {
+						forge_repo_id: row.forge_repo_id,
+						full_name: row.repo_name,
+						repo_id: row.repo_id,
+						forge: {
+							id: row.forge_id,
+							name: row.display_name,
+						},
+					},
+					configured_at: row.created_at.toISOString(),
+				}) satisfies t_RepositoryConfig,
 		);
-
-		return result.rows.map((row) => ({
-			repo: {
-				forge_repo_id: row.forge_repo_id,
-				full_name: row.repo_name,
-				repo_id: row.repo_id,
-
-				forge: {
-					id: row.forge_id,
-					name: row.display_name,
-				},
-
-				owner: {
-					id: row.forge_user_id,
-					name: row.forge_username,
-					avatar_url: undefined,
-				},
-			},
-
-			configured_at: row.created_at.toISOString(),
-		}));
 	}
 
 	async getRepositoryById(
-		repoId: number,
-		ownerId?: number,
+		repoId: RepoId,
+		ownerId?: UserId,
 	): Promise<{
-		webhook_secret: string;
-		repo_id: number;
-		forge_id: number;
+		repo_id: RepoId;
+		forge_id: ForgeId;
 		forge_repo_id: string;
-		owner_id: number;
+		owner_id: UserId;
 		repo_name: string;
+		webhook_secret: string | null;
 		created_at: Date;
 		updated_at: Date;
 		forge_display_name: string;
 	} | null> {
-		const result = await this.client.query(
-			`SELECT r.repo_id, r.forge_id, r.forge_repo_id, r.owner_id, r.repo_name, webhook_secret,
-			 r.created_at, r.updated_at,
-			 f.display_name as forge_display_name
-			 FROM repositories r
-			 JOIN forges f USING (forge_id)
-			 WHERE r.repo_id = $1 ${ownerId !== undefined ? "AND r.owner_id = $2" : ""}`,
-			ownerId !== undefined ? [repoId, ownerId] : [repoId],
-		);
-		if (result.rows.length === 0) {
-			return null;
+		let query = this.kysely
+			.selectFrom("repositories as r")
+			.innerJoin("forges as f", "r.forge_id", "f.forge_id")
+			.select([
+				"r.repo_id",
+				"r.forge_id",
+				"r.forge_repo_id",
+				"r.owner_id",
+				"r.repo_name",
+				"r.webhook_secret",
+				"r.created_at",
+				"r.updated_at",
+				"f.display_name as forge_display_name",
+			])
+			.where("r.repo_id", "=", repoId);
+
+		if (ownerId !== undefined) {
+			query = query.where("r.owner_id", "=", ownerId);
 		}
-		return result.rows[0];
+
+		const result = await query.executeTakeFirst();
+		return result ?? null;
 	}
 
 	/**
 	 * Returns the subset of forgeRepoIds that are configured (have a webhook_secret)
 	 * for a given forgeId.
 	 */
-
 	async getConfiguredRepoIds(
-		forgeId: number,
+		forgeId: ForgeId,
 		forgeRepoIds: string[],
 	): Promise<Set<string>> {
 		if (forgeRepoIds.length === 0) return new Set();
 
-		const result = await this.client.query(
-			`
-			SELECT forge_repo_id
-			FROM repositories
-			WHERE webhook_secret IS NOT NULL
-			AND forge_id = $1
-			AND forge_repo_id = ANY($2::text[])
-			`,
-			[forgeId, forgeRepoIds],
-		);
+		const rows = await this.kysely
+			.selectFrom("repositories")
+			.select("forge_repo_id")
+			.where("webhook_secret", "is not", null)
+			.where("forge_id", "=", forgeId)
+			.where("forge_repo_id", "in", forgeRepoIds)
+			.execute();
 
-		const configuredRepoIds = new Set<string>();
-		for (const row of result.rows) {
-			configuredRepoIds.add(row.forge_repo_id);
-		}
-		return configuredRepoIds;
+		return new Set(rows.map((r) => r.forge_repo_id));
 	}
 
-	async getRepositoryForWebhookSetup(repoId: number): Promise<{
-		forge_id: number;
+	async getRepositoryForWebhookSetup(repoId: RepoId): Promise<{
+		forge_id: ForgeId;
 		forge_repo_id: string;
 		forge_user_id: string;
 		access_token: Buffer | null;
 		webhook_secret: string | null;
 	} | null> {
-		const result = await this.client.query(
-			`SELECT r.forge_id, r.forge_repo_id, u.forge_user_id, tokens.access_token, r.webhook_secret
-			FROM repositories r
-			JOIN users u ON r.owner_id = u.user_id
-			LEFT JOIN forge_access_tokens tokens ON u.user_id = tokens.user_id
-			WHERE r.repo_id = $1`,
-			[repoId],
-		);
-		return result.rows[0] ?? null;
+		const result = await this.kysely
+			.selectFrom("repositories as r")
+			.innerJoin("users as u", "r.owner_id", "u.user_id")
+			.leftJoin("forge_access_tokens as tokens", "u.user_id", "tokens.user_id")
+			.select([
+				"r.forge_id",
+				"r.forge_repo_id",
+				"u.forge_user_id",
+				"tokens.access_token",
+				"r.webhook_secret",
+			])
+			.where("r.repo_id", "=", repoId)
+			.executeTakeFirst();
+
+		return result ?? null;
 	}
 
 	async updateWebhookSecret(
-		repoId: number,
+		repoId: RepoId,
 		secret: string | null,
 	): Promise<void> {
-		await this.client.query(
-			`
-			UPDATE repositories
-			SET
-				webhook_secret = $1,
-				updated_at    = NOW()
-			WHERE repo_id = $2
-			`,
-			[secret, repoId],
-		);
+		await this.kysely
+			.updateTable("repositories")
+			.set({
+				webhook_secret: secret,
+				updated_at: sql`NOW()`,
+			})
+			.where("repo_id", "=", repoId)
+			.execute();
 	}
 }

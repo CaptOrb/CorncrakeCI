@@ -1,21 +1,22 @@
-import type { User } from "../db/models/user";
+import type { ForgeId } from "../db/schema/public/Forges";
+import type { Users as User, UserId } from "../db/schema/public/Users";
 import { transaction } from "../db/stores";
 import type { StoredTokenInfo } from "../db/stores/user";
 import { scheduleRefreshTokenJob } from "../jobs/refresh-tokens";
 
-export const findUserById = (userId: number): Promise<User | null> => {
+export const findUserById = (userId: UserId): Promise<User | null> => {
 	return transaction((txn) => txn.users.findUserById(userId));
 };
 
 export const findUserByForge = (
-	forgeId: number,
+	forgeId: ForgeId,
 	forgeUserId: string,
 ): Promise<User | null> => {
 	return transaction((txn) => txn.users.findUserByForge(forgeId, forgeUserId));
 };
 
 export const insertUser = (
-	forgeId: number,
+	forgeId: ForgeId,
 	forgeUserId: string,
 	forgeUserLogin: string,
 ): Promise<User> => {
@@ -25,7 +26,7 @@ export const insertUser = (
 };
 
 export const getOrCreateUser = async (
-	forgeId: number,
+	forgeId: ForgeId,
 	forgeUserId: string,
 	forgeUserLogin: string,
 	access_token: string,
@@ -49,13 +50,13 @@ export const getOrCreateUser = async (
 };
 
 export const getTokenInfo = (
-	userId: number,
+	userId: UserId,
 ): Promise<StoredTokenInfo | null> => {
 	return transaction((txn) => txn.users.getTokenInfo(userId));
 };
 
 export const updateTokens = async (
-	userId: number,
+	userId: UserId,
 	access_token: string,
 	access_token_expires_at: Date,
 	refresh_token: string,
@@ -74,8 +75,8 @@ export const updateTokens = async (
 };
 
 export const getForgeIdforUser = async (
-	userId: number,
-): Promise<number | null> => {
+	userId: UserId,
+): Promise<ForgeId | null> => {
 	const user = await transaction((txn) => txn.users.findUserById(userId));
 
 	if (user == null) {

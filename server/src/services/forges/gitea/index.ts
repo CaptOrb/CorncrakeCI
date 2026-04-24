@@ -2,6 +2,7 @@ import type { Res, StatusCode } from "@nahkies/typescript-fetch-runtime/main";
 import * as arctic from "arctic";
 import { config as appConfig } from "../../../config";
 import type { ForgeInstanceConfig } from "../../../config/schema";
+import type { ForgeId } from "../../../db/schema/public/Forges";
 import { ApiClient } from "../../../generated/gitea/client";
 import type {
 	t_ContentsResponse,
@@ -88,7 +89,7 @@ export class GiteaForge implements Forge {
 	public readonly corncrakeciBaseUrl: string;
 
 	constructor(
-		private forgeId: number,
+		private forgeId: ForgeId,
 		private config: ForgeInstanceConfig,
 	) {
 		// Use internalUrl for API calls (server-to-server), fallback to url
@@ -114,7 +115,7 @@ export class GiteaForge implements Forge {
 		);
 	}
 
-	getForgeId(): number {
+	getForgeId(): ForgeId {
 		return this.forgeId;
 	}
 
@@ -192,12 +193,12 @@ export class GiteaForge implements Forge {
 
 export class GiteaForgeWithUser implements ForgeWithUser {
 	constructor(
-		private forgeId: number,
+		private forgeId: ForgeId,
 		private config: ForgeInstanceConfig,
 		private client: ApiClient,
 	) {}
 
-	getForgeId(): number {
+	getForgeId(): ForgeId {
 		return this.forgeId;
 	}
 

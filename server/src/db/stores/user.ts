@@ -1,7 +1,9 @@
-import type { PoolClient } from "pg";
+import type { Transaction } from "kysely";
 import { config } from "../../config";
 import { decrypt, encrypt } from "../../util/crypto";
-import type { User } from "../models/user";
+import type Database from "../schema/Database";
+import type { ForgeId } from "../schema/public/Forges";
+import type { Users as User, UserId } from "../schema/public/Users";
 
 export interface StoredTokenInfo {
 	accessToken: string;
@@ -11,45 +13,49 @@ export interface StoredTokenInfo {
 }
 
 export class UserStore {
-	constructor(private client: PoolClient) {}
+	constructor(private kysely: Transaction<Database>) {}
 
-	async findUserById(userId: number): Promise<User | null> {
-		const result = await this.client.query(
-			`SELECT user_id, forge_id, forge_user_id, forge_username
-			FROM users WHERE user_id = $1`,
-			[userId],
-		);
-		return result.rows[0] ?? null;
+	async findUserById(userId: UserId): Promise<User | null> {
+		const result = await this.kysely
+			.selectFrom("users")
+			.select(["user_id", "forge_id", "forge_user_id", "forge_username"])
+			.where("user_id", "=", userId)
+			.executeTakeFirst();
+		return result ?? null;
 	}
 
 	async findUserByForge(
-		forgeId: number,
+		forgeId: ForgeId,
 		forgeUserId: string,
 	): Promise<User | null> {
-		const result = await this.client.query(
-			`SELECT user_id, forge_id, forge_user_id, forge_username
-			FROM users WHERE forge_id = $1 AND forge_user_id = $2`,
-			[forgeId, forgeUserId],
-		);
-		return result.rows[0] ?? null;
+		const result = await this.kysely
+			.selectFrom("users")
+			.select(["user_id", "forge_id", "forge_user_id", "forge_username"])
+			.where("forge_id", "=", forgeId)
+			.where("forge_user_id", "=", forgeUserId)
+			.executeTakeFirst();
+		return result ?? null;
 	}
 
 	async insertUser(
-		forgeId: number,
+		forgeId: ForgeId,
 		forgeUserId: string,
 		forgeUserName: string,
 	): Promise<User> {
-		const result = await this.client.query(
-			`INSERT INTO users (forge_id, forge_user_id, forge_username)
-       VALUES ($1, $2, $3)
-       RETURNING user_id, forge_id, forge_user_id, forge_username`,
-			[forgeId, forgeUserId, forgeUserName],
-		);
-		return result.rows[0];
+		const result = await this.kysely
+			.insertInto("users")
+			.values({
+				forge_id: forgeId,
+				forge_user_id: forgeUserId,
+				forge_username: forgeUserName,
+			})
+			.returning(["user_id", "forge_id", "forge_user_id", "forge_username"])
+			.executeTakeFirstOrThrow();
+		return result;
 	}
 
 	async getOrCreateUser(
-		forgeId: number,
+		forgeId: ForgeId,
 		forgeUserId: string,
 		forgeUserLogin: string,
 		access_token: string,
@@ -57,76 +63,62 @@ export class UserStore {
 		refresh_token: string,
 		refresh_token_expires_at: Date,
 	): Promise<User> {
-		const userResult = await this.client.query(
-			`SELECT user_id, forge_id, forge_user_id, forge_username
-			FROM users WHERE forge_id = $1 AND forge_user_id = $2`,
-			[forgeId, forgeUserId],
-		);
+		let user = await this.findUserByForge(forgeId, forgeUserId);
 
-		let user: User;
-		if (userResult.rows[0]) {
-			// found existing user - update login if it changed
-			user = userResult.rows[0];
+		if (user) {
 			if (user.forge_username !== forgeUserLogin) {
-				await this.client.query(
-					`UPDATE users SET forge_username = $1 WHERE user_id = $2`,
-					[forgeUserLogin, user.user_id],
-				);
+				await this.kysely
+					.updateTable("users")
+					.set({ forge_username: forgeUserLogin })
+					.where("user_id", "=", user.user_id)
+					.execute();
 				user.forge_username = forgeUserLogin;
 			}
 		} else {
-			// create new user
-			const insertResult = await this.client.query(
-				`INSERT INTO users (forge_id, forge_user_id, forge_username)
-				VALUES ($1, $2, $3)
-				RETURNING user_id, forge_id, forge_user_id, forge_username`,
-				[forgeId, forgeUserId, forgeUserLogin],
-			);
-			user = insertResult.rows[0];
+			user = await this.insertUser(forgeId, forgeUserId, forgeUserLogin);
 		}
 
-		// Encrypt tokens before storing
+		// Encrypt access and refresh tokens before storing
 		const accessTokenBuffer = encrypt(access_token, config.app.encryptionkey);
 		const refreshTokenBuffer = encrypt(refresh_token, config.app.encryptionkey);
 
-		await this.client.query(
-			`INSERT INTO forge_access_tokens
-         (user_id, access_token, access_token_expires_at, refresh_token, refresh_token_expires_at)
-         VALUES ($1, $2, $3, $4, $5)
-         ON CONFLICT (user_id)
-         DO UPDATE SET
-           access_token = EXCLUDED.access_token,
-		   access_token_expires_at = EXCLUDED.access_token_expires_at,
-		   refresh_token = EXCLUDED.refresh_token,
-           refresh_token_expires_at = EXCLUDED.refresh_token_expires_at`,
-			[
-				user.user_id,
-				accessTokenBuffer,
-				access_token_expires_at,
-				refreshTokenBuffer,
-				refresh_token_expires_at,
-			],
-		);
+		await this.kysely
+			.insertInto("forge_access_tokens")
+			.values({
+				user_id: user.user_id,
+				access_token: accessTokenBuffer,
+				access_token_expires_at: access_token_expires_at,
+				refresh_token: refreshTokenBuffer,
+				refresh_token_expires_at: refresh_token_expires_at,
+			})
+			.onConflict((oc) =>
+				oc.column("user_id").doUpdateSet({
+					access_token: accessTokenBuffer,
+					access_token_expires_at: access_token_expires_at,
+					refresh_token: refreshTokenBuffer,
+					refresh_token_expires_at: refresh_token_expires_at,
+				}),
+			)
+			.execute();
 
 		return user;
 	}
 
-	async getTokenInfo(userId: number): Promise<StoredTokenInfo | null> {
-		const result = await this.client.query(
-			`SELECT access_token, access_token_expires_at, refresh_token, refresh_token_expires_at
-			 FROM forge_access_tokens WHERE user_id = $1`,
-			[userId],
-		);
+	async getTokenInfo(userId: UserId): Promise<StoredTokenInfo | null> {
+		const row = await this.kysely
+			.selectFrom("forge_access_tokens")
+			.select([
+				"access_token",
+				"access_token_expires_at",
+				"refresh_token",
+				"refresh_token_expires_at",
+			])
+			.where("user_id", "=", userId)
+			.executeTakeFirst();
 
-		const row = result.rows[0];
-		if (!row) {
-			return null;
-		}
+		if (!row) return null;
 
-		// If refresh token is expired, treat as no tokens
-		if (row.refresh_token_expires_at < new Date()) {
-			return null;
-		}
+		if (row.refresh_token_expires_at < new Date()) return null;
 
 		return {
 			accessToken: decrypt(row.access_token, config.app.encryptionkey),
@@ -137,7 +129,7 @@ export class UserStore {
 	}
 
 	async updateTokens(
-		userId: number,
+		userId: UserId,
 		accessToken: string,
 		accessTokenExpiresAt: Date,
 		refreshToken: string,
@@ -146,20 +138,15 @@ export class UserStore {
 		const accessTokenBuffer = encrypt(accessToken, config.app.encryptionkey);
 		const refreshTokenBuffer = encrypt(refreshToken, config.app.encryptionkey);
 
-		await this.client.query(
-			`UPDATE forge_access_tokens
-			 SET access_token = $2,
-			     access_token_expires_at = $3,
-			     refresh_token = $4,
-			     refresh_token_expires_at = $5
-			 WHERE user_id = $1`,
-			[
-				userId,
-				accessTokenBuffer,
-				accessTokenExpiresAt,
-				refreshTokenBuffer,
-				refreshTokenExpiresAt,
-			],
-		);
+		await this.kysely
+			.updateTable("forge_access_tokens")
+			.set({
+				access_token: accessTokenBuffer,
+				access_token_expires_at: accessTokenExpiresAt,
+				refresh_token: refreshTokenBuffer,
+				refresh_token_expires_at: refreshTokenExpiresAt,
+			})
+			.where("user_id", "=", userId)
+			.execute();
 	}
 }

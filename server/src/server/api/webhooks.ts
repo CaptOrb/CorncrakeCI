@@ -1,6 +1,7 @@
 import type { Response } from "express";
 import * as v from "valibot";
 import { config } from "../../config";
+import type { RepoId } from "../../db/schema/public/Repositories";
 import { transaction } from "../../db/stores";
 import type { t_PipelineCheckResult } from "../../generated/server/models";
 import { parseKdlConfigs } from "../../pipeline";
@@ -11,7 +12,7 @@ import type { RawBodyRequest } from "..";
 
 export const handleWebhook = async (req: RawBodyRequest, res: Response) => {
 	const { repoId: repoIdStr } = req.params;
-	const repoId = Number(repoIdStr);
+	const repoId = Number(repoIdStr) as RepoId;
 	const repo = await transaction(async (txn) => {
 		return await txn.repositories.getRepositoryById(repoId);
 	});
@@ -141,7 +142,7 @@ async function reportPipelineErrors(
 	forge: ForgeWithUser,
 	repoForgeId: string,
 	sha: string,
-	repoId: number,
+	repoId: RepoId,
 	results: t_PipelineCheckResult[],
 	_context: string,
 ) {

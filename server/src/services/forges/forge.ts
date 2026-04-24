@@ -1,3 +1,4 @@
+import type { ForgeId } from "../../db/schema/public/Forges";
 import type { t_ForgeRepository } from "../../generated/server/models";
 import type { ForgeUser } from "./forgeuser";
 
@@ -40,7 +41,7 @@ export interface Forge {
 }
 
 export interface ForgeWithUser {
-	getForgeId(): number;
+	getForgeId(): ForgeId;
 
 	getUserInfo(): Promise<ForgeUser>;
 

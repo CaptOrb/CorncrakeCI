@@ -9,11 +9,20 @@ sudo ufw allow from 172.21.0.0/16 to any port 3000 comment 'CORNCRAKECI custom n
 sudo ufw allow from 172.17.0.0/16 to any port 3000 comment 'Docker default bridge'
 ```
 
+## Database schema code generation
+
+We rely on Kanel to generate types from the database schema,
+to use with the Kysely library.
+
+This gives us type-safe queries.
+
+See `task generate:db` / `pnpm generate:db`.
+
 ## Testing
 
 To run the tests, you need to have a test database running.
 
-## The easiest way
+### The easiest way
 
 In the project root:
 
@@ -24,10 +33,10 @@ task test
 This:
 
 - spins up a database using the Compose file (described in the next section)
-- runs code generation tools
+- runs code generation tools, including database schema code generation if required
 - runs the test suite
 
-## The manual way
+### The manual way
 
 The included test Compose file provides a fast test database (as it disables various crash-safety features and uses a tmpfs mount to not persist data).
 
