@@ -1,6 +1,8 @@
 import type { JobHelpers } from "graphile-worker";
 import type { Pool } from "pg";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { ForgeId } from "../../src/db/schema/public/Forges";
+import type { UserId } from "../../src/db/schema/public/Users";
 import { transaction } from "../../src/db/stores";
 import {
 	refresh_tokens,
@@ -8,6 +10,9 @@ import {
 } from "../../src/jobs/refresh-tokens";
 import { databaseHelper } from "../helpers/database";
 import { testForgeHelper } from "../helpers/forge";
+
+const TEST_FORGE_ID = 1 as ForgeId;
+const TEST_USER_ID = 42 as UserId;
 
 describe("Token auto-refresh", () => {
 	let pool: Pool;
@@ -32,7 +37,7 @@ describe("Token auto-refresh", () => {
 	}) {
 		return transaction(async (txn) => {
 			return txn.users.getOrCreateUser(
-				1,
+				TEST_FORGE_ID,
 				"test_user_1",
 				"testuser",
 				"testAccessToken",
@@ -61,7 +66,7 @@ describe("Token auto-refresh", () => {
 			const expiresAt = new Date("2100-06-01T00:00:00Z");
 			const expectedRunAt = new Date(expiresAt.getTime() - thresholdSec * 1000);
 
-			await scheduleRefreshTokenJob(42, expiresAt);
+			await scheduleRefreshTokenJob(TEST_USER_ID, expiresAt);
 
 			const result = await pool.query(
 				`SELECT j.run_at, pj.payload
@@ -69,12 +74,12 @@ describe("Token auto-refresh", () => {
 				 JOIN graphile_worker._private_jobs pj ON pj.id = j.id
 				 WHERE j.task_identifier = 'refresh_tokens'
 				 AND j.key = $1`,
-				["refresh:42"],
+				[`refresh:${TEST_USER_ID}`],
 			);
 
 			expect(result.rows).toHaveLength(1);
 			expect(result.rows[0].run_at).toEqual(expectedRunAt);
-			expect(result.rows[0].payload).toEqual({ userId: 42 });
+			expect(result.rows[0].payload).toEqual({ userId: TEST_USER_ID });
 		});
 
 		it("replaces an existing job for the same user", async () => {
@@ -82,15 +87,15 @@ describe("Token auto-refresh", () => {
 			const secondExpiry = new Date("2100-07-01T00:00:00Z");
 			const thresholdSec = 1209600;
 
-			await scheduleRefreshTokenJob(42, firstExpiry);
-			await scheduleRefreshTokenJob(42, secondExpiry);
+			await scheduleRefreshTokenJob(TEST_USER_ID, firstExpiry);
+			await scheduleRefreshTokenJob(TEST_USER_ID, secondExpiry);
 
 			const result = await pool.query(
 				`SELECT run_at
 				 FROM graphile_worker.jobs
 				 WHERE task_identifier = 'refresh_tokens'
 				 AND key = $1`,
-				["refresh:42"],
+				[`refresh:${TEST_USER_ID}`],
 			);
 
 			expect(result.rows).toHaveLength(1);
@@ -143,7 +148,7 @@ describe("Token auto-refresh", () => {
 		it("returns early when user has no tokens", async () => {
 			// Create user without tokens (insert directly)
 			const user = await transaction(async (txn) =>
-				txn.users.insertUser(1, "no_token_user", "notokenuser"),
+				txn.users.insertUser(TEST_FORGE_ID, "no_token_user", "notokenuser"),
 			);
 
 			const helpers = makeHelpers();
