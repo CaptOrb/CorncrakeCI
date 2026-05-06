@@ -21,7 +21,10 @@ import { runJobs } from "../jobs/graphile-worker";
 import authRouter from "../server/routes/auth";
 import { createForgesFromConfig } from "../services/forges";
 import { getTokenInfo } from "../services/user";
+import { IdGenerator } from "../util/counter";
+import { createLogger, withLogContext } from "../util/logging";
 import { seedForges } from "../util/seedforges";
+import type { Brand } from "../util/typing";
 import {
 	checkPipelines,
 	configureRepo,
@@ -35,6 +38,8 @@ import {
 import { whoAmI } from "./api/users";
 import { handleWebhook } from "./api/webhooks";
 import { BaseError, NotImplementedError } from "./errors";
+
+const log = createLogger(import.meta.url);
 
 const OPENAPI_DEFINITIONS = {
 	v0: v0OpenApi,
@@ -267,6 +272,32 @@ async function startServer(): Promise<void> {
 			enableSwagger: true,
 		}),
 	);
+
+	// Install a middleware to attach log contexts to requests
+	const requestIdGenerator = new IdGenerator(1 as Brand<number, "requestID">);
+	app.use((req, resp, next) => {
+		void withLogContext(
+			`${req.method}-${requestIdGenerator.next()}`,
+			async () => {
+				const reqInfo = {
+					method: req.method,
+					path: req.path,
+				};
+				log.debug(reqInfo, "Received request");
+
+				// Unlike `finish`, `close` is always fired
+				resp.on("close", () => {
+					// Log once the request is processed
+					log.info(
+						{ responseCode: resp.statusCode, ...reqInfo },
+						"Processed request",
+					);
+				});
+
+				next();
+			},
+		);
+	});
 
 	// Intentionally don't await
 	void runJobs(pool);

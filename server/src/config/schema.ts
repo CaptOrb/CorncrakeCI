@@ -96,11 +96,22 @@ const SessionConfigSchema = v.object({
 	),
 });
 
+const LogConfigSchema = v.object({
+	// The log verbosity level
+	// A default is applied in `logging.ts` depending on whether we are in production mode or not.
+	level: v.optional(
+		v.picklist(["trace", "debug", "info", "warn", "error", "fatal"]),
+	),
+	// True to use JSON logging, false for 'pretty' logging
+	json: v.optional(v.boolean(), false),
+});
+
 export const ConfigSchema = v.object({
 	app: optionalObject(AppConfigSchema),
 	db: optionalObject(DatabaseConfigSchema),
 	forges: v.optional(ForgesSchema, {}),
 	session: SessionConfigSchema,
+	log: optionalObject(LogConfigSchema),
 	node: v.object({
 		env: v.picklist(["production", "development", "test"]),
 	}),
@@ -113,6 +124,7 @@ export const CONFIG_SCHEMA_KEYS = [
 	"db",
 	"forges",
 	"session",
+	"log",
 	"node",
 ] satisfies (keyof Config)[];
 

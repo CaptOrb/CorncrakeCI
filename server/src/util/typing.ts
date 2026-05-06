@@ -12,3 +12,9 @@ export function unwrap<T>(val: T | undefined | null, message?: string): T {
 	}
 	return val;
 }
+
+/**
+ * Shorthand form for 'branding' a type, which adds fake constraints at the type level
+ * to prevent mixing up values of the branded type with values of other brands.
+ */
+export type Brand<T, B> = T & { __brand: B };
