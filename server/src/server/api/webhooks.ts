@@ -3,12 +3,16 @@ import * as v from "valibot";
 import { config } from "../../config";
 import type { RepoId } from "../../db/schema/public/Repositories";
 import { transaction } from "../../db/stores";
+import type { TriggerEvent } from "../../execution/trigger_event";
 import type { t_PipelineCheckResult } from "../../generated/server/models";
 import { parseKdlConfigs } from "../../pipeline";
 import { getForgeWithUser } from "../../services/forges";
 import type { ForgeWithUser } from "../../services/forges/forge";
 import { verifyWebhookSignature } from "../../util/crypto";
+import { createLogger } from "../../util/logging";
 import type { RawBodyRequest } from "..";
+
+const log = createLogger(import.meta.url);
 
 export const handleWebhook = async (req: RawBodyRequest, res: Response) => {
 	const { repoId: repoIdStr } = req.params;
@@ -68,75 +72,158 @@ export const handleWebhook = async (req: RawBodyRequest, res: Response) => {
 	}
 
 	// At this point, the signature has been verified and we can process the body
-	console.log(
-		`Received ${eventTypeHeader} webhook ${deliveryHeader} for repo ${repoId}`,
+	log.info(
+		{
+			repoId,
+			eventTypeHeader,
+			deliveryHeader,
+		},
+		`Received webhook`,
 	);
-	console.debug("Raw webhook payload:", req.body);
+	log.trace({
+		rawWebhookPayload: req.body,
+	});
 
 	const forge = await getForgeWithUser(repo.owner_id);
-	switch (eventTypeHeader) {
-		case "pull_request_sync":
-		case "pull_request": {
-			const parsed = v.safeParse(s_PullRequestWebHook, req.body);
-			if (!parsed.success) {
-				console.debug("Failed to parse pull request webhook", {
-					issues: parsed.issues,
-					repoId,
-				});
-				return res.status(400).json({ error: "Could not parse webhook body" });
-			}
+	const decode = decodeWebhookEvent(eventTypeHeader, req.body);
 
-			const corncrakeciConfig = await forge.getCorncrakeciConfig(
-				repo.forge_repo_id,
-				parsed.output.pull_request.head.sha,
-			);
+	if (decode === undefined) {
+		return res.status(204).end();
+	}
 
-			const { results } = parseKdlConfigs(corncrakeciConfig.configFiles);
-			await reportPipelineErrors(
-				forge,
-				repo.forge_repo_id,
-				parsed.output.pull_request.head.sha,
-				repo.repo_id,
-				results,
-				`PR ${parsed.output.pull_request.number}`,
-			);
-			break;
-		}
+	if (!decode.ok) {
+		return res.status(400).json({
+			error: decode.error,
+		});
+	}
+
+	const { triggerEvent } = decode;
+
+	const commitHash =
+		triggerEvent.eventType === "pull_request"
+			? triggerEvent.prCommitHash
+			: triggerEvent.commitHash;
+
+	// Calculate a description of the event
+	let shortDescription: string;
+	switch (triggerEvent.eventType) {
 		case "push": {
-			const parsed = v.safeParse(s_PushWebHook, req.body);
-			if (!parsed.success) {
-				console.debug("Failed to parse push webhook", {
-					issues: parsed.issues,
-					repoId,
-				});
-				return res.status(400).json({ error: "Could not parse webhook body" });
-			}
-
-			const corncrakeciConfig = await forge.getCorncrakeciConfig(
-				repo.forge_repo_id,
-				parsed.output.after, // only the latest commit on a branch matters
-			);
-
-			const { results } = parseKdlConfigs(corncrakeciConfig.configFiles);
-
-			await reportPipelineErrors(
-				forge,
-				repo.forge_repo_id,
-				parsed.output.after,
-				repo.repo_id,
-				results,
-				`push to ${parsed.output.ref}`,
-			);
+			shortDescription = `push to ${triggerEvent.ref}`;
 			break;
 		}
-		default: {
-			console.info(`Unknown webhook event type ${eventTypeHeader}, ignoring.`);
+		case "pull_request": {
+			shortDescription = `PR ${triggerEvent.prShortHumanId}`;
 			break;
 		}
 	}
 
+	const corncrakeciConfig = await forge.getCorncrakeciConfig(
+		repo.forge_repo_id,
+		// TODO For PRs, we want to load the CI config that is the merge result, not just the PR.
+		// For now, getting the workflow from the PR is fine.
+		commitHash,
+	);
+
+	const { results } = parseKdlConfigs(corncrakeciConfig.configFiles);
+	await reportPipelineErrors(
+		forge,
+		repo.forge_repo_id,
+		// Report errors on the current commit itself
+		commitHash,
+		repo.repo_id,
+		results,
+		shortDescription,
+	);
+
 	return res.status(200).end();
 };
+
+type DecodeWebhookEventResult =
+	| {
+			ok: true;
+			triggerEvent: TriggerEvent;
+	  }
+	| {
+			ok: false;
+			error: string;
+	  };
+
+/**
+ * Attempt to decode the webhook body into a `TriggerEvent`.
+ *
+ * @returns Struct including the decoded trigger event, or an error, or undefined if no particular error
+ *   is intended but no event was parsed.
+ */
+function decodeWebhookEvent(
+	eventTypeHeader: string | undefined,
+	body: unknown,
+): DecodeWebhookEventResult | undefined {
+	switch (eventTypeHeader) {
+		case "pull_request_sync":
+		case "pull_request": {
+			const parsed = v.safeParse(s_PullRequestWebHook, body);
+			if (!parsed.success) {
+				log.warn(
+					{
+						issues: parsed.issues,
+					},
+					"Failed to parse pull request webhook",
+				);
+				return {
+					ok: false,
+					error: "Could not parse webhook body",
+				};
+			}
+
+			return {
+				ok: true,
+				triggerEvent: {
+					// TODO This event type is probably too vague
+					eventType: "pull_request",
+
+					// The webhook calls this a ref, but that's misleading!
+					// It's actually the branch name, `me/feature123` NOT `refs/heads/me/feature123`
+					prBranch: parsed.output.pull_request.head.ref,
+					prCommitHash: parsed.output.pull_request.head.sha,
+					prShortHumanId: `${parsed.output.pull_request.number}`,
+
+					// The webhook calls this a ref, but that's misleading!
+					// It's actually the branch name, `main` NOT `refs/heads/main`
+					targetBranch: parsed.output.pull_request.base.ref,
+					targetCommitHash: parsed.output.pull_request.base.sha,
+				},
+			};
+		}
+		case "push": {
+			const parsed = v.safeParse(s_PushWebHook, body);
+			if (!parsed.success) {
+				log.warn(
+					{
+						issues: parsed.issues,
+					},
+					"Failed to parse push webhook",
+				);
+				return {
+					ok: false,
+					error: "Could not parse webhook body",
+				};
+			}
+
+			return {
+				ok: true,
+				triggerEvent: {
+					eventType: "push",
+					ref: parsed.output.ref,
+					commitHash: parsed.output.after,
+				},
+			};
+		}
+		default: {
+			log.info({ eventTypeHeader }, `Unknown webhook event type, ignoring.`);
+			return undefined;
+		}
+	}
+}
 
 async function reportPipelineErrors(
 	forge: ForgeWithUser,
@@ -163,7 +250,7 @@ async function reportPipelineErrors(
 				errorPageUrl,
 			);
 		} catch (error) {
-			console.error("Failed to create commit status:", error);
+			log.error({ error }, "Failed to create commit status");
 		}
 	}
 }
