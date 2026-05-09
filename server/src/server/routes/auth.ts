@@ -41,7 +41,7 @@ function clearOAuthCookies(res: Response): void {
 
 authRouter.get("/login/:forgeId", (req: Request, res: Response) => {
 	const forgeIdParam = req.params["forgeId"];
-	if (!forgeIdParam) {
+	if (!forgeIdParam || typeof forgeIdParam !== "string") {
 		res.status(400).json({ error: "Missing forgeId" });
 		return;
 	}

@@ -111,3 +111,12 @@ tasks:
       - defer: { task: "test:compose:down" }
       - task: "test:compose:up"
       - pnpm -C server run test --run
+
+  "test:coverage":
+    desc: Run server test coverage (generate first, then run with test DB compose stack)
+    deps:
+      - "generate:api"
+    cmds:
+      - defer: { task: "test:compose:down" }
+      - task: "test:compose:up"
+      - pnpm -C server run coverage

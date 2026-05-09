@@ -36,6 +36,11 @@ This:
 - runs code generation tools, including database schema code generation if required
 - runs the test suite
 
+To run tests and get a coverage report:
+```
+task test:coverage
+```
+
 ### The manual way
 
 The included test Compose file provides a fast test database (as it disables various crash-safety features and uses a tmpfs mount to not persist data).
@@ -52,4 +57,10 @@ Then
 
 ```
 pnpm run test
+```
+
+To get a coverage report, ensure the test database is running as above, then:
+
+```
+pnpm coverage
 ```
