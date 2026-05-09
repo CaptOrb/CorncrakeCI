@@ -3,6 +3,25 @@
 
 const { defaultGenerateIdentifierType } = require("kanel");
 const { makeKyselyHook } = require("kanel-kysely");
+const { resolve } = require("node:path");
+const { loadEnvFile } = require("node:process");
+
+function findAndLoadEnvFiles() {
+	const envPaths = [
+		resolve(__dirname, ".env"),
+		resolve(__dirname, "..", ".env"),
+	];
+
+	for (const envPath of envPaths) {
+		try {
+			loadEnvFile(envPath);
+		} catch {
+			// Ignore missing env files.
+		}
+	}
+}
+
+findAndLoadEnvFiles();
 
 /**
  * Map from column name to a shared branded ID type name.
@@ -25,6 +44,20 @@ const config = {
 	customTypeMap: {
 		// our database driver uses `Buffer` to represent Postgres BYTEA (byte arrays)
 		"pg_catalog.bytea": "Buffer",
+	},
+
+	// Table session is created by connect-pg-simple at runtime (not by our migrations).
+	// Excluding it to keep generated types stable.
+	typeFilter: (pgType) => {
+		if (
+			pgType.kind === "table" &&
+			pgType.schemaName === "public" &&
+			pgType.name === "session"
+		) {
+			return false;
+		}
+
+		return true;
 	},
 
 	generateIdentifierType: (column, details, config) => {

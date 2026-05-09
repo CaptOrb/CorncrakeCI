@@ -23,15 +23,16 @@ CorncrakeCI is an in-progress self-hosted CI system.
    ```
    then
 
-   ```
-   pnpm generate
-   ```
-   then
-
    ```sh
    docker compose up --build
    ```
-4. In another terminal inside /server directory, run:
+
+   then in another terminal inside /server directory, run:
+
+   ```
+   pnpm generate
+   ```
+4. Then
 
    ```sh
    pnpm run dev
