@@ -106,7 +106,7 @@ export async function createApiServer({
 			if (req.session?.userId !== undefined) {
 				const tokenInfo = await getTokenInfo(req.session.userId);
 				if (!tokenInfo) {
-					console.log("No tokens found - invalidating session");
+					log.debug("No tokens found - invalidating session");
 
 					await promisify(req.session.regenerate).apply(req.session);
 
@@ -247,9 +247,9 @@ const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
 		}
 	}
 	const user = req.session?.userId ?? "-";
-	console.error(
-		`Error ${statusCode} on ${req.method} ${req.path} for user ${user}:`,
-		...toLog,
+	log.error(
+		{ statusCode, method: req.method, path: req.path, user, details: toLog },
+		"Request error",
 	);
 	res.status(statusCode).json(errorBody);
 };
@@ -304,8 +304,13 @@ async function startServer(): Promise<void> {
 
 	const PORT = config.app.port;
 	app.listen(PORT, config.app.bindaddress, () => {
-		console.log(
-			`Server running in ${isProduction ? "production" : "development"} mode on port ${PORT} (bound to ${config.app.bindaddress})`,
+		log.info(
+			{
+				port: PORT,
+				bindAddress: config.app.bindaddress,
+				mode: isProduction ? "production" : "development",
+			},
+			"Server running",
 		);
 	});
 }
@@ -320,10 +325,10 @@ async function runMigrations(pool: Pool): Promise<void> {
 
 		await migrate({ client }, migrationsDir, {
 			// Enable logging to see which migrations are being applied
-			logger: (msg) => console.log(`[Migration] ${msg}`),
+			logger: (msg) => log.info({ msg }, "Migration"),
 		});
 	} catch (err) {
-		console.error("Migration failed:", err);
+		log.error({ err }, "Migration failed");
 		throw err;
 	} finally {
 		client.release();
@@ -338,7 +343,7 @@ export async function main(): Promise<void> {
 		try {
 			await runMigrations(pool);
 		} catch (error) {
-			console.error("Failed to run migrations", error);
+			log.error({ err: error }, "Failed to run migrations");
 			process.exit(1);
 		}
 		process.exit(0);
@@ -347,7 +352,7 @@ export async function main(): Promise<void> {
 	try {
 		await startServer();
 	} catch (error) {
-		console.error("Failed to start server:", error);
+		log.error({ err: error }, "Failed to start server");
 		process.exit(1);
 	}
 }

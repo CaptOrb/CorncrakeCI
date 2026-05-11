@@ -9,6 +9,7 @@ import type {
 	t_Hook,
 } from "../../../generated/gitea/models";
 import type { t_ForgeRepository } from "../../../generated/server/models";
+import { createLogger } from "../../../util/logging";
 import { unwrap } from "../../../util/typing";
 import { AuthError, NotFoundError } from "./../errors";
 import {
@@ -18,6 +19,8 @@ import {
 	type TokenInfo,
 } from "./../forge";
 import type { ForgeUser } from "./../forgeuser";
+
+const log = createLogger(import.meta.url);
 
 class HttpError extends Error {
 	constructor(
@@ -159,7 +162,7 @@ export class GiteaForge implements Forge {
 				refreshTokenExpiresAt: this.calculateRefreshTokenExpiry(),
 			};
 		} catch (error) {
-			console.error("Failed to exchange code for token:", error);
+			log.warn({ err: error }, "Failed to exchange code for token");
 			throw new AuthError("Failed to exchange authorisation code for token");
 		}
 	}
@@ -175,7 +178,7 @@ export class GiteaForge implements Forge {
 				refreshTokenExpiresAt: this.calculateRefreshTokenExpiry(),
 			};
 		} catch (error) {
-			console.error("Failed to refresh access token:", error);
+			log.warn({ err: error }, "Failed to refresh access token");
 			throw new AuthError("Failed to refresh access token");
 		}
 	}
@@ -418,13 +421,16 @@ export class GiteaForgeWithUser implements ForgeWithUser {
 							configFiles.set(item.name!, fileContent);
 						}
 					} else {
-						console.warn(
-							`Failed to fetch KDL file ${item.name}:`,
-							fileRes.status,
+						log.warn(
+							{ filename: item.name, status: fileRes.status },
+							"Failed to fetch KDL file",
 						);
 					}
 				} catch (error) {
-					console.warn(`Failed to fetch KDL file ${item.name}:`, error);
+					log.warn(
+						{ filename: item.name, err: error },
+						"Failed to fetch KDL file",
+					);
 				}
 			}
 		}

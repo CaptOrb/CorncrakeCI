@@ -7,6 +7,9 @@ import { config } from "../../config";
 import type { ForgeId } from "../../db/schema/public/Forges";
 import { mustGetForge } from "../../services/forges";
 import { getOrCreateUser } from "../../services/user";
+import { createLogger } from "../../util/logging";
+
+const log = createLogger(import.meta.url);
 
 const authRouter = Router();
 
@@ -72,7 +75,7 @@ authRouter.get("/login/:forgeId", (req: Request, res: Response) => {
 		}
 		res.redirect(authData.url);
 	} catch (err) {
-		console.error("Failed to generate auth URL:", err);
+		log.error({ err }, "Failed to generate auth URL");
 		res.status(400).json({ error: "Login unsuccessful" });
 	}
 });
@@ -141,7 +144,7 @@ authRouter.get("/callback", async (req: Request, res: Response) => {
 		res.redirect(`/`);
 	} catch (err) {
 		clearOAuthCookies(res);
-		console.error("OAuth callback error:", err);
+		log.error({ err }, "OAuth callback error");
 		res.status(500).json({ error: "OAuth callback failed" });
 	}
 });

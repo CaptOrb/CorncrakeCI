@@ -3,9 +3,12 @@ import type {
 	t_PipelineCheckResult,
 	t_PipelineError,
 } from "../generated/server/models";
+import { createLogger } from "../util/logging";
 import type { V0File } from "./v0/ast";
 import { FatalParseError, type V0ParseError } from "./v0/error";
 import { V0Parser } from "./v0/parser";
+
+const log = createLogger(import.meta.url);
 
 function mapParserErrors(errors: V0ParseError[]): t_PipelineError[] {
 	return errors.map((e) => {
@@ -52,14 +55,14 @@ export function parseKdlConfigs(configFiles: Map<string, string>): {
 				const parsedFile = parser.parseFile(kdlDoc.nodes);
 
 				if (parser.errors.length > 0) {
-					console.warn(`Parse errors in ${filename}:`, parser.errors);
+					log.warn({ filename, errors: parser.errors }, "Parse errors");
 					results.push({
 						path: filename,
 						content,
 						errors: mapParserErrors(parser.errors),
 					});
 				} else {
-					console.log(`Successfully parsed ${filename} with version header`);
+					log.debug({ filename }, "Successfully parsed file");
 					// Only emit files that are correct.
 					// In the future, when we support warnings, they won't prevent files being emitted.
 					configs.set(filename, parsedFile);
@@ -70,7 +73,7 @@ export function parseKdlConfigs(configFiles: Map<string, string>): {
 				}
 			} catch (error) {
 				if (error instanceof FatalParseError) {
-					console.error(`Fatal parse error in ${filename}:`, parser.errors);
+					log.warn({ filename, errors: parser.errors }, "Fatal parse error");
 					results.push({
 						path: filename,
 						content,
@@ -81,7 +84,7 @@ export function parseKdlConfigs(configFiles: Map<string, string>): {
 				}
 			}
 		} catch (error) {
-			console.warn(`Failed to parse KDL file ${filename}:`, error);
+			log.warn({ filename, err: error }, "Failed to parse KDL file");
 			results.push({
 				path: filename,
 				content,

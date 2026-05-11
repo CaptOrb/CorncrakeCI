@@ -1,7 +1,10 @@
 import { type Runner, run, type TaskList } from "graphile-worker";
 import type { Pool } from "pg";
+import { createLogger } from "../util/logging";
 import { refresh_tokens } from "./refresh-tokens";
 import { setup_webhooks } from "./setup-webhooks";
+
+const log = createLogger(import.meta.url);
 
 const taskList: TaskList = {
 	setup_webhooks,
@@ -21,16 +24,19 @@ export async function runJobs(pgPool: Pool) {
 		});
 
 		runner.events.on("job:success", ({ worker, job }) => {
-			console.log(`Worker ${worker.workerId} completed job ${job.id}`);
+			log.info({ workerId: worker.workerId, jobId: job.id }, "Job completed");
 		});
 
 		runner.events.on("job:error", ({ worker, job, error }) => {
-			console.error(`Worker ${worker.workerId} failed job ${job.id}:`, error);
+			log.error(
+				{ workerId: worker.workerId, jobId: job.id, err: error },
+				"Job failed",
+			);
 		});
 
 		await runner.promise;
 	} catch (err) {
-		console.error("Graphile Worker error: ", err);
+		log.error({ err }, "Graphile Worker error");
 		return;
 	}
 }

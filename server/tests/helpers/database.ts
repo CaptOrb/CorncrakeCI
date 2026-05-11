@@ -4,7 +4,6 @@ import { Client, type ClientBase, type ClientConfig, Pool } from "pg";
 import { parseIntoClientConfig } from "pg-connection-string";
 import { migrate } from "postgres-migrations";
 import { afterEach, beforeEach } from "vitest";
-import { _setPool } from "../../src/config/db";
 
 const TEMPLATE_DB_NAME = "corncrakeci_test_template";
 
@@ -240,6 +239,11 @@ export function databaseHelper(
 	beforeEach(async () => {
 		const result = await setupDb();
 		cleanup = result.cleanup;
+
+		// Need to load the config module here as we can't load it before
+		// `findAndLoadEnvFiles` has been called as part of test setup;
+		// otherwise config is set up before env is loaded.
+		const { _setPool } = await import("../../src/config/db");
 
 		_setPool(result.pool);
 

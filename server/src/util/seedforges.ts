@@ -1,6 +1,9 @@
 import { config } from "../config";
 import type { ForgeId } from "../db/schema/public/Forges";
 import { transaction } from "../db/stores";
+import { createLogger } from "../util/logging";
+
+const log = createLogger(import.meta.url);
 
 export async function seedForges(): Promise<void> {
 	await transaction(async (txn) => {
@@ -18,13 +21,19 @@ export async function seedForges(): Promise<void> {
 						}),
 					)
 					.execute();
-				console.log(
-					`Forge seeded: ${forgeConfig.name} (${forgeId}, ${forgeConfig.type}) (${forgeConfig.url})`,
+				log.info(
+					{
+						forgeId,
+						name: forgeConfig.name,
+						type: forgeConfig.type,
+						url: forgeConfig.url,
+					},
+					"Forge seeded",
 				);
 			} catch (err) {
-				console.error(
-					`Failed to seed forge ${forgeConfig.name} (${forgeId}, ${forgeConfig.type}):`,
-					err,
+				log.error(
+					{ forgeId, name: forgeConfig.name, type: forgeConfig.type, err },
+					"Failed to seed forge",
 				);
 				throw err;
 			}

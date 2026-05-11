@@ -3,10 +3,13 @@ import { config } from "../../config";
 import type { ForgeInstanceConfig } from "../../config/schema";
 import type { ForgeId } from "../../db/schema/public/Forges";
 import type { UserId } from "../../db/schema/public/Users";
+import { createLogger } from "../../util/logging";
 import { findUserById, getTokenInfo, updateTokens } from "../user";
 import { AuthError } from "./errors";
 import type { Forge, ForgeWithUser } from "./forge";
 import { GiteaForge } from "./gitea";
+
+const log = createLogger(import.meta.url);
 
 // Re-export error classes
 export { AuthError, NotFoundError } from "./errors";
@@ -118,7 +121,7 @@ export async function getForgeWithUser(userId: UserId): Promise<ForgeWithUser> {
 
 			return forge.withUser(newTokens.accessToken);
 		} catch (error) {
-			console.error("Failed to refresh token for user", error);
+			log.warn({ err: error }, "Failed to refresh token for user");
 			throw new AuthError("Failed to refresh token");
 		}
 	}

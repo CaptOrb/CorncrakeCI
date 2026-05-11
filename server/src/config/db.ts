@@ -1,6 +1,9 @@
 import { Kysely, PostgresDialect } from "kysely";
 import type { Pool } from "pg";
 import type Database from "../db/schema/Database";
+import { createLogger } from "../util/logging";
+
+const log = createLogger(import.meta.url);
 
 /**
  * Direct access to the database pool without any sugary wrapping.
@@ -33,17 +36,17 @@ export async function connectDB(newPool: Pool): Promise<void> {
 	// A common case is 57P01 ("terminating connection due to administrator
 	// command")
 	rawPool.on("error", (err) => {
-		console.error("Database pool error:", err);
+		log.error({ err }, "Database pool error");
 	});
 
 	// Check the connection upfront
 	try {
 		const client = await rawPool.connect();
-		console.log("PostgreSQL Database connected");
+		log.info("PostgreSQL Database connected");
 		client.release();
 	} catch (err) {
 		const error = err as Error;
-		console.error("DB connection error:", error.stack || error.message);
+		log.error({ err: error }, "DB connection error");
 		throw error;
 	}
 }
