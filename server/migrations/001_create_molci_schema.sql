@@ -16,6 +16,8 @@ CREATE TABLE users (
     -- The ID of the user *in the forge*.
     -- Since we can't assume an ID format, we store in text.
     forge_user_id TEXT NOT NULL,
+    -- The human-readable login/username from the forge
+    forge_username TEXT NOT NULL,
     -- Only one account per forge per user
     UNIQUE (forge_id, forge_user_id)
 );
@@ -52,5 +54,11 @@ CREATE TABLE repositories (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     -- When the repository was last configured
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    -- Secret for authenticating that a webhook request came from the forge.
+    -- If NULL, means the webhook has not been set up yet.
+    webhook_secret TEXT,
     UNIQUE (forge_id, forge_repo_id)
 );
+
+-- To satisfy the foreign key constraint
+CREATE INDEX ON repositories (owner_id);

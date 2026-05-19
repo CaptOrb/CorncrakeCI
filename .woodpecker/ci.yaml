@@ -75,6 +75,13 @@ steps:
 
       - pnpm run test
 
+  - name: pgcrab (schema linter)
+    image: ghcr.io/pgcrab/pgcrab:0.2.0
+    entrypoint:
+      - pgcrab
+      - "-C"
+      - "postgresql://corncrakecitest:corncrakecitest@postgres:5432/corncrakecitest"
+      - lint-schema
 
   # Additionally notify GitHub of the CI status (since our pipeline is wired up
   # to Gitea, but the repo is mirrored to GitHub in realtime)

@@ -1,0 +1,16 @@
+[schema.concessions]
+dont_use_timestamp_without_time_zone = [
+    # The migrations table is managed by postgres-migrations (not us).
+    "migrations.executed_at",
+    # The session table is managed by connect-pg-simple (not us).
+    "session.expire"
+]
+dont_use_varchar_n_by_default = [
+    # The migrations table is managed by postgres-migrations (not us).
+    "migrations.hash",
+    "migrations.name"
+]
+object_requires_quotation = [
+    # Part of the session table, managed by connect-pg-simple (not us).
+    '"IDX_session_expire"'
+]
