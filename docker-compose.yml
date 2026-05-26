@@ -50,7 +50,7 @@ services:
       GITEA__database__USER: ${GITEA_DB_USER}
       GITEA__database__PASSWORD: ${GITEA_DB_PASSWORD}
       GITEA__server__HTTP_PORT: 3001
-      GITEA__webhook__ALLOWED_HOST_LIST: external,loopback,private
+      GITEA__webhook__ALLOWED_HOST_LIST: "*"
     ports:
       - "3001:3001"
     volumes:
