@@ -3,7 +3,7 @@ import { config } from "../../config";
 import { decrypt, encrypt } from "../../util/crypto";
 import type Database from "../schema/Database";
 import type { ForgeId } from "../schema/public/Forges";
-import type { Users as User, UserId } from "../schema/public/Users";
+import type { User, UserId } from "../schema/public/Users";
 
 export interface StoredTokenInfo {
 	accessToken: string;

@@ -8,7 +8,7 @@ import type { ColumnType, Selectable, Insertable, Updateable } from 'kysely';
 export type UserId = number & { __brand: 'UserId' };
 
 /** Represents the table public.users */
-export default interface UsersTable {
+export default interface UserTable {
   user_id: ColumnType<UserId, UserId | undefined, UserId>;
 
   forge_id: ColumnType<ForgeId, ForgeId, ForgeId>;
@@ -18,8 +18,8 @@ export default interface UsersTable {
   forge_username: ColumnType<string, string, string>;
 }
 
-export type Users = Selectable<UsersTable>;
+export type User = Selectable<UserTable>;
 
-export type NewUsers = Insertable<UsersTable>;
+export type NewUser = Insertable<UserTable>;
 
-export type UsersUpdate = Updateable<UsersTable>;
+export type UserUpdate = Updateable<UserTable>;

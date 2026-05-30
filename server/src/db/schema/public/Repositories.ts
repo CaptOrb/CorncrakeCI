@@ -9,7 +9,7 @@ import type { ColumnType, Selectable, Insertable, Updateable } from 'kysely';
 export type RepoId = number & { __brand: 'RepoId' };
 
 /** Represents the table public.repositories */
-export default interface RepositoriesTable {
+export default interface RepositoryTable {
   repo_id: ColumnType<RepoId, RepoId | undefined, RepoId>;
 
   forge_id: ColumnType<ForgeId, ForgeId, ForgeId>;
@@ -27,8 +27,8 @@ export default interface RepositoriesTable {
   webhook_secret: ColumnType<string | null, string | null, string | null>;
 }
 
-export type Repositories = Selectable<RepositoriesTable>;
+export type Repository = Selectable<RepositoryTable>;
 
-export type NewRepositories = Insertable<RepositoriesTable>;
+export type NewRepository = Insertable<RepositoryTable>;
 
-export type RepositoriesUpdate = Updateable<RepositoriesTable>;
+export type RepositoryUpdate = Updateable<RepositoryTable>;

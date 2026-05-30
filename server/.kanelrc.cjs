@@ -1,7 +1,7 @@
 //! Configuration file for Kanel (schema introspection tool)
 //! to produce types for Kysely
 
-const { defaultGenerateIdentifierType } = require("kanel");
+const { defaultGenerateIdentifierType, defaultGetMetadata } = require("kanel");
 const { makeKyselyHook } = require("kanel-kysely");
 const { resolve } = require("node:path");
 const { loadEnvFile } = require("node:process");
@@ -46,18 +46,40 @@ const config = {
 		"pg_catalog.bytea": "Buffer",
 	},
 
-	// Table session is created by connect-pg-simple at runtime (not by our migrations).
-	// Excluding it to keep generated types stable.
 	typeFilter: (pgType) => {
+		// Exclude the session table (managed by connect-pg-simple)
+		// and the migrations table (managed by postgres-migrations)
 		if (
 			pgType.kind === "table" &&
 			pgType.schemaName === "public" &&
-			pgType.name === "session"
+			(pgType.name === "session" || pgType.name === "migrations")
 		) {
 			return false;
 		}
 
 		return true;
+	},
+
+	getMetadata: (details, generateFor, builtinMetadata) => {
+		const metadata = defaultGetMetadata(details, generateFor, builtinMetadata);
+
+		console.log(metadata);
+
+		// Remap table names to un-pluralise the model names, as it's awkward for the
+		// model of the `users` table to be called `Users` rather than `User`.
+		if (details.kind === "table" && metadata.name.endsWith("s")) {
+			return {
+				...metadata,
+				name: metadata.name
+					// repositories -> repository
+					.replace(/ies$/, "y")
+					// users -> user
+					.replace(/s$/, ""),
+			};
+		}
+
+		// Otherwise fall through to the normal name
+		return metadata;
 	},
 
 	generateIdentifierType: (column, details, config) => {

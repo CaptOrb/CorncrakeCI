@@ -5,7 +5,7 @@ import type { UserId } from './Users';
 import type { ColumnType, Selectable, Insertable, Updateable } from 'kysely';
 
 /** Represents the table public.forge_access_tokens */
-export default interface ForgeAccessTokensTable {
+export default interface ForgeAccessTokenTable {
   user_id: ColumnType<UserId, UserId, UserId>;
 
   access_token: ColumnType<Buffer, Buffer, Buffer>;
@@ -17,8 +17,8 @@ export default interface ForgeAccessTokensTable {
   refresh_token_expires_at: ColumnType<Date, Date | string, Date | string>;
 }
 
-export type ForgeAccessTokens = Selectable<ForgeAccessTokensTable>;
+export type ForgeAccessToken = Selectable<ForgeAccessTokenTable>;
 
-export type NewForgeAccessTokens = Insertable<ForgeAccessTokensTable>;
+export type NewForgeAccessToken = Insertable<ForgeAccessTokenTable>;
 
-export type ForgeAccessTokensUpdate = Updateable<ForgeAccessTokensTable>;
+export type ForgeAccessTokenUpdate = Updateable<ForgeAccessTokenTable>;

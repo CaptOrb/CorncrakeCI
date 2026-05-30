@@ -7,14 +7,14 @@ import type { ColumnType, Selectable, Insertable, Updateable } from 'kysely';
 export type ForgeId = number & { __brand: 'ForgeId' };
 
 /** Represents the table public.forges */
-export default interface ForgesTable {
+export default interface ForgeTable {
   forge_id: ColumnType<ForgeId, ForgeId, ForgeId>;
 
   display_name: ColumnType<string, string, string>;
 }
 
-export type Forges = Selectable<ForgesTable>;
+export type Forge = Selectable<ForgeTable>;
 
-export type NewForges = Insertable<ForgesTable>;
+export type NewForge = Insertable<ForgeTable>;
 
-export type ForgesUpdate = Updateable<ForgesTable>;
+export type ForgeUpdate = Updateable<ForgeTable>;

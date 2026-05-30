@@ -1,5 +1,5 @@
 import type { ForgeId } from "../db/schema/public/Forges";
-import type { Users as User, UserId } from "../db/schema/public/Users";
+import type { User, UserId } from "../db/schema/public/Users";
 import { transaction } from "../db/stores";
 import type { StoredTokenInfo } from "../db/stores/user";
 import { scheduleRefreshTokenJob } from "../jobs/refresh-tokens";
