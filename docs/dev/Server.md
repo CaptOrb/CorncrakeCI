@@ -64,3 +64,9 @@ To get a coverage report, ensure the test database is running as above, then:
 ```
 pnpm coverage
 ```
+
+To get a Change Risk Anti-Patterns report, ensure the test database is running as above, then:
+
+```
+pnpm run test -c vitest-crap.config.ts
+```
