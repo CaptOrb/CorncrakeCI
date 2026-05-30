@@ -12,6 +12,7 @@ import swaggerUi from "swagger-ui-express";
 import { ZodError } from "zod";
 import { config } from "../config";
 import { connectDB } from "../config/db";
+import { setupPostgresTypeParsers } from "../db";
 import v0OpenApi from "../generated/api/@typespec/openapi3/openapi.json";
 import {
 	createRouter,
@@ -256,6 +257,7 @@ const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
 
 async function startServer(): Promise<void> {
 	const pool = new Pool({ connectionString: config.db.uri });
+	setupPostgresTypeParsers();
 	await connectDB(pool);
 	await runMigrations(pool);
 	createForgesFromConfig();

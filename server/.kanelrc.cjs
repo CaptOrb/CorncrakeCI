@@ -61,12 +61,28 @@ const config = {
 	},
 
 	generateIdentifierType: (column, details, config) => {
+		// If we're emitting a BIGINT column, change the type so that it appears
+		// as a native `bigint` type in TypeScript, rather than `string` (as is default for node-pg).
+		// We set up node-pg to use `bigint` in `setupPostgresTypeParsers`.
+		const isBigInt = column.expandedType === "pg_catalog.int8";
 		const sharedName = SHARED_ID_BRANDS[column.name];
 
 		if (!sharedName) {
 			// Fall back to kanel's default
-			return defaultGenerateIdentifierType(column, details, config);
+
+			const out = defaultGenerateIdentifierType(column, details, config);
+
+			// But use native JavaScript bigints instead of strings for BIGINT
+			if (isBigInt) {
+				out.typeDefinition = out.typeDefinition.map((def) =>
+					def.replace("string &", "bigint &"),
+				);
+			}
+
+			return out;
 		}
+
+		const unbrandedType = isBigInt ? "bigint" : "number";
 
 		// This is a column that should use a shared branded ID, for cross-table type enforcement
 		return {
@@ -76,7 +92,7 @@ const config = {
 			// This is the TypeScript 'branded type' pattern; by constraining the type to additionally
 			// have a (pretend) `__brand` field with a given literal value, we can have the compiler
 			// check that it doesn't overlap with any other branded types
-			typeDefinition: [`number & { __brand: '${sharedName}' }`],
+			typeDefinition: [`${unbrandedType} & { __brand: '${sharedName}' }`],
 			typeImports: [],
 			comment: [`Branded type for ${column.name} columns.`],
 		};

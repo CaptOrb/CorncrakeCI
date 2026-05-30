@@ -4,6 +4,7 @@ import { Client, type ClientBase, type ClientConfig, Pool } from "pg";
 import { parseIntoClientConfig } from "pg-connection-string";
 import { migrate } from "postgres-migrations";
 import { afterEach, beforeEach } from "vitest";
+import { setupPostgresTypeParsers } from "../../src/db";
 
 const TEMPLATE_DB_NAME = "corncrakeci_test_template";
 
@@ -43,6 +44,7 @@ export function getBaseDbConfig(): ClientConfig {
  * @returns An object with the PostgreSQL Pool and a cleanup function.
  */
 export async function setupDb(): Promise<SetupDbResult> {
+	setupPostgresTypeParsers();
 	const baseConfig = getBaseDbConfig();
 	const adminClient = new Client(baseConfig);
 	await adminClient.connect();
