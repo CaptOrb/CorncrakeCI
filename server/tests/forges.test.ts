@@ -10,8 +10,8 @@ import {
 	mustGetForge,
 } from "../src/services/forges";
 import { AuthError } from "../src/services/forges/errors";
-import type { TestForge } from "./helpers/forge";
 import { databaseHelper } from "./helpers/database";
+import type { TestForge } from "./helpers/forge";
 import { testForgeHelper } from "./helpers/forge";
 
 const TEST_FORGE_ID = 1 as ForgeId;
@@ -22,7 +22,7 @@ describe("Forge service tests", () => {
 	databaseHelper();
 	testForgeHelper();
 
-	afterEach(() => vi.restoreAllMocks())
+	afterEach(() => vi.restoreAllMocks());
 
 	async function createUserWithTokens(opts?: {
 		forgeUserId?: string;
@@ -75,7 +75,6 @@ describe("Forge service tests", () => {
 		);
 	});
 
-
 	it("refreshes tokens when the access token is expiring", async () => {
 		const user = await createUserWithTokens({
 			accessTokenExpiresAt: new Date(Date.now() + 60_000),
@@ -120,17 +119,23 @@ describe("Forge service tests", () => {
 	});
 
 	it("throws AuthError when user does not exist", async () => {
-		await expect(getForgeWithUser(UNKNOWN_USER_ID))
-			.rejects.toThrow(new AuthError("User not found"));
+		await expect(getForgeWithUser(UNKNOWN_USER_ID)).rejects.toThrow(
+			new AuthError("User not found"),
+		);
 	});
 
 	it("throws AuthError when user has no stored tokens", async () => {
 		const user = await transaction(async (txn) => {
-			return txn.users.insertUser(TEST_FORGE_ID, "no_token_user", "notokenuser");
+			return txn.users.insertUser(
+				TEST_FORGE_ID,
+				"no_token_user",
+				"notokenuser",
+			);
 		});
 
-		await expect(getForgeWithUser(user.user_id))
-			.rejects.toThrow(new AuthError("No tokens found for user"));
+		await expect(getForgeWithUser(user.user_id)).rejects.toThrow(
+			new AuthError("No tokens found for user"),
+		);
 	});
 
 	it("throws AuthError when token refresh fails", async () => {
@@ -142,8 +147,8 @@ describe("Forge service tests", () => {
 			new Error("refresh failed"),
 		);
 
-		await expect(getForgeWithUser(user.user_id))
-			.rejects.toThrow(new AuthError("Failed to refresh token"));
+		await expect(getForgeWithUser(user.user_id)).rejects.toThrow(
+			new AuthError("Failed to refresh token"),
+		);
 	});
-
 });
