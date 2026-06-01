@@ -2,6 +2,7 @@ when:
   - event: push
     branch: [main, dev]
   - event: pull_request
+  - event: manual
 
 labels:
   platform: linux/amd64
