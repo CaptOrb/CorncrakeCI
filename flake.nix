@@ -2,7 +2,7 @@
   description = "CornCrakeCI Continuous Integration system";
 
   inputs = {
-    nixpkgs.url = "nixpkgs/nixos-25.11";
+    nixpkgs.url = "nixpkgs/nixos-26.05";
     utils.url = "github:numtide/flake-utils";
   };
 
@@ -17,12 +17,12 @@
 
         src = lib.cleanSource ./server;
 
-        pnpmDeps = pkgs.pnpm.fetchDeps {
+        pnpmDeps = pkgs.fetchPnpmDeps {
           inherit (pkgs.stdenv) system;
           src = lib.cleanSource ./server;
           pname = "corncrakeci-server";
           version = "0.0.0";
-          hash = "sha256-mSJuadvDL8/Tf6IJG3i0Un+lWLUhO02elZtrpS1K2oY=";
+          hash = "sha256-pq0ZHFhtGdlx6HsQytYTIKOsSpSkt2KInueE3m/Fgcc=";
 
 
           # https://nixos.org/manual/nixpkgs/stable/#javascript-pnpm-fetcherVersion
@@ -31,7 +31,8 @@
 
         nativeBuildInputs = with pkgs; [
           nodejs
-          pnpm.configHook
+          pnpm
+          pnpmConfigHook
           makeWrapper
         ];
 
@@ -41,7 +42,7 @@
 
         buildPhase = ''
           runHook preBuild
-          pnpm run generate
+          pnpm run generate:api
 
           pnpm run check
 
