@@ -1,30 +1,9 @@
 import { parse as parseKDL } from "@bgotink/kdl";
 import * as v from "valibot";
 import { describe, expect, it } from "vitest";
-import type { UserStepDeclaration, V0File } from "../../../src/pipeline/v0/ast";
-import { FatalParseError } from "../../../src/pipeline/v0/error";
+import type { UserStepDeclaration } from "../../../src/pipeline/v0/ast";
 import { V0Parser } from "../../../src/pipeline/v0/parser";
-
-//just a sugary wrapper around the one we want to test
-function parse(_file: "parseFile", text: string): V0File {
-	const doc = parseKDL(text, { storeLocations: true });
-
-	const parser = new V0Parser();
-
-	try {
-		const parsedFile = parser.parseFile(doc.nodes);
-		if (parser.errors.length > 0) {
-			throw new Error(parser.errors[0]?.message || "Unknown parsing error");
-		}
-		return parsedFile;
-	} catch (e) {
-		if (e instanceof FatalParseError && parser.errors.length > 0) {
-			// rethrow the error so we can check for it in tests
-			throw new Error(parser.errors[0]?.message || "Unknown parsing error");
-		}
-		throw e;
-	}
-}
+import { parseV0 as parse } from "../../helpers/pipeline";
 
 describe("V0Parser tests", () => {
 	it("parses an empty file", () => {
@@ -147,6 +126,7 @@ describe("V0Parser tests", () => {
 				                    "offset": 43,
 				                  },
 				                },
+				                "type": "user",
 				              },
 				            ],
 				          },
@@ -241,6 +221,7 @@ describe("V0Parser tests", () => {
 				                    "offset": 67,
 				                  },
 				                },
+				                "type": "user",
 				              },
 				            ],
 				          },
@@ -275,6 +256,7 @@ describe("V0Parser tests", () => {
 				                    "offset": 112,
 				                  },
 				                },
+				                "type": "user",
 				              },
 				            ],
 				          },

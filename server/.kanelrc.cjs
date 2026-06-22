@@ -33,6 +33,9 @@ const SHARED_ID_BRANDS = {
 	user_id: "UserId",
 	repo_id: "RepoId",
 	owner_id: "UserId",
+	pipeline_run_id: "PipelineRunId",
+	workflow_run_id: "WorkflowRunId",
+	job_run_id: "JobRunId",
 };
 
 if (!Object.hasOwn(process.env, "DB_URI")) {

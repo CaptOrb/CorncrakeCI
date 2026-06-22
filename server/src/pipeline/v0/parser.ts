@@ -544,6 +544,7 @@ export class V0Parser {
 		}
 
 		return {
+			type: "user",
 			span: KDL.getLocation(node)!,
 			image: result.attrs.image,
 			command: result.attrs.command,

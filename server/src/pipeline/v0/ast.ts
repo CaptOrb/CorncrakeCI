@@ -1,8 +1,5 @@
 import type { StoredLocation } from "@bgotink/kdl";
 
-// This will be used to track where items in the file come from, so we can
-// report errors later on. If you can figure it out, feel free to fix, otherwise
-// just leave it as the string "TODO" everywhere this is used for now!
 type Span = StoredLocation;
 
 export type V0File = {
@@ -55,18 +52,21 @@ export type AnyStepDeclaration =
 	| UserStepDeclaration;
 
 export type CacheStepDeclaration = {
+	type: "cache";
 	span: Span;
 	// TODO
 };
 
 export type EnvStepDeclaration = {
+	type: "env";
 	span: Span;
 	// TODO
 };
 
 export type UserStepDeclaration = {
+	type: "user";
 	span: Span;
-	image?: string;
+	image?: string | undefined;
 	command: string;
 	// TODO
 };

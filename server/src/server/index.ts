@@ -13,6 +13,7 @@ import { ZodError } from "zod";
 import { config } from "../config";
 import { connectDB } from "../config/db";
 import { setupPostgresTypeParsers } from "../db";
+import { Scheduler, setGlobalScheduler } from "../execution/scheduler";
 import v0OpenApi from "../generated/api/@typespec/openapi3/openapi.json";
 import {
 	createRouter,
@@ -260,6 +261,7 @@ async function startServer(): Promise<void> {
 	setupPostgresTypeParsers();
 	await connectDB(pool);
 	await runMigrations(pool);
+	setGlobalScheduler(new Scheduler());
 	createForgesFromConfig();
 	await seedForges();
 

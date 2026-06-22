@@ -3,6 +3,8 @@ import * as v from "valibot";
 import { config } from "../../config";
 import type { RepoId } from "../../db/schema/public/Repositories";
 import { transaction } from "../../db/stores";
+import { launchPipelineExecution } from "../../execution";
+import { globalScheduler } from "../../execution/scheduler";
 import type { TriggerEvent } from "../../execution/trigger_event";
 import type { t_PipelineCheckResult } from "../../generated/server/models";
 import { parseKdlConfigs } from "../../pipeline";
@@ -124,7 +126,7 @@ export const handleWebhook = async (req: RawBodyRequest, res: Response) => {
 		commitHash,
 	);
 
-	const { results } = parseKdlConfigs(corncrakeciConfig.configFiles);
+	const { configs, results } = parseKdlConfigs(corncrakeciConfig.configFiles);
 	await reportPipelineErrors(
 		forge,
 		repo.forge_repo_id,
@@ -135,6 +137,14 @@ export const handleWebhook = async (req: RawBodyRequest, res: Response) => {
 		shortDescription,
 	);
 
+	await launchPipelineExecution(
+		repoId,
+		configs,
+		triggerEvent,
+		globalScheduler(),
+	);
+
+	// TODO Report the pipeline ID in the output?
 	return res.status(200).end();
 };
 

@@ -208,11 +208,17 @@ class TestForgeWithUser implements ForgeWithUser {
 	}
 
 	async createWebhook(
-		_forgeRepoId: string,
-		_webhookUrl: string,
-		_webhookSecret: string,
+		forgeRepoId: string,
+		webhookUrl: string,
+		webhookSecret: string,
 	): Promise<{ id: string }> {
 		if (!this.user) throw new Error("invalid access token");
+
+		const repo = this.controller.repositories.get(forgeRepoId);
+		if (repo === undefined) throw new Error("invalid repo");
+
+		// Store the webhook details
+		repo.webhook = { url: webhookUrl, secret: webhookSecret };
 
 		return {
 			id: "some-webhook-id",
@@ -220,16 +226,25 @@ class TestForgeWithUser implements ForgeWithUser {
 	}
 
 	async listWebhooks(
-		_forgeRepoId: string,
+		forgeRepoId: string,
 	): Promise<Array<{ id: string; url: string | undefined }>> {
 		if (!this.user) throw new Error("invalid access token");
+
+		const repo = this.controller.repositories.get(forgeRepoId);
+		if (repo === undefined) throw new Error("invalid repo");
+
 		// Test implementation - return empty array
 		return [];
 	}
 
-	async deleteWebhook(_forgeRepoId: string, _webhookId: string): Promise<void> {
+	async deleteWebhook(forgeRepoId: string, _webhookId: string): Promise<void> {
 		if (!this.user) throw new Error("invalid access token");
-		// Test implementation - just succeed
+
+		const repo = this.controller.repositories.get(forgeRepoId);
+		if (repo === undefined) throw new Error("invalid repo");
+
+		// Simulate deleting the webhook
+		repo.webhook = null;
 	}
 
 	async getCorncrakeciConfig(
@@ -271,6 +286,7 @@ export class TestForgeController {
 			{
 				name: "testuser/testrepo",
 				owner: 1,
+				webhook: null,
 			},
 		],
 		[
@@ -278,6 +294,7 @@ export class TestForgeController {
 			{
 				name: "otheruser/otherrepo",
 				owner: 2,
+				webhook: null,
 			},
 		],
 	]);
@@ -291,4 +308,5 @@ export class TestForgeController {
 interface TestRepo {
 	name: string;
 	owner: number;
+	webhook: null | { url: string; secret: string };
 }
