@@ -1,6 +1,6 @@
 services:
   corncrakeci-db:
-    image: postgres:17
+    image: postgres:17-alpine
     container_name: corncrakeci-db
     restart: unless-stopped
     env_file:
@@ -17,7 +17,7 @@ services:
       - corncrakeci_network
 
   gitea-db:
-    image: postgres:17
+    image: postgres:17-alpine
     container_name: gitea-db
     restart: unless-stopped
     env_file:

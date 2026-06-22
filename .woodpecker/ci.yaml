@@ -10,7 +10,7 @@ labels:
 steps:
   - name: postgres
     detach: true
-    image: postgres:17
+    image: postgres:17-alpine
     environment:
       POSTGRES_USER: corncrakecitest
       POSTGRES_PASSWORD: corncrakecitest
