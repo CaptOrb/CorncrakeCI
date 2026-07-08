@@ -49,14 +49,23 @@ alias InternalError = {
   @body body: Error;
 };
 
-alias ExecutionStatus =
-  | "pending"
-  | "running"
-  | "completed"
-  | "failed"
-  | "canceled";
+/** Status shared by pipeline, workflow and job runs. */
+union ExecutionStatus {
+  pending: "pending",
+  running: "running",
+  completed: "completed",
+  failed: "failed",
+  canceled: "canceled",
+  skipped: "skipped",
+}
 
-alias TriggerEvent = "push" | "pull_request" | "workflow_dispatch" | "tag";
+/** Kind of event that triggered a pipeline run. */
+union TriggerEvent {
+  push: "push",
+  pull_request: "pull_request",
+  workflow_dispatch: "workflow_dispatch",
+  tag: "tag",
+}
 
 alias LogResponse = {
   @statusCode statusCode: 200;

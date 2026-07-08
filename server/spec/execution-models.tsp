@@ -2,8 +2,12 @@ import "./common.tsp";
 
 namespace CorncrakeCIAPI;
 
-/** Lightweight job representation used in pipeline detail and list responses. */
+/** Lightweight job representation used in workflow detail and list responses. */
 model JobSummary {
+  /**
+   * Identifier of the job run, unique within the pipeline.
+   * Encoded as "{workflow_run_id}.{job_run_id}".
+   */
   job_id: string;
   name: string;
   status: ExecutionStatus;
@@ -13,6 +17,23 @@ model JobSummary {
 
   started_at?: utcDateTime;
   finished_at?: utcDateTime;
+}
+
+/** A workflow run: the unit of planning within a pipeline, containing its jobs. */
+model WorkflowRun {
+  workflow_id: string;
+  status: ExecutionStatus;
+
+  /** Config file this workflow was planned from, if known. */
+  source_file?: string;
+
+  /** Earliest time any of this workflow's jobs started, if any have. */
+  started_at?: utcDateTime;
+
+  /** Latest time any of this workflow's jobs finished, once all have. */
+  finished_at?: utcDateTime;
+
+  jobs: JobSummary[];
 }
 
 /** Full job detail including steps, dependencies, and runtime info. */

@@ -82,18 +82,18 @@ namespace CorncrakeCIAPI {
     finished_at?: utcDateTime;
   }
 
-  /** Full pipeline detail including stages and jobs. */
+  /** Full pipeline detail including its workflow runs and their jobs. */
   model PipelineDetail {
     ...PipelineSummary;
 
-    /** The raw pipeline configuration content that was executed. */
-    config: string;
+    /**The raw pipeline configuration content that was executed. */
+    config?: string;
 
     /** Files changed in the commit that triggered this pipeline. */
     changed_files?: ChangedFile[];
 
-    /** Jobs grouped by stage. Stage order reflects execution order. */
-    stages: StageInfo[];
+    /** Workflow runs that make up this pipeline, each containing its jobs. */
+    workflows: WorkflowRun[];
   }
 
   model ChangedFile {
@@ -102,14 +102,6 @@ namespace CorncrakeCIAPI {
 
     /** Type of change. */
     action: "added" | "modified" | "deleted" | "renamed";
-  }
-
-  /** A stage groups jobs that run in parallel within the pipeline */
-  model StageInfo {
-    /** Stage name. Absent for implicit (single-job) stages */
-    name?: string;
-
-    jobs: JobSummary[];
   }
 
   @route("/repo/{repoId}/pipelines")
