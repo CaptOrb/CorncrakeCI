@@ -3,6 +3,9 @@ import type { WorkflowRunId } from "../../db/schema/public/WorkflowRuns";
 import { createLogger } from "../../util/logging";
 import { isSubsetOrEqual } from "../../util/set";
 import type { PlannedJob, PlannedWorkflow } from "../plan";
+import type { IRunner } from "../runner/interface";
+import { toRunnerJob } from "../runner/mapper";
+import { PinoProgressReporter } from "../runner/progress";
 
 const log = createLogger(import.meta.url);
 
@@ -138,6 +141,8 @@ export interface Runner {
 	allocated: ResourceRequest;
 
 	activeJobs: Set<SchedulingJob>;
+
+	instance: IRunner;
 }
 
 /**
@@ -237,6 +242,32 @@ export class Scheduler {
 	 */
 	private runners: Runner[] = [];
 
+	constructor(runner?: IRunner) {
+		if (runner) {
+			this.runners.push({
+				name: "default",
+				profile: {
+					capabilities: new Set(),
+					taints: new Set(),
+				},
+				// TODO come back to this
+				resourceLimit: {
+					milliCpu: 999999,
+					megabyteMemory: 999999,
+					megabyteDisk: 999999,
+					numJobs: 999999,
+				},
+				allocated: {
+					milliCpu: 0,
+					megabyteMemory: 0,
+					megabyteDisk: 0,
+				},
+				activeJobs: new Set(),
+				instance: runner,
+			});
+		}
+	}
+
 	/**
 	 * Information about workflows that are currently in the scheduler.
 	 */
@@ -268,7 +299,13 @@ export class Scheduler {
 						continue;
 					}
 
-					// TODO Actually submit to the runner and track that we did
+					// Actually submit to the runner and track that we did
+					const reporter = new PinoProgressReporter(
+						log.child({ job: job.plannedJob.id }),
+					);
+					runner.instance
+						.runJob(toRunnerJob(job.plannedJob), reporter)
+						.finally(() => this.tryScheduleNow());
 
 					log.info({ job, runner: runner.name }, "job scheduled on runner");
 

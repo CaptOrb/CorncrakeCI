@@ -1,3 +1,16 @@
+export interface DockerError {
+	statusCode?: number;
+}
+
+export interface RunnerStep {
+	image?: string;
+	command: string;
+}
+
+export interface RunnerJob {
+	id: string;
+	steps: RunnerStep[];
+} // id = `${workflowRunId}/${jobRunId}` for logging
 /**
  * Handle to a runner.
  */
@@ -20,10 +33,7 @@ export interface IRunner {
 	 *
 	 * TODO timeouts, resources, ...
 	 */
-	runJob(
-		job: null /* TODO */,
-		progressReporter: IProgressReporter,
-	): Promise<void>;
+	runJob(job: RunnerJob, reporter: IProgressReporter): Promise<void>;
 
 	/**
 	 * Cancel a running job.
@@ -34,4 +44,7 @@ export interface IRunner {
 /**
  * Handle given to the runner to report progress back.
  */
-export type IProgressReporter = never; // TODO
+// TODO THIS IS TEMPORARY
+export interface IProgressReporter {
+	onLog(line: string): void;
+}

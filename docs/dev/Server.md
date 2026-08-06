@@ -70,3 +70,26 @@ To get a Change Risk Anti-Patterns report, ensure the test database is running a
 ```
 pnpm run test -c vitest-crap.config.ts
 ```
+
+## Runner configuration
+
+The runner configuration controls which job runner is enabled.
+
+| Environment variable | Description | Default |
+| --- | --- | --- |
+| `RUNNER_TYPE` | Runner type. Set to `container` to enable the container runner. | unset |
+| `RUNNER_DEFAULTCONTAINER` | Default container image used for jobs. | `docker.io/alpine:3.23` |
+| `RUNNER_RUNTIMEOVERLAYCONTAINER` | Runtime overlay container image providing runtime tools. | `localhost/corncrake-runtime-overlay:latest` |
+| `RUNNER_RUNTIMEOVERLAYVOLUME` | Volume name containing runtime overlay tools. | `corncrake-runtime-overlay` |
+
+### Building the runtime overlay image
+
+The runtime overlay image provides tools mounted into job containers at `/.corncrake/tools`.
+
+For local development, build it from the repository root:
+
+```
+cd runtime-overlay && docker build -t localhost/corncrake-runtime-overlay:latest .
+```
+
+(podman can also be used)

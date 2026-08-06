@@ -43,6 +43,22 @@ steps:
       - "-c"
       - "log_line_prefix=%m [%p] %u@%d "
 
+  - name: wait-for-postgres
+    image: postgres:17-alpine
+    commands:
+      - |
+        i=0
+        while [ "$i" -lt 60 ]; do
+          if pg_isready -U corncrakecitest -d corncrakecitest -h postgres >/dev/null 2>&1; then
+            echo "Postgres is ready."
+            exit 0
+          fi
+          i=$((i + 1))
+          sleep 1
+        done
+        echo "Postgres did not become ready in time." >&2
+        exit 1
+
   - name: server
     # We need the full image as the `-slim` one doesn't provide `git`
     image: guergeiro/pnpm:22-10
@@ -50,6 +66,8 @@ steps:
       NODE_ENV: test
       DB_URI: postgresql://corncrakecitest:corncrakecitest@postgres:5432/corncrakecitest
 
+    depends_on:
+      - wait-for-postgres
     commands:
       - cd server
       - pnpm install --frozen-lockfile
@@ -78,6 +96,8 @@ steps:
 
   - name: pgcrab (schema linter)
     image: ghcr.io/pgcrab/pgcrab:0.2.0
+    depends_on:
+      - wait-for-postgres
     entrypoint:
       - pgcrab
       - "-C"

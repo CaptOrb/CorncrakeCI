@@ -89,7 +89,10 @@ job "test" {
 }
         `;
 
-		forge.controller!.setRepoConfigs(
+		const controller = forge.controller;
+		expect(controller).toBeDefined();
+		if (!controller) throw new Error("forge controller not set up");
+		controller.setRepoConfigs(
 			"repo0001",
 			new Map([[".corncrake/ci.kdl", simplePipeline]]),
 		);
@@ -103,7 +106,9 @@ job "test" {
 		// Now our repo should be set up.
 		// Simulate a webhook arriving.
 
-		const webhook = forge.controller!.repositories.get("repo0001")!.webhook!;
+		const webhook = controller.repositories.get("repo0001")?.webhook;
+		expect(webhook).toBeDefined();
+		if (!webhook) throw new Error("webhook not set up");
 
 		const webhookBody = {
 			ref: "refs/heads/main",

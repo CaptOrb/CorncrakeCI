@@ -105,6 +105,17 @@ const LogConfigSchema = v.object({
 	// True to use JSON logging, false for 'pretty' logging
 	json: v.optional(v.boolean(), false),
 });
+export const RunnerConfigSchema = v.object({
+	type: v.optional(v.string()),
+	defaultcontainer: v.optional(v.string(), "docker.io/alpine:3.23"),
+	runtimeoverlaycontainer: v.optional(
+		v.string(),
+		"localhost/corncrake-runtime-overlay:latest",
+	),
+	runtimeoverlayvolume: v.optional(v.string(), "corncrake-runtime-overlay"),
+	cpulimitmilli: v.optional(v.number(), 1000),
+	memorylimitmb: v.optional(v.number(), 1024),
+});
 
 export const ConfigSchema = v.object({
 	app: optionalObject(AppConfigSchema),
@@ -115,6 +126,7 @@ export const ConfigSchema = v.object({
 	node: v.object({
 		env: v.picklist(["production", "development", "test"]),
 	}),
+	runner: optionalObject(RunnerConfigSchema),
 });
 
 // Keys included in the config that should be parsed
@@ -126,6 +138,7 @@ export const CONFIG_SCHEMA_KEYS = [
 	"session",
 	"log",
 	"node",
+	"runner",
 ] satisfies (keyof Config)[];
 
 export type Config = v.InferOutput<typeof ConfigSchema>;

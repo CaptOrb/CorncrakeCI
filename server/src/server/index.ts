@@ -13,6 +13,7 @@ import { ZodError } from "zod";
 import { config } from "../config";
 import { connectDB } from "../config/db";
 import { setupPostgresTypeParsers } from "../db";
+import { ContainerRunner } from "../execution/runner/container";
 import { Scheduler, setGlobalScheduler } from "../execution/scheduler";
 import v0OpenApi from "../generated/api/@typespec/openapi3/openapi.json";
 import {
@@ -261,7 +262,26 @@ async function startServer(): Promise<void> {
 	setupPostgresTypeParsers();
 	await connectDB(pool);
 	await runMigrations(pool);
-	setGlobalScheduler(new Scheduler());
+
+	const runner = new ContainerRunner({
+		defaultContainer: config.runner.defaultcontainer,
+		runtimeOverlayContainer: config.runner.runtimeoverlaycontainer,
+		runtimeOverlayVolume: config.runner.runtimeoverlayvolume,
+		cpuLimitMilli: config.runner.cpulimitmilli,
+		memoryLimitMb: config.runner.memorylimitmb,
+	});
+	try {
+		await runner.initialise();
+	} catch (err) {
+		log.error(
+			{ err },
+			"Failed to initialise container runner. Check that the Docker/Podman socket is available.",
+		);
+		throw err;
+	}
+
+	setGlobalScheduler(new Scheduler(runner));
+
 	createForgesFromConfig();
 	await seedForges();
 

@@ -1,5 +1,6 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import type { WorkflowRunId } from "../../src/db/schema/public/WorkflowRuns";
+import type { IRunner } from "../../src/execution/runner/interface";
 import {
 	canScheduleJobOnRunner,
 	type Runner,
@@ -8,6 +9,12 @@ import {
 	type SchedulingJob,
 } from "../../src/execution/scheduler";
 import { PUSH_EVENT, parseAndPlanV0 } from "../helpers/pipeline";
+
+const STUB_RUNNER_INSTANCE: IRunner = {
+	initialise: vi.fn().mockResolvedValue(undefined),
+	runJob: vi.fn().mockResolvedValue(undefined),
+	cancelJob: vi.fn().mockResolvedValue(undefined),
+};
 
 const EMPTY_CONSTRAINTS: ScheduleConstraints = {
 	needs: new Set(),
@@ -26,6 +33,7 @@ const UNTAINTED_RUNNER: Runner = {
 		megabyteMemory: 0,
 		milliCpu: 0,
 	},
+	instance: STUB_RUNNER_INSTANCE,
 	name: "test_runner",
 	profile: {
 		capabilities: new Set(["arch:amd64"]),
@@ -46,6 +54,7 @@ const TAINTED_RUNNER: Runner = {
 		megabyteMemory: 0,
 		milliCpu: 0,
 	},
+	instance: STUB_RUNNER_INSTANCE,
 	name: "test_runner",
 	profile: {
 		capabilities: new Set(["arch:amd64"]),
@@ -156,7 +165,7 @@ interface TestSchedulerAccess {
 }
 
 describe("Scheduler", () => {
-	test("puts jobs in queue when no runners available", async () => {
+	test("schedule picks up jobs onto the default runner", async () => {
 		const workflow = await parseAndPlanV0(
 			PUSH_EVENT,
 			`
@@ -173,11 +182,11 @@ job hello {
 		// Normally done interactively with the database, but overkill to add a database to this test for this
 		workflow.id = 42n as WorkflowRunId;
 
-		const scheduler = new Scheduler() as Scheduler;
+		const scheduler = new Scheduler(STUB_RUNNER_INSTANCE) as Scheduler;
 		const internals = scheduler as unknown as TestSchedulerAccess;
 
 		scheduler.schedule(workflow);
 
-		expect(internals.readyJobs.size).toStrictEqual(1);
+		expect(internals.readyJobs.size).toStrictEqual(0);
 	});
 });

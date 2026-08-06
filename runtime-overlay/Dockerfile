@@ -1,0 +1,2 @@
+FROM alpine:3.23
+RUN mkdir -p /.corncrake/tools

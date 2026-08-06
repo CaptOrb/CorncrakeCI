@@ -67,7 +67,10 @@ describe("checkPipelines endpoint", () => {
             step "echo hello"
         }`;
 
-		forge.controller!.setRepoConfigs(
+		const controller = forge.controller;
+		expect(controller).toBeDefined();
+		if (!controller) throw new Error("forge controller not set up");
+		controller.setRepoConfigs(
 			"repo0001",
 			new Map([[".corncrake/ci.kdl", invalidConfig]]),
 		);
