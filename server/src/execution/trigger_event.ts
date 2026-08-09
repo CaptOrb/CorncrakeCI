@@ -5,6 +5,8 @@ export interface PushTriggerEvent {
 
 	commitHash: string;
 
+	commitMessage?: string;
+
 	/**
 	 * ref such as `refs/heads/main` for the `main` branch.
 	 */
@@ -19,6 +21,8 @@ export interface PullRequestTriggerEvent {
 
 	prBranch: string;
 	targetBranch: string;
+
+	commitMessage?: string;
 
 	// Generally the PR number in string form.
 	// But Forges could expose something different here.

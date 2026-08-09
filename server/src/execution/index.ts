@@ -34,6 +34,7 @@ export async function launchPipelineExecution(
 					: event.commitHash,
 			pr_short_human_id:
 				event.eventType === "pull_request" ? event.prShortHumanId : null,
+			commit_message: event.commitMessage ?? "",
 		});
 
 		let workflowsInserted = 0;

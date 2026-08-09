@@ -22,6 +22,8 @@ export default interface PipelineRunTable {
 
   ref: ColumnType<string, string, string>;
 
+  commit_message: ColumnType<string, string, string>;
+
   pr_short_human_id: ColumnType<string | null, string | null, string | null>;
 }
 

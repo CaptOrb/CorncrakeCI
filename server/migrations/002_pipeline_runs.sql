@@ -73,6 +73,9 @@ CREATE TABLE pipeline_runs (
 
     -- the ref that is being tested
     ref TEXT NOT NULL,
+    
+    -- the message associated with a commit, useful for identifying pipeline runs in UI
+    commit_message TEXT NOT NULL,
 
     -- For pull requests: the short human ID (typically a number) of the PR that triggered the pipeline run
     -- For everything else: NULL

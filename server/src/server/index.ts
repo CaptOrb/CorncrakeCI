@@ -28,6 +28,7 @@ import { IdGenerator } from "../util/counter";
 import { createLogger, withLogContext } from "../util/logging";
 import { seedForges } from "../util/seedforges";
 import type { Brand } from "../util/typing";
+import { getJob, getPipeline, listPipelines } from "./api/pipelines";
 import {
 	checkPipelines,
 	configureRepo,
@@ -141,12 +142,12 @@ export async function createApiServer({
 			configureRepo,
 			reconfigureRepo,
 			whoAmI,
-			listPipelines: notImplemented,
-			getPipeline: notImplemented,
+			listPipelines,
+			getPipeline,
 			cancelPipeline: notImplemented,
 			retryPipeline: notImplemented,
 			dispatchPipeline: notImplemented,
-			getJob: notImplemented,
+			getJob,
 			retryJob: notImplemented,
 			getJobLogs: notImplemented,
 			getStepLogs: notImplemented,

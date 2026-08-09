@@ -145,7 +145,10 @@ export class ContainerRunner implements IRunner {
 						);
 					}
 				} finally {
-					await container.remove({ force: true });
+					await container.remove({ force: true }).catch((err) => {
+						const status = (err as DockerError).statusCode;
+						if (status !== 409 && status !== 404) throw err;
+					});
 				}
 
 				/*this.logger.info(
@@ -157,11 +160,24 @@ export class ContainerRunner implements IRunner {
 			console.error(`Job ${job.id} failed`, err);
 			throw err;
 		} finally {
-			try {
-				await this.dockerode.getVolume(workspaceVolume).remove();
-			} catch (err) {
-				console.log(err);
-				// TODO log accordingly
+			for (let attempt = 0; attempt < 5; attempt++) {
+				try {
+					await this.dockerode.getVolume(workspaceVolume).remove();
+					break;
+				} catch (err) {
+					console.info(
+						`Failed to remove Docker volume "${workspaceVolume}" (attempt ${attempt + 1}/5), retrying...`,
+					);
+
+					const status = (err as DockerError).statusCode;
+					if (status === 404) break;
+					if (status === 409 && attempt < 4) {
+						await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+						continue;
+					}
+					console.log(err);
+					break;
+				}
 			}
 		}
 	}

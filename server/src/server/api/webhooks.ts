@@ -196,6 +196,7 @@ function decodeWebhookEvent(
 					prBranch: parsed.output.pull_request.head.ref,
 					prCommitHash: parsed.output.pull_request.head.sha,
 					prShortHumanId: `${parsed.output.pull_request.number}`,
+					commitMessage: parsed.output.pull_request.title,
 
 					// The webhook calls this a ref, but that's misleading!
 					// It's actually the branch name, `main` NOT `refs/heads/main`
@@ -219,12 +220,15 @@ function decodeWebhookEvent(
 				};
 			}
 
+			const commitMessage = parsed.output.commits[0]?.message;
+
 			return {
 				ok: true,
 				triggerEvent: {
 					eventType: "push",
 					ref: parsed.output.ref,
 					commitHash: parsed.output.after,
+					...(commitMessage !== undefined && { commitMessage }),
 				},
 			};
 		}

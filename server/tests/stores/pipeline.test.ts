@@ -15,6 +15,8 @@ const TEST_PIPELINE_RUN_ATTRS: CreatePipelineRunAttrs = {
 	trigger_event_type: TriggerEventType.push,
 	commit_hash: "0000",
 	ref: "refs/heads/main",
+	commit_message: "test commit",
+	pr_short_human_id: null,
 };
 
 describe("PipelineStore", () => {

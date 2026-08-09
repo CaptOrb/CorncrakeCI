@@ -151,7 +151,7 @@ namespace CorncrakeCIAPI {
 
   @route("/repo/{repoId}/pipelines/{pipelineId}/retry")
   @post
-  @summary("Retry a failed pipeline — re-runs all failed and canceled jobs")
+  @summary("Retry a failed pipeline — re-runs all failed and cancelled jobs")
   op retryPipeline(@path repoId: integer, @path pipelineId: string):
     | Body<PipelineSummary>
     | (BadRequestResponse & Error)

@@ -5,12 +5,13 @@ import "./execution-models.tsp";
 using Http;
 
 namespace CorncrakeCIAPI {
-  @route("/repo/{repoId}/pipelines/{pipelineId}/jobs/{jobId}")
+  @route("/repo/{repoId}/pipelines/{pipelineId}/workflows/{workflowId}/jobs/{jobId}")
   @get
   @summary("Get job detail including steps and dependencies")
   op getJob(
     @path repoId: integer,
     @path pipelineId: string,
+    @path workflowId: string,
     @path jobId: string,
   ):
     | Body<JobDetail>
@@ -18,12 +19,13 @@ namespace CorncrakeCIAPI {
     | (UnauthorizedResponse & Error)
     | InternalError;
 
-  @route("/repo/{repoId}/pipelines/{pipelineId}/jobs/{jobId}/retry")
+  @route("/repo/{repoId}/pipelines/{pipelineId}/workflows/{workflowId}/jobs/{jobId}/retry")
   @post
-  @summary("Retry a single failed or canceled job")
+  @summary("Retry a single failed or cancelled job")
   op retryJob(
     @path repoId: integer,
     @path pipelineId: string,
+    @path workflowId: string,
     @path jobId: string,
   ):
     | Body<JobSummary>
@@ -32,12 +34,13 @@ namespace CorncrakeCIAPI {
     | (UnauthorizedResponse & Error)
     | InternalError;
 
-  @route("/repo/{repoId}/pipelines/{pipelineId}/jobs/{jobId}/logs")
+  @route("/repo/{repoId}/pipelines/{pipelineId}/workflows/{workflowId}/jobs/{jobId}/logs")
   @get
   @summary("Get aggregated logs for a job. Supports Range headers for byte-range pagination; chunked transfer encoding for running jobs.")
   op getJobLogs(
     @path repoId: integer,
     @path pipelineId: string,
+    @path workflowId: string,
     @path jobId: string,
   ):
     | LogResponse
@@ -45,12 +48,13 @@ namespace CorncrakeCIAPI {
     | (UnauthorizedResponse & Error)
     | InternalError;
 
-  @route("/repo/{repoId}/pipelines/{pipelineId}/jobs/{jobId}/steps/{stepId}/logs")
+  @route("/repo/{repoId}/pipelines/{pipelineId}/workflows/{workflowId}/jobs/{jobId}/steps/{stepId}/logs")
   @get
   @summary("Get logs for a specific step. Supports Range headers for byte-range pagination; chunked transfer encoding for running steps.")
   op getStepLogs(
     @path repoId: integer,
     @path pipelineId: string,
+    @path workflowId: string,
     @path jobId: string,
     @path stepId: string,
   ):
@@ -59,12 +63,13 @@ namespace CorncrakeCIAPI {
     | (UnauthorizedResponse & Error)
     | InternalError;
 
-  @route("/repo/{repoId}/pipelines/{pipelineId}/jobs/{jobId}/artifacts")
+  @route("/repo/{repoId}/pipelines/{pipelineId}/workflows/{workflowId}/jobs/{jobId}/artifacts")
   @get
   @summary("List artifacts produced by a job")
   op listJobArtifacts(
     @path repoId: integer,
     @path pipelineId: string,
+    @path workflowId: string,
     @path jobId: string,
   ):
     | Body<Artifact[]>
@@ -72,12 +77,13 @@ namespace CorncrakeCIAPI {
     | (UnauthorizedResponse & Error)
     | InternalError;
 
-  @route("/repo/{repoId}/pipelines/{pipelineId}/jobs/{jobId}/artifacts/{artifactId}")
+  @route("/repo/{repoId}/pipelines/{pipelineId}/workflows/{workflowId}/jobs/{jobId}/artifacts/{artifactId}")
   @get
   @summary("Download a specific artifact")
   op downloadArtifact(
     @path repoId: integer,
     @path pipelineId: string,
+    @path workflowId: string,
     @path jobId: string,
     @path artifactId: string,
   ):

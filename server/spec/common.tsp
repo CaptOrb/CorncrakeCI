@@ -49,14 +49,23 @@ alias InternalError = {
   @body body: Error;
 };
 
-alias ExecutionStatus =
-  | "pending"
-  | "running"
-  | "completed"
-  | "failed"
-  | "canceled";
+enum ExecutionStatus {
+  pending,
+  running,
+  completed,
+  failed,
+  cancelled,
+  incomplete,
+  timed_out,
+  skipped
+}
 
-alias TriggerEvent = "push" | "pull_request" | "workflow_dispatch" | "tag";
+enum TriggerEvent {
+  push,
+  pull_request,
+  workflow_dispatch,
+  tag,
+}
 
 alias LogResponse = {
   @statusCode statusCode: 200;
