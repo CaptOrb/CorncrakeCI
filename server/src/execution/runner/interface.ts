@@ -42,9 +42,22 @@ export interface IRunner {
 }
 
 /**
+ * Status reported when a job finishes
+ */
+export interface JobEndStatus {
+	/** Whether or not the job completed all steps successfully */
+	success: boolean;
+	/** Exit code of the step that failed, if applicable */
+	exitCode?: number;
+	/** Error message, if the job failed*/
+	error?: string;
+}
+
+/**
  * Handle given to the runner to report progress back.
  */
 // TODO THIS IS TEMPORARY
 export interface IProgressReporter {
 	onLog(line: string): void;
+	onJobEnd(status: JobEndStatus): void;
 }

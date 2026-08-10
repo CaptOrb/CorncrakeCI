@@ -109,6 +109,10 @@ namespace CorncrakeCIAPI {
     /** Stage name. Absent for implicit (single-job) stages */
     name?: string;
 
+    status: ExecutionStatus;
+
+    workflow_id: string;
+
     jobs: JobSummary[];
   }
 

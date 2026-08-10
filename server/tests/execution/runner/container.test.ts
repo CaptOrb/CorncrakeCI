@@ -98,7 +98,7 @@ describe("container runner", () => {
 
 			await runner.runJob(
 				{ id: "1/1", steps: [{ command: "echo hello" }] },
-				{ onLog: vi.fn() },
+				{ onLog: vi.fn(), onJobEnd: vi.fn() },
 			);
 
 			expect(dockerode.createContainer).toHaveBeenCalledWith(
@@ -114,7 +114,7 @@ describe("container runner", () => {
 
 			await runner.runJob(
 				{ id: "1/1", steps: [{ image: "node:20", command: "node --version" }] },
-				{ onLog: vi.fn() },
+				{ onLog: vi.fn(), onJobEnd: vi.fn() },
 			);
 
 			expect(dockerode.createContainer).toHaveBeenCalledWith(
@@ -127,7 +127,7 @@ describe("container runner", () => {
 
 			await runner.runJob(
 				{ id: "1/1", steps: [{ command: "echo hi" }] },
-				{ onLog: vi.fn() },
+				{ onLog: vi.fn(), onJobEnd: vi.fn() },
 			);
 
 			expect(dockerode.createContainer).toHaveBeenCalledWith(
@@ -148,7 +148,7 @@ describe("container runner", () => {
 
 			await runner.runJob(
 				{ id: "1/1", steps: [{ command: "echo hi" }] },
-				{ onLog: vi.fn() },
+				{ onLog: vi.fn(), onJobEnd: vi.fn() },
 			);
 
 			expect(container.start).toHaveBeenCalled();
@@ -161,34 +161,36 @@ describe("container runner", () => {
 
 			await runner.runJob(
 				{ id: "1/1", steps: [{ command: "echo hi" }] },
-				{ onLog: vi.fn() },
+				{ onLog: vi.fn(), onJobEnd: vi.fn() },
 			);
 
 			expect(dockerode.getVolume).toHaveBeenCalledWith("corncrake-ws-1-1");
 		});
 
-		it("throws when the container exits non-zero", async () => {
+		it("reports failure when the container exits non-zero", async () => {
 			const runner = new ContainerRunner(config);
 			container.wait.mockResolvedValue({ StatusCode: 1 });
+			const reporter = { onLog: vi.fn(), onJobEnd: vi.fn() };
 
-			await expect(
-				runner.runJob(
-					{ id: "1/1", steps: [{ command: "false" }] },
-					{ onLog: vi.fn() },
-				),
-			).rejects.toThrow("Container exited with status 1");
+			await runner.runJob(
+				{ id: "1/1", steps: [{ command: "false" }] },
+				reporter,
+			);
+
+			expect(reporter.onJobEnd).toHaveBeenCalledWith({
+				success: false,
+				exitCode: 1,
+			});
 		});
 
 		it("removes container and volume even on failure", async () => {
 			const runner = new ContainerRunner(config);
 			container.wait.mockResolvedValue({ StatusCode: 1 });
 
-			await expect(
-				runner.runJob(
-					{ id: "1/1", steps: [{ command: "false" }] },
-					{ onLog: vi.fn() },
-				),
-			).rejects.toThrow();
+			await runner.runJob(
+				{ id: "1/1", steps: [{ command: "false" }] },
+				{ onLog: vi.fn(), onJobEnd: vi.fn() },
+			);
 
 			expect(container.remove).toHaveBeenCalledWith({ force: true });
 			expect(dockerode.getVolume).toHaveBeenCalledWith("corncrake-ws-1-1");
@@ -199,7 +201,7 @@ describe("container runner", () => {
 
 			await runner.runJob(
 				{ id: "1/1", steps: [{ command: "echo hi" }] },
-				{ onLog: vi.fn() },
+				{ onLog: vi.fn(), onJobEnd: vi.fn() },
 			);
 
 			expect(dockerode.createVolume).toHaveBeenCalledWith(
@@ -219,7 +221,7 @@ describe("container runner", () => {
 						{ image: "custom:latest", command: "step3" },
 					],
 				},
-				{ onLog: vi.fn() },
+				{ onLog: vi.fn(), onJobEnd: vi.fn() },
 			);
 
 			expect(dockerode.pull).toHaveBeenCalledTimes(2);

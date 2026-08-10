@@ -71,12 +71,13 @@ export class ContainerRunner implements IRunner {
 		job: RunnerJob,
 		progressReporter: IProgressReporter,
 	): Promise<void> {
-		void progressReporter; // TODO temp to suppress progressReporter' is declared but its value is never read."
 		const workspaceVolume = `corncrake-ws-${job.id.replaceAll("/", "-")}`;
 
 		const pulledImages = new Set<string>();
 
 		const [workflowRunId = "", jobRunId = ""] = job.id.split("/");
+
+		let lastStatusCode = 0;
 
 		console.log(`Starting job ${job.id}`);
 		try {
@@ -139,10 +140,14 @@ export class ContainerRunner implements IRunner {
 
 					const result = await container.wait();
 
+					lastStatusCode = result.StatusCode;
+
 					if (result.StatusCode !== 0) {
-						throw new Error(
-							`Container exited with status ${result.StatusCode}`,
-						);
+						progressReporter.onJobEnd({
+							success: false,
+							exitCode: lastStatusCode,
+						});
+						return;
 					}
 				} finally {
 					await container.remove({ force: true }).catch((err) => {
@@ -156,8 +161,14 @@ export class ContainerRunner implements IRunner {
 				"",
 			);*/
 			}
+			progressReporter.onJobEnd({ success: true });
 		} catch (err) {
 			console.error(`Job ${job.id} failed`, err);
+			progressReporter.onJobEnd({
+				success: false,
+				...(lastStatusCode !== 0 ? { exitCode: lastStatusCode } : {}),
+				error: err instanceof Error ? err.message : String(err),
+			});
 			throw err;
 		} finally {
 			for (let attempt = 0; attempt < 5; attempt++) {

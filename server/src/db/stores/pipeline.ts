@@ -17,6 +17,15 @@ export type CreatePipelineRunAttrs = Pick<
 	Exclude<keyof NewPipelineRun, "repo_id" | "triggered_at" | "pipeline_run_id">
 >;
 
+/** Describes the cascading effects of completing a job run */
+type JobRunCascadeResult =
+	| { pipelineCompleted: false; pipelineRunId?: PipelineRunId; repoId?: RepoId }
+	| {
+			pipelineCompleted: true;
+			pipelineSucceeded: boolean;
+			pipelineRunId: PipelineRunId;
+			repoId: RepoId;
+	  };
 export class PipelineStore {
 	constructor(private kysely: Transaction<Database>) {}
 
@@ -157,5 +166,165 @@ export class PipelineStore {
 			.where("job_run_id", "=", jobRunId)
 			.orderBy("step_index")
 			.execute();
+	}
+
+	/**
+	 * Updates the status of a job run and applies cascading status transitions
+	 * to the workflow and pipeline if this was the last incomplete job/workflow
+	 */
+	async updateJobRunStatus(
+		workflowRunId: WorkflowRunId,
+		jobRunId: JobRunId,
+		status: JobRunStatus,
+		started_at?: Date,
+		finished_at?: Date,
+	): Promise<JobRunCascadeResult> {
+		await this.kysely
+			.updateTable("job_runs")
+			.set({
+				status,
+				...(started_at !== undefined ? { started_at } : {}),
+				...(finished_at !== undefined ? { finished_at } : {}),
+			})
+			.where("workflow_run_id", "=", workflowRunId)
+			.where("job_run_id", "=", jobRunId)
+			.execute();
+
+		// Only the last job should update the workflow, so lock the row first
+		// lock is needed to prevent the case that the last update is lost when there are concurrent job completions
+		await this.kysely
+			.selectFrom("workflow_runs")
+			.selectAll()
+			.where("workflow_run_id", "=", workflowRunId)
+			.forUpdate()
+			.executeTakeFirstOrThrow();
+
+		const allDone = await this.allJobsComplete(workflowRunId);
+		if (!allDone) {
+			return { pipelineCompleted: false };
+		}
+
+		// All jobs are done, finalise the status
+		const succeeded = await this.workflowSucceeded(workflowRunId);
+		await this.updateWorkflowRunStatus(
+			workflowRunId,
+			succeeded ? WorkflowRunStatus.succeeded : WorkflowRunStatus.failed,
+		);
+
+		// Check whether this workflow completion also finishes the pipeline
+		const pipeline = await this.getPipelineForWorkflow(workflowRunId);
+		if (!pipeline) {
+			return { pipelineCompleted: false };
+		}
+
+		// Only the last workflow should update the pipeline, lock the row first
+		await this.kysely
+			.selectFrom("pipeline_runs")
+			.selectAll()
+			.where("pipeline_run_id", "=", pipeline.pipeline_run_id)
+			.forUpdate()
+			.executeTakeFirstOrThrow();
+
+		const allWorkflowsDone = await this.allWorkflowsComplete(
+			pipeline.pipeline_run_id,
+		);
+		if (!allWorkflowsDone) {
+			return {
+				pipelineCompleted: false,
+				pipelineRunId: pipeline.pipeline_run_id,
+				repoId: pipeline.repo_id,
+			};
+		}
+
+		const pipelineSucceeded = await this.allWorkflowsSucceeded(
+			pipeline.pipeline_run_id,
+		);
+
+		return {
+			pipelineCompleted: true,
+			pipelineSucceeded,
+			pipelineRunId: pipeline.pipeline_run_id,
+			repoId: pipeline.repo_id,
+		};
+	}
+
+	async updateWorkflowRunStatus(
+		workflowRunId: WorkflowRunId,
+		status: WorkflowRunStatus,
+	): Promise<void> {
+		await this.kysely
+			.updateTable("workflow_runs")
+			.set({ status })
+			.where("workflow_run_id", "=", workflowRunId)
+			.execute();
+	}
+
+	async allJobsComplete(workflowRunId: WorkflowRunId): Promise<boolean> {
+		const incomplete = await this.kysely
+			.selectFrom("job_runs")
+			.select("job_run_id")
+			.where("workflow_run_id", "=", workflowRunId)
+			.where("status", "=", JobRunStatus.incomplete)
+			.executeTakeFirst();
+		return incomplete === undefined;
+	}
+
+	async workflowSucceeded(workflowRunId: WorkflowRunId): Promise<boolean> {
+		const failed = await this.kysely
+			.selectFrom("job_runs")
+			.select("job_run_id")
+			.where("workflow_run_id", "=", workflowRunId)
+			.where("status", "in", [
+				JobRunStatus.failed,
+				JobRunStatus.cancelled,
+				JobRunStatus.timed_out,
+			])
+			.executeTakeFirst();
+		return failed === undefined;
+	}
+
+	async allWorkflowsComplete(pipelineRunId: PipelineRunId): Promise<boolean> {
+		const incomplete = await this.kysely
+			.selectFrom("workflow_runs")
+			.select("workflow_run_id")
+			.where("pipeline_run_id", "=", pipelineRunId)
+			.where("status", "=", WorkflowRunStatus.incomplete)
+			.executeTakeFirst();
+		return incomplete === undefined;
+	}
+
+	async allWorkflowsSucceeded(pipelineRunId: PipelineRunId): Promise<boolean> {
+		const failed = await this.kysely
+			.selectFrom("workflow_runs")
+			.select("workflow_run_id")
+			.where("pipeline_run_id", "=", pipelineRunId)
+			.where("status", "in", [
+				WorkflowRunStatus.failed,
+				WorkflowRunStatus.cancelled,
+				WorkflowRunStatus.timed_out,
+			])
+			.executeTakeFirst();
+		return failed === undefined;
+	}
+
+	async getPipelineForWorkflow(
+		workflowRunId: WorkflowRunId,
+	): Promise<
+		Pick<PipelineRun, "pipeline_run_id" | "repo_id" | "commit_hash"> | undefined
+	> {
+		return this.kysely
+			.selectFrom("workflow_runs")
+			.innerJoin(
+				"pipeline_runs",
+				"workflow_runs.pipeline_run_id",
+				"pipeline_runs.pipeline_run_id",
+			)
+			.select([
+				"pipeline_runs.pipeline_run_id",
+				"pipeline_runs.repo_id",
+				"pipeline_runs.commit_hash",
+			])
+			.where("workflow_runs.workflow_run_id", "=", workflowRunId)
+			.executeTakeFirst();
 	}
 }

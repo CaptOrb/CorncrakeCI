@@ -46,6 +46,21 @@ function mapJobStatus(status: JobRunStatus): t_ExecutionStatus {
 	}
 }
 
+/**
+ * Orders execution statuses by "badness", from best (completed: 0) to worst (failed: 7).
+ * Used to combine multiple statuses into a single status by taking the worst.
+ */
+const precedence: Record<t_ExecutionStatus, number> = {
+	failed: 7,
+	timed_out: 6,
+	cancelled: 5,
+	running: 4,
+	pending: 3,
+	incomplete: 2,
+	completed: 1,
+	skipped: 0,
+};
+
 function mapWorkflowStatus(status: WorkflowRunStatus): t_ExecutionStatus {
 	switch (status) {
 		case WorkflowRunStatus.incomplete:
@@ -86,11 +101,30 @@ export const listPipelines: ListPipelines = async (
 	const forge = await getForgeWithUser(userId);
 	await forge.checkAccess(repo.forge_repo_id, AccessLevel.Read);
 
+	// Compute each pipeline's status from its latest workflow run
+	const statuses = await transaction(async (txn) => {
+		const map = new Map<PipelineRunId, t_ExecutionStatus>();
+		await Promise.all(
+			pipeline.map(async (p) => {
+				const workflowRuns = await txn.pipelines.getWorkflowRuns(
+					p.pipeline_run_id,
+				);
+				// Most recent workflow run represents the pipeline's current status
+				const latestWorkflow = workflowRuns.at(0);
+				map.set(
+					p.pipeline_run_id,
+					latestWorkflow ? mapWorkflowStatus(latestWorkflow.status) : "pending",
+				);
+			}),
+		);
+		return map;
+	});
+
 	return respond.with200().body(
 		pipeline.map((p) => ({
 			pipeline_id: p.pipeline_run_id.toString(),
 			source_file: "",
-			status: "pending" as t_ExecutionStatus, // TODO fix
+			status: statuses.get(p.pipeline_run_id) ?? "pending",
 			trigger: {
 				event: p.trigger_event_type as t_TriggerEvent,
 				commit_sha: p.commit_hash,
@@ -171,10 +205,17 @@ export const getPipeline: GetPipeline = async ({ params }, respond, req) => {
 
 	const pipelineSourceFile = ""; // TODO
 
+	const pipelineStatus: t_ExecutionStatus =
+		workflows.length > 0
+			? workflows
+					.map((w) => mapWorkflowStatus(w.status))
+					.reduce((worst, s) => (precedence[s] > precedence[worst] ? s : worst))
+			: "pending";
+
 	return respond.with200().body({
 		pipeline_id: pipeline.pipeline_run_id.toString(),
 		source_file: pipelineSourceFile,
-		status: "pending", // TODO
+		status: pipelineStatus,
 		trigger,
 		created_at: pipeline.triggered_at.toISOString(),
 		config: "",
