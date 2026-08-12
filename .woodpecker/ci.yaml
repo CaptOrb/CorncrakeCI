@@ -108,6 +108,9 @@ steps:
   # to Gitea, but the repo is mirrored to GitHub in realtime)
   - name: notify-github-success
     image: curlimages/curl:latest
+    depends_on:
+      - server
+      - pgcrab
     commands:
       - |
         curl -L -X POST \
@@ -124,6 +127,9 @@ steps:
 
   - name: notify-github-failure
     image: curlimages/curl:latest
+    depends_on:
+      - server
+      - pgcrab
     commands:
       - |
         curl -L -X POST \
