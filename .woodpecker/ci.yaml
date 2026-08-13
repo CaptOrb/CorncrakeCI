@@ -110,7 +110,7 @@ steps:
     image: curlimages/curl:latest
     depends_on:
       - server
-      - pgcrab
+      - pgcrab (schema linter)
     commands:
       - |
         curl -L -X POST \
@@ -129,7 +129,7 @@ steps:
     image: curlimages/curl:latest
     depends_on:
       - server
-      - pgcrab
+      - pgcrab (schema linter)
     commands:
       - |
         curl -L -X POST \
