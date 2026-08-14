@@ -11,6 +11,7 @@ steps:
   - name: postgres
     detach: true
     image: postgres:17-alpine
+    failure: ignore # we don't care how postgres exits
     environment:
       POSTGRES_USER: corncrakecitest
       POSTGRES_PASSWORD: corncrakecitest

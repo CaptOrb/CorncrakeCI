@@ -69,9 +69,7 @@ export class ContainerRunner implements IRunner {
 	): Promise<void> {
 		const { id: jobRunId, workflowRunId } = job;
 		if (workflowRunId === undefined) {
-			throw new Error(
-				`job ${jobRunId} has no workflowRunId`,
-			);
+			throw new Error(`job ${jobRunId} has no workflowRunId`);
 		}
 
 		const jobId = `${workflowRunId}-${jobRunId}`;
