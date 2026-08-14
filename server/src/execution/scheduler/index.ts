@@ -10,7 +10,6 @@ import { createLogger } from "../../util/logging";
 import { isSubsetOrEqual } from "../../util/set";
 import type { PlannedJob, PlannedWorkflow } from "../plan";
 import type { IRunner } from "../runner/interface";
-import { toRunnerJob } from "../runner/mapper";
 import { PinoProgressReporter } from "../runner/progress";
 
 const log = createLogger(import.meta.url);
@@ -375,7 +374,7 @@ export class Scheduler {
 						log.child({ job: job.plannedJob.id }),
 					);
 					runner.instance
-						.runJob(toRunnerJob(job.plannedJob), reporter)
+						.runJob(job.plannedJob, reporter)
 						.then(() =>
 							handleJobComplete(job.workflow, job.plannedJob.id, true),
 						)

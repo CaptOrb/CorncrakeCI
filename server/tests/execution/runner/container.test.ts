@@ -1,5 +1,7 @@
 import { type Readable, Writable } from "node:stream";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { JobRunId } from "../../../src/db/schema/public/JobRuns";
+import type { WorkflowRunId } from "../../../src/db/schema/public/WorkflowRuns";
 import { ContainerRunner } from "../../../src/execution/runner/container";
 
 const config = {
@@ -97,7 +99,19 @@ describe("container runner", () => {
 			const runner = new ContainerRunner(config);
 
 			await runner.runJob(
-				{ id: "1/1", steps: [{ command: "echo hello" }] },
+				{
+					id: 1 as JobRunId,
+					workflowRunId: 1n as WorkflowRunId,
+					jobType: "user",
+					sourceLocation: { file: "corncrake", line: 1 },
+					steps: [
+						{
+							stepType: "user",
+							sourceLocation: { file: "corncrake", line: 1 },
+							command: "echo hello",
+						},
+					],
+				},
 				{ onLog: vi.fn(), onJobEnd: vi.fn() },
 			);
 
@@ -113,7 +127,20 @@ describe("container runner", () => {
 			const runner = new ContainerRunner(config);
 
 			await runner.runJob(
-				{ id: "1/1", steps: [{ image: "node:20", command: "node --version" }] },
+				{
+					id: 1 as JobRunId,
+					workflowRunId: 1n as WorkflowRunId,
+					jobType: "user",
+					sourceLocation: { file: "corncrake", line: 1 },
+					steps: [
+						{
+							stepType: "user",
+							sourceLocation: { file: "corncrake", line: 1 },
+							image: "node:20",
+							command: "node --version",
+						},
+					],
+				},
 				{ onLog: vi.fn(), onJobEnd: vi.fn() },
 			);
 
@@ -126,7 +153,19 @@ describe("container runner", () => {
 			const runner = new ContainerRunner(config);
 
 			await runner.runJob(
-				{ id: "1/1", steps: [{ command: "echo hi" }] },
+				{
+					id: 1 as JobRunId,
+					workflowRunId: 1n as WorkflowRunId,
+					jobType: "user",
+					sourceLocation: { file: "corncrake", line: 1 },
+					steps: [
+						{
+							stepType: "user",
+							sourceLocation: { file: "corncrake", line: 1 },
+							command: "echo hi",
+						},
+					],
+				},
 				{ onLog: vi.fn(), onJobEnd: vi.fn() },
 			);
 
@@ -147,7 +186,19 @@ describe("container runner", () => {
 			const runner = new ContainerRunner(config);
 
 			await runner.runJob(
-				{ id: "1/1", steps: [{ command: "echo hi" }] },
+				{
+					id: 1 as JobRunId,
+					workflowRunId: 1n as WorkflowRunId,
+					jobType: "user",
+					sourceLocation: { file: "corncrake", line: 1 },
+					steps: [
+						{
+							stepType: "user",
+							sourceLocation: { file: "corncrake", line: 1 },
+							command: "echo hi",
+						},
+					],
+				},
 				{ onLog: vi.fn(), onJobEnd: vi.fn() },
 			);
 
@@ -160,7 +211,19 @@ describe("container runner", () => {
 			const runner = new ContainerRunner(config);
 
 			await runner.runJob(
-				{ id: "1/1", steps: [{ command: "echo hi" }] },
+				{
+					id: 1 as JobRunId,
+					workflowRunId: 1n as WorkflowRunId,
+					jobType: "user",
+					sourceLocation: { file: "corncrake", line: 1 },
+					steps: [
+						{
+							stepType: "user",
+							sourceLocation: { file: "corncrake", line: 1 },
+							command: "echo hi",
+						},
+					],
+				},
 				{ onLog: vi.fn(), onJobEnd: vi.fn() },
 			);
 
@@ -173,7 +236,19 @@ describe("container runner", () => {
 			const reporter = { onLog: vi.fn(), onJobEnd: vi.fn() };
 
 			await runner.runJob(
-				{ id: "1/1", steps: [{ command: "false" }] },
+				{
+					id: 1 as JobRunId,
+					workflowRunId: 1n as WorkflowRunId,
+					jobType: "user",
+					sourceLocation: { file: "corncrake", line: 1 },
+					steps: [
+						{
+							stepType: "user",
+							sourceLocation: { file: "corncrake", line: 1 },
+							command: "false",
+						},
+					],
+				},
 				reporter,
 			);
 
@@ -188,7 +263,19 @@ describe("container runner", () => {
 			container.wait.mockResolvedValue({ StatusCode: 1 });
 
 			await runner.runJob(
-				{ id: "1/1", steps: [{ command: "false" }] },
+				{
+					id: 1 as JobRunId,
+					workflowRunId: 1n as WorkflowRunId,
+					jobType: "user",
+					sourceLocation: { file: "corncrake", line: 1 },
+					steps: [
+						{
+							stepType: "user",
+							sourceLocation: { file: "corncrake", line: 1 },
+							command: "false",
+						},
+					],
+				},
 				{ onLog: vi.fn(), onJobEnd: vi.fn() },
 			);
 
@@ -200,7 +287,19 @@ describe("container runner", () => {
 			const runner = new ContainerRunner(config);
 
 			await runner.runJob(
-				{ id: "1/1", steps: [{ command: "echo hi" }] },
+				{
+					id: 1 as JobRunId,
+					workflowRunId: 1n as WorkflowRunId,
+					jobType: "user",
+					sourceLocation: { file: "corncrake", line: 1 },
+					steps: [
+						{
+							stepType: "user",
+							sourceLocation: { file: "corncrake", line: 1 },
+							command: "echo hi",
+						},
+					],
+				},
 				{ onLog: vi.fn(), onJobEnd: vi.fn() },
 			);
 
@@ -214,11 +313,27 @@ describe("container runner", () => {
 
 			await runner.runJob(
 				{
-					id: "1/1",
+					id: 1 as JobRunId,
+					workflowRunId: 1n as WorkflowRunId,
+					jobType: "user",
+					sourceLocation: { file: "corncrake", line: 1 },
 					steps: [
-						{ command: "step1" },
-						{ command: "step2" },
-						{ image: "custom:latest", command: "step3" },
+						{
+							stepType: "user",
+							sourceLocation: { file: "corncrake", line: 1 },
+							command: "step1",
+						},
+						{
+							stepType: "user",
+							sourceLocation: { file: "corncrake", line: 1 },
+							command: "step2",
+						},
+						{
+							stepType: "user",
+							sourceLocation: { file: "corncrake", line: 1 },
+							image: "custom:latest",
+							command: "step3",
+						},
 					],
 				},
 				{ onLog: vi.fn(), onJobEnd: vi.fn() },

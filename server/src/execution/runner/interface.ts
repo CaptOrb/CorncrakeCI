@@ -1,16 +1,9 @@
+import type { PlannedUserJob } from "../plan";
+
 export interface DockerError {
 	statusCode?: number;
 }
 
-export interface RunnerStep {
-	image?: string;
-	command: string;
-}
-
-export interface RunnerJob {
-	id: string;
-	steps: RunnerStep[];
-} // id = `${workflowRunId}/${jobRunId}` for logging
 /**
  * Handle to a runner.
  */
@@ -33,7 +26,7 @@ export interface IRunner {
 	 *
 	 * TODO timeouts, resources, ...
 	 */
-	runJob(job: RunnerJob, reporter: IProgressReporter): Promise<void>;
+	runJob(job: PlannedUserJob, reporter: IProgressReporter): Promise<void>;
 
 	/**
 	 * Cancel a running job.

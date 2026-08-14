@@ -1,10 +1,6 @@
 import Dockerode from "dockerode";
-import type {
-	DockerError,
-	IProgressReporter,
-	IRunner,
-	RunnerJob,
-} from "./interface";
+import type { PlannedUserJob, PlannedUserStep } from "../plan";
+import type { DockerError, IProgressReporter, IRunner } from "./interface";
 
 /**
  * Path at which runtime tools are mounted into containers.
@@ -68,18 +64,32 @@ export class ContainerRunner implements IRunner {
 	}
 
 	async runJob(
-		job: RunnerJob,
+		job: PlannedUserJob,
 		progressReporter: IProgressReporter,
 	): Promise<void> {
-		const workspaceVolume = `corncrake-ws-${job.id.replaceAll("/", "-")}`;
+		const { id: jobRunId, workflowRunId } = job;
+		if (workflowRunId === undefined) {
+			throw new Error(
+				`job ${jobRunId} has no workflowRunId`,
+			);
+		}
+
+		const jobId = `${workflowRunId}-${jobRunId}`;
+		const workspaceVolume = `corncrake-ws-${jobId}`;
+
+		const steps = job.steps.flatMap((step): PlannedUserStep[] => {
+			if (step.stepType === "user") {
+				return [step];
+			}
+			console.warn(`skipping step of type '${step.stepType}'`);
+			return [];
+		});
 
 		const pulledImages = new Set<string>();
 
-		const [workflowRunId = "", jobRunId = ""] = job.id.split("/");
-
 		let lastStatusCode = 0;
 
-		console.log(`Starting job ${job.id}`);
+		console.log(`Starting job ${jobId}`);
 		try {
 			// TODO: is it sane for the workspace volume to already exist or should we just unconditionally create it?
 			const exists = await volumeExists(this.dockerode, workspaceVolume);
@@ -87,7 +97,7 @@ export class ContainerRunner implements IRunner {
 				// Ensure the workspace volume exists before starting the job
 				await this.dockerode.createVolume({ Name: workspaceVolume });
 			}
-			for (const [i, step] of job.steps.entries()) {
+			for (const [i, step] of steps.entries()) {
 				const image = step.image ?? this.config.defaultContainer;
 				console.log(`Starting step: ${step.command}`);
 
@@ -97,13 +107,13 @@ export class ContainerRunner implements IRunner {
 				}
 
 				const container = await this.dockerode.createContainer({
-					name: `corncrake-${job.id.replaceAll("/", "-")}-step-${i}`,
+					name: `corncrake-${jobId}-step-${i}`,
 					Image: image,
 					Cmd: ["sh", "-c", step.command],
 					WorkingDir: "/workspace",
 					Labels: {
-						"org.bytetank.corncrakeci.workflow-run-id": workflowRunId,
-						"org.bytetank.corncrakeci.job-run-id": jobRunId,
+						"org.bytetank.corncrakeci.workflow-run-id": String(workflowRunId),
+						"org.bytetank.corncrakeci.job-run-id": String(jobRunId),
 					},
 					// TODO make configurable
 					StopTimeout: 60,
@@ -163,7 +173,7 @@ export class ContainerRunner implements IRunner {
 			}
 			progressReporter.onJobEnd({ success: true });
 		} catch (err) {
-			console.error(`Job ${job.id} failed`, err);
+			console.error(`Job ${jobId} failed`, err);
 			progressReporter.onJobEnd({
 				success: false,
 				...(lastStatusCode !== 0 ? { exitCode: lastStatusCode } : {}),
