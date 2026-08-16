@@ -43,6 +43,24 @@ CREATE TYPE job_run_status AS ENUM (
     'timed_out'
 );
 
+-- Status of an individual step within a job
+CREATE TYPE job_run_step_status AS ENUM (
+    -- The step hasn't finished yet.
+    'incomplete',
+    -- The step was skipped because a condition for execution was not satisfied.
+    'skipped_condition',
+    -- The step was skipped because a prior step in the job failed or was skipped.
+    'skipped_prerequisite',
+    -- The step was cancelled explicitly.
+    'cancelled',
+    -- The step succeeded.
+    'succeeded',
+    -- The step failed.
+    'failed',
+    -- The step failed by running out of time.
+    'timed_out'
+);
+
 -- Kind of event that triggered an event
 CREATE TYPE trigger_event_type AS ENUM (
     'push',
@@ -159,7 +177,9 @@ CREATE TABLE job_run_steps (
 
     finished_at TIMESTAMPTZ,
 
-    -- TODO exit code? some name/identifier?
+    exit_code INT,
+
+    status job_run_step_status NOT NULL DEFAULT 'incomplete',
 
     -- TODO Store richer information (TODO Open issue if can't figure out what)
 
