@@ -1,6 +1,11 @@
 import Dockerode from "dockerode";
 import type { PlannedUserJob, PlannedUserStep } from "../plan";
-import type { DockerError, IProgressReporter, IRunner } from "./interface";
+import type {
+	DockerError,
+	IProgressReporter,
+	IRunner,
+	StepStatus,
+} from "./interface";
 
 /**
  * Path at which runtime tools are mounted into containers.
@@ -75,17 +80,19 @@ export class ContainerRunner implements IRunner {
 		const jobId = `${workflowRunId}-${jobRunId}`;
 		const workspaceVolume = `corncrake-ws-${jobId}`;
 
-		const steps = job.steps.flatMap((step): PlannedUserStep[] => {
-			if (step.stepType === "user") {
-				return [step];
-			}
-			console.warn(`skipping step of type '${step.stepType}'`);
-			return [];
-		});
+		const steps = job.steps.flatMap(
+			(step, index): { step: PlannedUserStep; index: number }[] => {
+				if (step.stepType === "user") {
+					return [{ step, index }];
+				}
+				console.warn(`skipping step of type '${step.stepType}'`);
+				return [];
+			},
+		);
 
 		const pulledImages = new Set<string>();
 
-		let lastStatusCode = 0;
+		const stepStatuses: StepStatus[] = [];
 
 		console.log(`Starting job ${jobId}`);
 		try {
@@ -95,9 +102,9 @@ export class ContainerRunner implements IRunner {
 				// Ensure the workspace volume exists before starting the job
 				await this.dockerode.createVolume({ Name: workspaceVolume });
 			}
-			for (const [i, step] of steps.entries()) {
+			for (const { step, index } of steps) {
 				const image = step.image ?? this.config.defaultContainer;
-				console.log(`Starting step: ${step.command}`);
+				console.log(`Starting step ${index}: ${step.command}`);
 
 				if (!pulledImages.has(image)) {
 					await ensureImage(this.dockerode, image);
@@ -105,7 +112,7 @@ export class ContainerRunner implements IRunner {
 				}
 
 				const container = await this.dockerode.createContainer({
-					name: `corncrake-${jobId}-step-${i}`,
+					name: `corncrake-${jobId}-step-${index}`,
 					Image: image,
 					Cmd: ["sh", "-c", step.command],
 					WorkingDir: "/workspace",
@@ -148,15 +155,28 @@ export class ContainerRunner implements IRunner {
 
 					const result = await container.wait();
 
-					lastStatusCode = result.StatusCode;
-
 					if (result.StatusCode !== 0) {
+						const stepStatus: StepStatus = {
+							stepIndex: index,
+							status: "failed",
+							exitCode: result.StatusCode,
+						};
+						stepStatuses.push(stepStatus);
+						progressReporter.onStepEnd(stepStatus);
 						progressReporter.onJobEnd({
 							success: false,
-							exitCode: lastStatusCode,
+							steps: stepStatuses,
 						});
 						return;
 					}
+
+					const stepStatus: StepStatus = {
+						stepIndex: index,
+						status: "succeeded",
+						exitCode: result.StatusCode,
+					};
+					stepStatuses.push(stepStatus);
+					progressReporter.onStepEnd(stepStatus);
 				} finally {
 					await container.remove({ force: true }).catch((err) => {
 						const status = (err as DockerError).statusCode;
@@ -169,12 +189,12 @@ export class ContainerRunner implements IRunner {
 				"",
 			);*/
 			}
-			progressReporter.onJobEnd({ success: true });
+			progressReporter.onJobEnd({ success: true, steps: stepStatuses });
 		} catch (err) {
 			console.error(`Job ${jobId} failed`, err);
 			progressReporter.onJobEnd({
 				success: false,
-				...(lastStatusCode !== 0 ? { exitCode: lastStatusCode } : {}),
+				steps: stepStatuses,
 				error: err instanceof Error ? err.message : String(err),
 			});
 			throw err;

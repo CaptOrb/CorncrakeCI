@@ -34,14 +34,31 @@ export interface IRunner {
 	cancelJob(job: null): Promise<void>;
 }
 
+export interface StepStatus {
+	/**
+	 * Index of the step within the job's steps
+	 */
+	stepIndex: number;
+	status:
+		| "succeeded"
+		| "failed"
+		| "skipped_condition"
+		| "skipped_prerequisite"
+		| "cancelled"
+		| "timed_out";
+	exitCode?: number;
+	error?: string;
+}
+
 /**
  * Status reported when a job finishes
+ * Success and error should be derived from steps?
  */
 export interface JobEndStatus {
 	/** Whether or not the job completed all steps successfully */
 	success: boolean;
-	/** Exit code of the step that failed, if applicable */
-	exitCode?: number;
+	/** Status for each step that was attempted*/
+	steps: StepStatus[];
 	/** Error message, if the job failed*/
 	error?: string;
 }
@@ -52,5 +69,6 @@ export interface JobEndStatus {
 // TODO THIS IS TEMPORARY
 export interface IProgressReporter {
 	onLog(line: string): void;
+	onStepEnd(status: StepStatus): void;
 	onJobEnd(status: JobEndStatus): void;
 }
