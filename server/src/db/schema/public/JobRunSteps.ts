@@ -3,6 +3,7 @@
 
 import type { WorkflowRunId } from './WorkflowRuns';
 import type { JobRunId } from './JobRuns';
+import type { default as JobRunStepStatus } from './JobRunStepStatus';
 import type { ColumnType, Selectable, Insertable, Updateable } from 'kysely';
 
 /** Identifier type for public.job_run_steps */
@@ -19,6 +20,10 @@ export default interface JobRunStepTable {
   started_at: ColumnType<Date | null, Date | string | null, Date | string | null>;
 
   finished_at: ColumnType<Date | null, Date | string | null, Date | string | null>;
+
+  exit_code: ColumnType<number | null, number | null, number | null>;
+
+  status: ColumnType<JobRunStepStatus, JobRunStepStatus | undefined, JobRunStepStatus>;
 }
 
 export type JobRunStep = Selectable<JobRunStepTable>;
