@@ -80,15 +80,17 @@ export class ContainerRunner implements IRunner {
 		const jobId = `${workflowRunId}-${jobRunId}`;
 		const workspaceVolume = `corncrake-ws-${jobId}`;
 
-		const steps = job.steps.flatMap(
-			(step, index): { step: PlannedUserStep; index: number }[] => {
-				if (step.stepType === "user") {
-					return [{ step, index }];
-				}
+		const steps: { step: PlannedUserStep; index: number }[] = [];
+
+		for (const [index, step] of job.steps.entries()) {
+			if (step.stepType !== "user") {
+				// TODO: support other types of steps
 				console.warn(`skipping step of type '${step.stepType}'`);
-				return [];
-			},
-		);
+				continue;
+			}
+
+			steps.push({ step, index });
+		}
 
 		const pulledImages = new Set<string>();
 
