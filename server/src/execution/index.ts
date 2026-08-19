@@ -52,6 +52,11 @@ export async function launchPipelineExecution(
 					await txn.pipelines.createJobRun(workflowRunId, job.id, jobName);
 					job.workflowRunId = workflowRunId;
 					++jobsInserted;
+					await txn.pipelines.createJobRunSteps(
+						workflowRunId,
+						job.id,
+						job.steps.map((_, index) => ({ step_index: index })),
+					);
 				}
 			}
 		}
