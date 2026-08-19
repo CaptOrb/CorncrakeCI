@@ -139,7 +139,7 @@ export class PipelineStore {
 	async createJobRunSteps(
 		workflowRunId: WorkflowRunId,
 		jobRunId: JobRunId,
-		steps: { step_index: number }[],
+		steps: { step_index: number; command?: string | null }[],
 	): Promise<void> {
 		await this.kysely
 			.insertInto("job_run_steps")
@@ -148,6 +148,7 @@ export class PipelineStore {
 					workflow_run_id: workflowRunId,
 					job_run_id: jobRunId,
 					step_index: s.step_index as JobRunStepsStepIndex,
+					command: s.command,
 				})),
 			)
 			.execute();

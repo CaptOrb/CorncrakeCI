@@ -181,6 +181,9 @@ CREATE TABLE job_run_steps (
 
     status job_run_step_status NOT NULL DEFAULT 'incomplete',
 
+    -- Store the command executed by each step so the frontend can display the actual step content
+    command TEXT,
+
     -- TODO Store richer information (TODO Open issue if can't figure out what)
 
     FOREIGN KEY (workflow_run_id, job_run_id) REFERENCES job_runs(workflow_run_id, job_run_id),

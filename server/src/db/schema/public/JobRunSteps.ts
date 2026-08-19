@@ -24,6 +24,8 @@ export default interface JobRunStepTable {
   exit_code: ColumnType<number | null, number | null, number | null>;
 
   status: ColumnType<JobRunStepStatus, JobRunStepStatus | undefined, JobRunStepStatus>;
+
+  command: ColumnType<string | null, string | null, string | null>;
 }
 
 export type JobRunStep = Selectable<JobRunStepTable>;
