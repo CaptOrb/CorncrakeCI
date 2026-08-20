@@ -3,11 +3,23 @@ import TriggerEventType from "../db/schema/public/TriggerEventType";
 import { transaction } from "../db/stores";
 import type { V0File } from "../pipeline/v0/ast";
 import { createLogger } from "../util/logging";
+import type { PlannedStep } from "./plan";
 import { gatherForPlanning, planAll } from "./planner";
 import type { Scheduler } from "./scheduler";
 import type { TriggerEvent } from "./trigger_event";
 
 const log = createLogger(import.meta.url);
+
+function stepName(step: PlannedStep): string {
+	switch (step.stepType) {
+		case "user":
+			return step.command;
+		case "cache":
+			return "cache NOT IMPLEMENTED";
+		case "env":
+			return "env NOT IMPLEMENTED";
+	}
+}
 
 export async function launchPipelineExecution(
 	repoId: RepoId,
@@ -52,6 +64,14 @@ export async function launchPipelineExecution(
 					await txn.pipelines.createJobRun(workflowRunId, job.id, jobName);
 					job.workflowRunId = workflowRunId;
 					++jobsInserted;
+					await txn.pipelines.createJobRunSteps(
+						workflowRunId,
+						job.id,
+						job.steps.map((step, index) => ({
+							step_index: index,
+							name: stepName(step),
+						})),
+					);
 				}
 			}
 		}

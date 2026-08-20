@@ -269,7 +269,7 @@ export const getJob: GetJob = async ({ params }, respond, req) => {
 		finished_at: job.finished_at?.toISOString(),
 		steps: steps.map((s) => ({
 			step_id: s.step_index.toString(),
-			name: `Step ${s.step_index}`,
+			name: s.name ?? `Step ${s.step_index}`,
 			status: s.started_at
 				? s.finished_at
 					? ("completed" as const)

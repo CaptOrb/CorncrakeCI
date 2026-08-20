@@ -112,7 +112,7 @@ describe("container runner", () => {
 						},
 					],
 				},
-				{ onLog: vi.fn(), onJobEnd: vi.fn() },
+				{ onLog: vi.fn(), onStepEnd: vi.fn(), onJobEnd: vi.fn() },
 			);
 
 			expect(dockerode.createContainer).toHaveBeenCalledWith(
@@ -141,7 +141,7 @@ describe("container runner", () => {
 						},
 					],
 				},
-				{ onLog: vi.fn(), onJobEnd: vi.fn() },
+				{ onLog: vi.fn(), onStepEnd: vi.fn(), onJobEnd: vi.fn() },
 			);
 
 			expect(dockerode.createContainer).toHaveBeenCalledWith(
@@ -166,7 +166,7 @@ describe("container runner", () => {
 						},
 					],
 				},
-				{ onLog: vi.fn(), onJobEnd: vi.fn() },
+				{ onLog: vi.fn(), onStepEnd: vi.fn(), onJobEnd: vi.fn() },
 			);
 
 			expect(dockerode.createContainer).toHaveBeenCalledWith(
@@ -199,7 +199,11 @@ describe("container runner", () => {
 						},
 					],
 				},
-				{ onLog: vi.fn(), onJobEnd: vi.fn() },
+				{
+					onLog: vi.fn(),
+					onStepEnd: vi.fn(),
+					onJobEnd: vi.fn(),
+				},
 			);
 
 			expect(container.start).toHaveBeenCalled();
@@ -224,7 +228,7 @@ describe("container runner", () => {
 						},
 					],
 				},
-				{ onLog: vi.fn(), onJobEnd: vi.fn() },
+				{ onLog: vi.fn(), onStepEnd: vi.fn(), onJobEnd: vi.fn() },
 			);
 
 			expect(dockerode.getVolume).toHaveBeenCalledWith("corncrake-ws-1-1");
@@ -233,7 +237,11 @@ describe("container runner", () => {
 		it("reports failure when the container exits non-zero", async () => {
 			const runner = new ContainerRunner(config);
 			container.wait.mockResolvedValue({ StatusCode: 1 });
-			const reporter = { onLog: vi.fn(), onJobEnd: vi.fn() };
+			const reporter = {
+				onLog: vi.fn(),
+				onStepEnd: vi.fn(),
+				onJobEnd: vi.fn(),
+			};
 
 			await runner.runJob(
 				{
@@ -252,9 +260,14 @@ describe("container runner", () => {
 				reporter,
 			);
 
+			expect(reporter.onStepEnd).toHaveBeenCalledWith({
+				stepIndex: 0,
+				status: "failed",
+				exitCode: 1,
+			});
 			expect(reporter.onJobEnd).toHaveBeenCalledWith({
 				success: false,
-				exitCode: 1,
+				steps: [{ stepIndex: 0, status: "failed", exitCode: 1 }],
 			});
 		});
 
@@ -276,7 +289,7 @@ describe("container runner", () => {
 						},
 					],
 				},
-				{ onLog: vi.fn(), onJobEnd: vi.fn() },
+				{ onLog: vi.fn(), onStepEnd: vi.fn(), onJobEnd: vi.fn() },
 			);
 
 			expect(container.remove).toHaveBeenCalledWith({ force: true });
@@ -300,7 +313,7 @@ describe("container runner", () => {
 						},
 					],
 				},
-				{ onLog: vi.fn(), onJobEnd: vi.fn() },
+				{ onLog: vi.fn(), onStepEnd: vi.fn(), onJobEnd: vi.fn() },
 			);
 
 			expect(dockerode.createVolume).toHaveBeenCalledWith(
@@ -336,7 +349,7 @@ describe("container runner", () => {
 						},
 					],
 				},
-				{ onLog: vi.fn(), onJobEnd: vi.fn() },
+				{ onLog: vi.fn(), onStepEnd: vi.fn(), onJobEnd: vi.fn() },
 			);
 
 			expect(dockerode.pull).toHaveBeenCalledTimes(2);

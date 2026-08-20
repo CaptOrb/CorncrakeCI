@@ -1,7 +1,11 @@
 import type { Transaction } from "kysely";
 import type Database from "../schema/Database";
 import JobRunStatus from "../schema/public/JobRunStatus";
-import type { JobRunStep } from "../schema/public/JobRunSteps";
+import type JobRunStepStatus from "../schema/public/JobRunStepStatus";
+import type {
+	JobRunStep,
+	JobRunStepsStepIndex,
+} from "../schema/public/JobRunSteps";
 import type { JobRun, JobRunId } from "../schema/public/JobRuns";
 import type {
 	NewPipelineRun,
@@ -126,6 +130,50 @@ export class PipelineStore {
 				name,
 				status: JobRunStatus.incomplete,
 			})
+			.execute();
+	}
+
+	/**
+	 * inserts the rows for the steps of a job run.
+	 */
+	async createJobRunSteps(
+		workflowRunId: WorkflowRunId,
+		jobRunId: JobRunId,
+		steps: { step_index: number; name: string }[],
+	): Promise<void> {
+		await this.kysely
+			.insertInto("job_run_steps")
+			.values(
+				steps.map((s) => ({
+					workflow_run_id: workflowRunId,
+					job_run_id: jobRunId,
+					step_index: s.step_index as JobRunStepsStepIndex,
+					name: s.name,
+				})),
+			)
+			.execute();
+	}
+
+	/**
+	 * Updates the status of a single step within a job run.
+	 */
+	async updateJobRunStep(
+		workflowRunId: WorkflowRunId,
+		jobRunId: JobRunId,
+		stepIndex: number,
+		update: {
+			status?: JobRunStepStatus;
+			started_at?: Date;
+			finished_at?: Date;
+			exit_code?: number | null;
+		},
+	): Promise<void> {
+		await this.kysely
+			.updateTable("job_run_steps")
+			.set(update)
+			.where("workflow_run_id", "=", workflowRunId)
+			.where("job_run_id", "=", jobRunId)
+			.where("step_index", "=", stepIndex as JobRunStepsStepIndex)
 			.execute();
 	}
 

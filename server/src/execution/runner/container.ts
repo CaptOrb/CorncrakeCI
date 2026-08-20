@@ -1,6 +1,11 @@
 import Dockerode from "dockerode";
-import type { PlannedUserJob, PlannedUserStep } from "../plan";
-import type { DockerError, IProgressReporter, IRunner } from "./interface";
+import type { PlannedUserJob } from "../plan";
+import type {
+	DockerError,
+	IProgressReporter,
+	IRunner,
+	StepStatus,
+} from "./interface";
 
 /**
  * Path at which runtime tools are mounted into containers.
@@ -75,17 +80,9 @@ export class ContainerRunner implements IRunner {
 		const jobId = `${workflowRunId}-${jobRunId}`;
 		const workspaceVolume = `corncrake-ws-${jobId}`;
 
-		const steps = job.steps.flatMap((step): PlannedUserStep[] => {
-			if (step.stepType === "user") {
-				return [step];
-			}
-			console.warn(`skipping step of type '${step.stepType}'`);
-			return [];
-		});
-
 		const pulledImages = new Set<string>();
 
-		let lastStatusCode = 0;
+		const stepStatuses: StepStatus[] = [];
 
 		console.log(`Starting job ${jobId}`);
 		try {
@@ -95,38 +92,46 @@ export class ContainerRunner implements IRunner {
 				// Ensure the workspace volume exists before starting the job
 				await this.dockerode.createVolume({ Name: workspaceVolume });
 			}
-			for (const [i, step] of steps.entries()) {
-				const image = step.image ?? this.config.defaultContainer;
-				console.log(`Starting step: ${step.command}`);
-
-				if (!pulledImages.has(image)) {
-					await ensureImage(this.dockerode, image);
-					pulledImages.add(image);
+			for (const [index, step] of job.steps.entries()) {
+				if (step.stepType !== "user") {
+					// TODO: support other types of steps
+					console.warn(`skipping step of type '${step.stepType}'`);
+					continue;
 				}
 
-				const container = await this.dockerode.createContainer({
-					name: `corncrake-${jobId}-step-${i}`,
-					Image: image,
-					Cmd: ["sh", "-c", step.command],
-					WorkingDir: "/workspace",
-					Labels: {
-						"org.bytetank.corncrakeci.workflow-run-id": String(workflowRunId),
-						"org.bytetank.corncrakeci.job-run-id": String(jobRunId),
-					},
-					// TODO make configurable
-					StopTimeout: 60,
+				const image = step.image ?? this.config.defaultContainer;
+				console.log(`Starting step ${index}: ${step.command}`);
 
-					HostConfig: {
-						Binds: [
-							`${workspaceVolume}:/workspace:rw`,
-							`${this.config.runtimeOverlayVolume}:${RUNTIME_OVERLAY_PATH}:ro`,
-						],
-						NanoCpus: this.config.cpuLimitMilli * 1_000_000,
-						Memory: this.config.memoryLimitMb * 1_000_000,
-						AutoRemove: true,
-					},
-				});
+				let container: Dockerode.Container | undefined;
 				try {
+					if (!pulledImages.has(image)) {
+						await ensureImage(this.dockerode, image);
+						pulledImages.add(image);
+					}
+
+					container = await this.dockerode.createContainer({
+						name: `corncrake-${jobId}-step-${index}`,
+						Image: image,
+						Cmd: ["sh", "-c", step.command],
+						WorkingDir: "/workspace",
+						Labels: {
+							"org.bytetank.corncrakeci.workflow-run-id": String(workflowRunId),
+							"org.bytetank.corncrakeci.job-run-id": String(jobRunId),
+						},
+						// TODO make configurable
+						StopTimeout: 60,
+
+						HostConfig: {
+							Binds: [
+								`${workspaceVolume}:/workspace:rw`,
+								`${this.config.runtimeOverlayVolume}:${RUNTIME_OVERLAY_PATH}:ro`,
+							],
+							NanoCpus: this.config.cpuLimitMilli * 1_000_000,
+							Memory: this.config.memoryLimitMb * 1_000_000,
+							AutoRemove: true,
+						},
+					});
+
 					// TODO Pipe logs to progressReporter.onLog
 
 					const stream = await container.attach({
@@ -139,26 +144,50 @@ export class ContainerRunner implements IRunner {
 						console.log(chunk.toString());
 					});
 					/*
-					stream.on("data", (chunk) => {
-						progressReporter.onLog(chunk.toString());
-					});*/
+				stream.on("data", (chunk) => {
+					progressReporter.onLog(chunk.toString());
+				});*/
 
 					console.log(`Starting container ${container.id}`);
 					await container.start();
 
 					const result = await container.wait();
 
-					lastStatusCode = result.StatusCode;
-
 					if (result.StatusCode !== 0) {
+						const stepStatus: StepStatus = {
+							stepIndex: index,
+							status: "failed",
+							exitCode: result.StatusCode,
+						};
+						stepStatuses.push(stepStatus);
+						progressReporter.onStepEnd(stepStatus);
 						progressReporter.onJobEnd({
 							success: false,
-							exitCode: lastStatusCode,
+							steps: stepStatuses,
 						});
 						return;
 					}
+
+					const stepStatus: StepStatus = {
+						stepIndex: index,
+						status: "succeeded",
+						exitCode: result.StatusCode,
+					};
+					stepStatuses.push(stepStatus);
+					progressReporter.onStepEnd(stepStatus);
+				} catch (err) {
+					// Record anything that throws before the step records a terminal
+					// status (image pull, container creation ...) as failed so it doesn't read as incomplete.
+					const stepStatus: StepStatus = {
+						stepIndex: index,
+						status: "failed",
+						error: err instanceof Error ? err.message : String(err),
+					};
+					stepStatuses.push(stepStatus);
+					progressReporter.onStepEnd(stepStatus);
+					throw err;
 				} finally {
-					await container.remove({ force: true }).catch((err) => {
+					await container?.remove({ force: true }).catch((err) => {
 						const status = (err as DockerError).statusCode;
 						if (status !== 409 && status !== 404) throw err;
 					});
@@ -169,12 +198,12 @@ export class ContainerRunner implements IRunner {
 				"",
 			);*/
 			}
-			progressReporter.onJobEnd({ success: true });
+			progressReporter.onJobEnd({ success: true, steps: stepStatuses });
 		} catch (err) {
 			console.error(`Job ${jobId} failed`, err);
 			progressReporter.onJobEnd({
 				success: false,
-				...(lastStatusCode !== 0 ? { exitCode: lastStatusCode } : {}),
+				steps: stepStatuses,
 				error: err instanceof Error ? err.message : String(err),
 			});
 			throw err;
