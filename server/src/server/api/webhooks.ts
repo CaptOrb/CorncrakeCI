@@ -119,17 +119,6 @@ export const handleWebhook = async (req: RawBodyRequest, res: Response) => {
 		}
 	}
 
-	forge
-		.createCommitStatus(
-			repo.forge_repo_id,
-			commitHash,
-			"pending",
-			"pipeline queued",
-			"corncrake/ci",
-			`${config.app.baseurl}/repos/${repoId}/pipelines`,
-		)
-		.catch((err) => log.warn({ err }, "failed to set pending commit status"));
-
 	const corncrakeciConfig = await forge.getCorncrakeciConfig(
 		repo.forge_repo_id,
 		// TODO For PRs, we want to load the CI config that is the merge result, not just the PR.
@@ -148,12 +137,23 @@ export const handleWebhook = async (req: RawBodyRequest, res: Response) => {
 		shortDescription,
 	);
 
-	await launchPipelineExecution(
+	const pipelineRunId = await launchPipelineExecution(
 		repoId,
 		configs,
 		triggerEvent,
 		globalScheduler(),
 	);
+
+	forge
+		.createCommitStatus(
+			repo.forge_repo_id,
+			commitHash,
+			"pending",
+			"pipeline queued",
+			"corncrake/ci",
+			`${config.app.baseurl}/repos/${repoId}/pipelines/${pipelineRunId}`,
+		)
+		.catch((err) => log.warn({ err }, "failed to set pending commit status"));
 
 	// TODO Report the pipeline ID in the output?
 	return res.status(200).end();

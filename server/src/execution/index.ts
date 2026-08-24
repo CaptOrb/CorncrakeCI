@@ -1,3 +1,4 @@
+import type { PipelineRunId } from "../db/schema/public/PipelineRuns";
 import type { RepoId } from "../db/schema/public/Repositories";
 import TriggerEventType from "../db/schema/public/TriggerEventType";
 import { transaction } from "../db/stores";
@@ -21,17 +22,23 @@ function stepName(step: PlannedStep): string {
 	}
 }
 
+/**
+ * Plans the workflows for a trigger event, persists them to the database as a
+ * new pipeline run, and schedules the workflows on the scheduler.
+ *
+ * @returns The ID of the newly created pipeline run.
+ */
 export async function launchPipelineExecution(
 	repoId: RepoId,
 	files: Map<string, V0File>,
 	event: TriggerEvent,
 	scheduler: Scheduler,
-): Promise<void> {
+): Promise<PipelineRunId> {
 	const gathered = await gatherForPlanning(files);
 	const plannedWorkflows = planAll(gathered, event);
 
 	// Persist the workflows into the database, assigning them IDs in the process
-	await transaction(async (txn) => {
+	const { pipelineRunId } = await transaction(async (txn) => {
 		const pipelineRunId = await txn.pipelines.createPipelineRun(repoId, {
 			// TODO support more types
 			trigger_event_type:
@@ -87,4 +94,6 @@ export async function launchPipelineExecution(
 	for (const workflow of plannedWorkflows) {
 		scheduler.schedule(workflow);
 	}
+
+	return pipelineRunId;
 }
