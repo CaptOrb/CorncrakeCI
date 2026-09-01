@@ -31,6 +31,15 @@ function makeContainer() {
 	};
 }
 
+function makeReporter() {
+	return {
+		onLog: vi.fn(),
+		onStepStart: vi.fn(),
+		onStepEnd: vi.fn(),
+		onJobEnd: vi.fn(),
+	};
+}
+
 function makeVolume(
 	overrides: { inspect?: () => unknown; remove?: () => unknown } = {},
 ) {
@@ -112,7 +121,7 @@ describe("container runner", () => {
 						},
 					],
 				},
-				{ onLog: vi.fn(), onStepEnd: vi.fn(), onJobEnd: vi.fn() },
+				makeReporter(),
 			);
 
 			expect(dockerode.createContainer).toHaveBeenCalledWith(
@@ -141,7 +150,7 @@ describe("container runner", () => {
 						},
 					],
 				},
-				{ onLog: vi.fn(), onStepEnd: vi.fn(), onJobEnd: vi.fn() },
+				makeReporter(),
 			);
 
 			expect(dockerode.createContainer).toHaveBeenCalledWith(
@@ -166,7 +175,7 @@ describe("container runner", () => {
 						},
 					],
 				},
-				{ onLog: vi.fn(), onStepEnd: vi.fn(), onJobEnd: vi.fn() },
+				makeReporter(),
 			);
 
 			expect(dockerode.createContainer).toHaveBeenCalledWith(
@@ -199,11 +208,7 @@ describe("container runner", () => {
 						},
 					],
 				},
-				{
-					onLog: vi.fn(),
-					onStepEnd: vi.fn(),
-					onJobEnd: vi.fn(),
-				},
+				makeReporter(),
 			);
 
 			expect(container.start).toHaveBeenCalled();
@@ -228,7 +233,7 @@ describe("container runner", () => {
 						},
 					],
 				},
-				{ onLog: vi.fn(), onStepEnd: vi.fn(), onJobEnd: vi.fn() },
+				makeReporter(),
 			);
 
 			expect(dockerode.getVolume).toHaveBeenCalledWith("corncrake-ws-1-1");
@@ -237,11 +242,7 @@ describe("container runner", () => {
 		it("reports failure when the container exits non-zero", async () => {
 			const runner = new ContainerRunner(config);
 			container.wait.mockResolvedValue({ StatusCode: 1 });
-			const reporter = {
-				onLog: vi.fn(),
-				onStepEnd: vi.fn(),
-				onJobEnd: vi.fn(),
-			};
+			const reporter = makeReporter();
 
 			await runner.runJob(
 				{
@@ -289,7 +290,7 @@ describe("container runner", () => {
 						},
 					],
 				},
-				{ onLog: vi.fn(), onStepEnd: vi.fn(), onJobEnd: vi.fn() },
+				makeReporter(),
 			);
 
 			expect(container.remove).toHaveBeenCalledWith({ force: true });
@@ -313,7 +314,7 @@ describe("container runner", () => {
 						},
 					],
 				},
-				{ onLog: vi.fn(), onStepEnd: vi.fn(), onJobEnd: vi.fn() },
+				makeReporter(),
 			);
 
 			expect(dockerode.createVolume).toHaveBeenCalledWith(
@@ -349,7 +350,7 @@ describe("container runner", () => {
 						},
 					],
 				},
-				{ onLog: vi.fn(), onStepEnd: vi.fn(), onJobEnd: vi.fn() },
+				makeReporter(),
 			);
 
 			expect(dockerode.pull).toHaveBeenCalledTimes(2);
