@@ -2,10 +2,9 @@ import type { JobRunId } from "../../db/schema/public/JobRuns";
 import type { WorkflowRunId } from "../../db/schema/public/WorkflowRuns";
 import { createLogger } from "../../util/logging";
 import { isSubsetOrEqual } from "../../util/set";
-import { handleJobComplete } from "../job-completion";
 import type { PlannedJob, PlannedWorkflow } from "../plan";
 import type { IRunner } from "../runner/interface";
-import { PinoProgressReporter } from "../runner/progress";
+import { DatabaseProgressReporter } from "../runner/progress";
 
 const log = createLogger(import.meta.url);
 
@@ -300,17 +299,14 @@ export class Scheduler {
 					}
 
 					// Actually submit to the runner and track that we did
-					const reporter = new PinoProgressReporter(
-						log.child({ job: job.plannedJob.id }),
+					const reporter = new DatabaseProgressReporter(
+						job.workflow,
+						job.plannedJob.id,
 					);
 					runner.instance
 						.runJob(job.plannedJob, reporter)
-						.then(() =>
-							handleJobComplete(job.workflow, job.plannedJob.id, true),
-						)
 						.catch((err) => {
 							log.warn({ err }, "job failed");
-							return handleJobComplete(job.workflow, job.plannedJob.id, false);
 						})
 						.finally(() => this.tryScheduleNow());
 

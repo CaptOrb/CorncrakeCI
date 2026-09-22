@@ -1,4 +1,3 @@
-import type { Logger } from "pino";
 import JobRunStepStatus from "../../db/schema/public/JobRunStepStatus";
 import type { JobRunId } from "../../db/schema/public/JobRuns";
 import type { WorkflowRunId } from "../../db/schema/public/WorkflowRuns";
@@ -8,48 +7,6 @@ import { handleJobComplete } from "../job-completion";
 import type { IProgressReporter, JobEndStatus, StepStatus } from "./interface";
 
 const log = createLogger(import.meta.url);
-
-/**
- * TEMPORARY: Basic progress reporter that logs to pino.
- * Will be replaced with a proper streaming reporter later.
- */
-export class PinoProgressReporter implements IProgressReporter {
-	constructor(private logger: Logger) {}
-
-	onLog(line: string): void {
-		this.logger.info({ line });
-	}
-
-	onStepStart(_stepIndex: number): Promise<void> {
-		throw new Error("Method not implemented.");
-	}
-
-	async onStepEnd(status: StepStatus): Promise<void> {
-		this.logger.info(
-			{
-				stepIndex: status.stepIndex,
-				status: status.status,
-				exitCode: status.exitCode,
-				error: status.error,
-			},
-			"step ended",
-		);
-	}
-
-	async onJobEnd(status: JobEndStatus): Promise<void> {
-		if (status.success) {
-			this.logger.info("job succeeded");
-		} else {
-			this.logger.error(
-				{
-					steps: status.steps,
-					error: status.error,
-				},
-				"job failed",
-			);
-		}
-	}
-}
 
 /**
  * Progress reporter that persists job and step progress to the database.
