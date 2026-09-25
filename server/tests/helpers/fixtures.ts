@@ -6,7 +6,6 @@ import type { WorkflowRunId } from "../../src/db/schema/public/WorkflowRuns";
 import { transaction } from "../../src/db/stores";
 import type { CreatePipelineRunAttrs } from "../../src/db/stores/pipeline";
 
-
 export interface PipelineRunFixture {
 	repoId: RepoId;
 	pipelineRunId: PipelineRunId;

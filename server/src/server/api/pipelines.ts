@@ -1,4 +1,5 @@
 import JobRunStatus from "../../db/schema/public/JobRunStatus";
+import JobRunStepStatus from "../../db/schema/public/JobRunStepStatus";
 import type { JobRunId } from "../../db/schema/public/JobRuns";
 import type {
 	PipelineRun,
@@ -17,6 +18,7 @@ import type {
 	t_ExecutionStatus,
 	t_JobSummary,
 	t_StageInfo,
+	t_StepStatus,
 	t_TriggerEvent,
 	t_TriggerInfo,
 } from "../../generated/server/models";
@@ -42,6 +44,32 @@ function mapJobStatus(status: JobRunStatus): t_ExecutionStatus {
 		case JobRunStatus.skipped_condition:
 			return "skipped";
 		case JobRunStatus.skipped_prerequisite:
+			return "skipped";
+	}
+}
+
+/**
+ * Maps a persisted step status to the status exposed by the API.
+ *
+ * `isLive` says whether the step is currently in progress
+ */
+function mapStepStatus(
+	status: JobRunStepStatus,
+	isLive: boolean,
+): t_StepStatus["status"] {
+	switch (status) {
+		case JobRunStepStatus.incomplete:
+			return isLive ? "running" : "pending";
+		case JobRunStepStatus.succeeded:
+			return "completed";
+		case JobRunStepStatus.failed:
+			return "failed";
+		case JobRunStepStatus.timed_out:
+			return "timed_out";
+		case JobRunStepStatus.cancelled:
+			return "cancelled";
+		case JobRunStepStatus.skipped_condition:
+		case JobRunStepStatus.skipped_prerequisite:
 			return "skipped";
 	}
 }
@@ -261,22 +289,28 @@ export const getJob: GetJob = async ({ params }, respond, req) => {
 		return txn.pipelines.getJobRunSteps(job.workflow_run_id, jobRunId);
 	});
 
+	const jobIsTerminal = job.status !== JobRunStatus.incomplete;
+
 	return respond.with200().body({
 		job_id: job.job_run_id.toString(),
 		name: job.name,
 		status: mapJobStatus(job.status),
 		started_at: job.started_at?.toISOString(),
 		finished_at: job.finished_at?.toISOString(),
-		steps: steps.map((s) => ({
-			step_id: s.step_index.toString(),
-			name: s.name ?? `Step ${s.step_index}`,
-			status: s.started_at
-				? s.finished_at
-					? ("completed" as const)
-					: ("running" as const)
-				: ("pending" as const),
-			started_at: s.started_at?.toISOString(),
-			finished_at: s.finished_at?.toISOString(),
-		})),
+		steps: steps.map((s) => {
+			const isLive =
+				s.status === JobRunStepStatus.incomplete &&
+				!jobIsTerminal &&
+				s.started_at != null;
+
+			return {
+				step_id: s.step_index.toString(),
+				name: s.name ?? `Step ${s.step_index}`,
+				status: mapStepStatus(s.status, isLive),
+				exit_code: s.exit_code ?? undefined,
+				started_at: s.started_at?.toISOString(),
+				finished_at: s.finished_at?.toISOString(),
+			};
+		}),
 	});
 };

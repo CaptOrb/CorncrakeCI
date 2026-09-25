@@ -148,6 +148,7 @@ export class ContainerRunner implements IRunner {
 					progressReporter.onLog(chunk.toString());
 				});*/
 
+					await progressReporter.onStepStart(index);
 					console.log(`Starting container ${container.id}`);
 					await container.start();
 
