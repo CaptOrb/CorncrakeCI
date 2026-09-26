@@ -161,8 +161,8 @@ export class ContainerRunner implements IRunner {
 							exitCode: result.StatusCode,
 						};
 						stepStatuses.push(stepStatus);
-						progressReporter.onStepEnd(stepStatus);
-						progressReporter.onJobEnd({
+						await progressReporter.onStepEnd(stepStatus);
+						await progressReporter.onJobEnd({
 							success: false,
 							steps: stepStatuses,
 						});
@@ -175,7 +175,7 @@ export class ContainerRunner implements IRunner {
 						exitCode: result.StatusCode,
 					};
 					stepStatuses.push(stepStatus);
-					progressReporter.onStepEnd(stepStatus);
+					await progressReporter.onStepEnd(stepStatus);
 				} catch (err) {
 					// Record anything that throws before the step records a terminal
 					// status (image pull, container creation ...) as failed so it doesn't read as incomplete.
@@ -185,7 +185,7 @@ export class ContainerRunner implements IRunner {
 						error: err instanceof Error ? err.message : String(err),
 					};
 					stepStatuses.push(stepStatus);
-					progressReporter.onStepEnd(stepStatus);
+					await progressReporter.onStepEnd(stepStatus);
 					throw err;
 				} finally {
 					await container?.remove({ force: true }).catch((err) => {
@@ -199,10 +199,10 @@ export class ContainerRunner implements IRunner {
 				"",
 			);*/
 			}
-			progressReporter.onJobEnd({ success: true, steps: stepStatuses });
+			await progressReporter.onJobEnd({ success: true, steps: stepStatuses });
 		} catch (err) {
 			console.error(`Job ${jobId} failed`, err);
-			progressReporter.onJobEnd({
+			await progressReporter.onJobEnd({
 				success: false,
 				steps: stepStatuses,
 				error: err instanceof Error ? err.message : String(err),
