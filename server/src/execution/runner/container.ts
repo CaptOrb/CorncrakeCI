@@ -148,6 +148,7 @@ export class ContainerRunner implements IRunner {
 					progressReporter.onLog(chunk.toString());
 				});*/
 
+					await progressReporter.onStepStart(index);
 					console.log(`Starting container ${container.id}`);
 					await container.start();
 
@@ -160,8 +161,8 @@ export class ContainerRunner implements IRunner {
 							exitCode: result.StatusCode,
 						};
 						stepStatuses.push(stepStatus);
-						progressReporter.onStepEnd(stepStatus);
-						progressReporter.onJobEnd({
+						await progressReporter.onStepEnd(stepStatus);
+						await progressReporter.onJobEnd({
 							success: false,
 							steps: stepStatuses,
 						});
@@ -174,7 +175,7 @@ export class ContainerRunner implements IRunner {
 						exitCode: result.StatusCode,
 					};
 					stepStatuses.push(stepStatus);
-					progressReporter.onStepEnd(stepStatus);
+					await progressReporter.onStepEnd(stepStatus);
 				} catch (err) {
 					// Record anything that throws before the step records a terminal
 					// status (image pull, container creation ...) as failed so it doesn't read as incomplete.
@@ -184,7 +185,13 @@ export class ContainerRunner implements IRunner {
 						error: err instanceof Error ? err.message : String(err),
 					};
 					stepStatuses.push(stepStatus);
-					progressReporter.onStepEnd(stepStatus);
+					// Don't let a failure to record the step replace the original error.
+					await progressReporter.onStepEnd(stepStatus).catch((reportErr) => {
+						console.error(
+							`Failed to record failed status for step ${index}`,
+							reportErr,
+						);
+					});
 					throw err;
 				} finally {
 					await container?.remove({ force: true }).catch((err) => {
@@ -198,10 +205,10 @@ export class ContainerRunner implements IRunner {
 				"",
 			);*/
 			}
-			progressReporter.onJobEnd({ success: true, steps: stepStatuses });
+			await progressReporter.onJobEnd({ success: true, steps: stepStatuses });
 		} catch (err) {
 			console.error(`Job ${jobId} failed`, err);
-			progressReporter.onJobEnd({
+			await progressReporter.onJobEnd({
 				success: false,
 				steps: stepStatuses,
 				error: err instanceof Error ? err.message : String(err),

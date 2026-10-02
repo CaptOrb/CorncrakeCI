@@ -69,6 +69,7 @@ export interface JobEndStatus {
 // TODO THIS IS TEMPORARY
 export interface IProgressReporter {
 	onLog(line: string): void;
-	onStepEnd(status: StepStatus): void;
-	onJobEnd(status: JobEndStatus): void;
+	onStepStart(stepIndex: number): Promise<void>;
+	onStepEnd(status: StepStatus): Promise<void>;
+	onJobEnd(status: JobEndStatus): Promise<void>;
 }

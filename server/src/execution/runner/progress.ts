@@ -1,40 +1,84 @@
-import type { Logger } from "pino";
+import JobRunStepStatus from "../../db/schema/public/JobRunStepStatus";
+import type { JobRunId } from "../../db/schema/public/JobRuns";
+import type { WorkflowRunId } from "../../db/schema/public/WorkflowRuns";
+import { transaction } from "../../db/stores";
+import { createLogger } from "../../util/logging";
+import { handleJobComplete } from "../job-completion";
 import type { IProgressReporter, JobEndStatus, StepStatus } from "./interface";
 
+const log = createLogger(import.meta.url);
+
 /**
- * TEMPORARY: Basic progress reporter that logs to pino.
- * Will be replaced with a proper streaming reporter later.
+ * Progress reporter that persists job and step progress to the database.
  */
-export class PinoProgressReporter implements IProgressReporter {
-	constructor(private logger: Logger) {}
+export class DatabaseProgressReporter implements IProgressReporter {
+	constructor(
+		private workflowRunId: WorkflowRunId,
+		private jobRunId: JobRunId,
+	) {}
 
-	onLog(line: string): void {
-		this.logger.info({ line });
+	onLog(_line: string): void {
+		// TODO
 	}
 
-	onStepEnd(status: StepStatus): void {
-		this.logger.info(
-			{
-				stepIndex: status.stepIndex,
-				status: status.status,
-				exitCode: status.exitCode,
-				error: status.error,
-			},
-			"step ended",
-		);
-	}
-
-	onJobEnd(status: JobEndStatus): void {
-		if (status.success) {
-			this.logger.info("job succeeded");
-		} else {
-			this.logger.error(
+	async onStepStart(stepIndex: number): Promise<void> {
+		try {
+			await transaction(async (txn) => {
+				await txn.pipelines.updateJobRunStep(
+					this.workflowRunId,
+					this.jobRunId,
+					stepIndex,
+					{
+						status: JobRunStepStatus.incomplete,
+						started_at: new Date(),
+					},
+				);
+			});
+		} catch (err) {
+			log.error(
 				{
-					steps: status.steps,
-					error: status.error,
+					err,
+					workflowRunId: this.workflowRunId,
+					jobRunId: this.jobRunId,
+					stepIndex,
 				},
-				"job failed",
+				"failed to record step start in db",
 			);
+			// Re-raise so we don't run the step if we couldn't track it as started.
+			throw err;
 		}
+	}
+
+	async onStepEnd(status: StepStatus): Promise<void> {
+		try {
+			await transaction(async (txn) => {
+				await txn.pipelines.updateJobRunStep(
+					this.workflowRunId,
+					this.jobRunId,
+					status.stepIndex,
+					{
+						status: status.status as JobRunStepStatus,
+						finished_at: new Date(),
+						exit_code: status.exitCode ?? null,
+					},
+				);
+			});
+		} catch (err) {
+			log.error(
+				{
+					err,
+					workflowRunId: this.workflowRunId,
+					jobRunId: this.jobRunId,
+					stepIndex: status.stepIndex,
+				},
+				"failed to record step end in db",
+			);
+			// Re-raise so DB failures recording the step result aren't silently swallowed.
+			throw err;
+		}
+	}
+
+	async onJobEnd(status: JobEndStatus): Promise<void> {
+		await handleJobComplete(this.workflowRunId, this.jobRunId, status.success);
 	}
 }

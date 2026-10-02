@@ -44,9 +44,10 @@ model JobDependency {
 model StepStatus {
   step_id: string;
   name: string;
-  status: "pending" | "running" | "completed" | "failed" | "skipped";
+  status: "pending" | "running" | "completed" | "failed" | "skipped" | "timed_out" | "cancelled";
   started_at?: utcDateTime;
   finished_at?: utcDateTime;
+  exit_code?: integer;
 }
 
 /** Metadata for an artifact produced by a job. */

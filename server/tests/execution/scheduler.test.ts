@@ -1,6 +1,15 @@
-import { describe, expect, test, vi } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
+import type { ForgeId } from "../../src/db/schema/public/Forges";
+import JobRunStatus from "../../src/db/schema/public/JobRunStatus";
+import JobRunStepStatus from "../../src/db/schema/public/JobRunStepStatus";
+import type { RepoId } from "../../src/db/schema/public/Repositories";
 import type { WorkflowRunId } from "../../src/db/schema/public/WorkflowRuns";
-import type { IRunner } from "../../src/execution/runner/interface";
+import { transaction } from "../../src/db/stores";
+import type { PlannedUserJob, PlannedWorkflow } from "../../src/execution/plan";
+import type {
+	IProgressReporter,
+	IRunner,
+} from "../../src/execution/runner/interface";
 import {
 	canScheduleJobOnRunner,
 	type Runner,
@@ -8,7 +17,12 @@ import {
 	Scheduler,
 	type SchedulingJob,
 } from "../../src/execution/scheduler";
+import { databaseHelper } from "../helpers/database";
+import { insertPipelineRunFixture } from "../helpers/fixtures";
+import { testForgeHelper } from "../helpers/forge";
 import { PUSH_EVENT, parseAndPlanV0 } from "../helpers/pipeline";
+
+const TEST_FORGE_ID = 1 as ForgeId;
 
 const STUB_RUNNER_INSTANCE: IRunner = {
 	initialise: vi.fn().mockResolvedValue(undefined),
@@ -165,6 +179,33 @@ interface TestSchedulerAccess {
 }
 
 describe("Scheduler", () => {
+	databaseHelper();
+	testForgeHelper();
+
+	let repoId: RepoId;
+
+	beforeEach(async () => {
+		await transaction(async (txn) => {
+			const user = await txn.users.getOrCreateUser(
+				TEST_FORGE_ID,
+				"molly@gitea",
+				"molly",
+				"testAccessToken",
+				new Date("2100-01-01T01:01:01"),
+				"testRefreshToken",
+				new Date("2100-01-01T01:01:01"),
+			);
+
+			const repo = await txn.repositories.createOrUpdateRepository(
+				TEST_FORGE_ID,
+				"molly/myrepo@gitea",
+				user.user_id,
+				"molly/myrepo",
+			);
+			repoId = repo.repo_id;
+		});
+	});
+
 	test("schedule picks up jobs onto the default runner", async () => {
 		const workflow = await parseAndPlanV0(
 			PUSH_EVENT,
@@ -188,5 +229,82 @@ job hello {
 		scheduler.schedule(workflow);
 
 		expect(internals.readyJobs.size).toStrictEqual(0);
+	});
+
+	test("a job that reports failure is persisted as failed and not reported as success to the forge", async () => {
+		const fixture = await insertPipelineRunFixture(repoId, {
+			stepNames: ["echo hi"],
+		});
+
+		const plannedJob: PlannedUserJob = {
+			id: fixture.jobRunId,
+			jobType: "user",
+			sourceLocation: { file: "main", line: 1 },
+			steps: [
+				{
+					stepType: "user",
+					sourceLocation: { file: "main", line: 1 },
+					command: "false",
+				},
+			],
+		};
+
+		const workflow: PlannedWorkflow = {
+			id: fixture.workflowRunId,
+			sourceLocation: { file: "main", line: 1 },
+			stages: new Map([
+				[
+					"test",
+					{
+						partial: false,
+						jobs: new Map([["test job", plannedJob]]),
+					},
+				],
+			]),
+		};
+
+		// A runner whose `runJob` reports a failed step and a failed job through
+		// the progress reporter, but then *resolves* rather than rejecting.
+		// The scheduler must not mistake the resolution for success.
+		const failingRunner: IRunner = {
+			initialise: vi.fn().mockResolvedValue(undefined),
+			cancelJob: vi.fn().mockResolvedValue(undefined),
+			runJob: vi.fn(
+				async (_job: PlannedUserJob, reporter: IProgressReporter) => {
+					await reporter.onStepEnd({
+						stepIndex: 0,
+						status: "failed",
+						exitCode: 1,
+					});
+					await reporter.onJobEnd({
+						success: false,
+						steps: [{ stepIndex: 0, status: "failed", exitCode: 1 }],
+					});
+				},
+			),
+		};
+
+		const scheduler = new Scheduler(failingRunner);
+		scheduler.schedule(workflow);
+
+		// The job run should be persisted as failed...
+		await vi.waitFor(async () => {
+			const job = await transaction((txn) =>
+				txn.pipelines.getJobRunById(
+					fixture.pipelineRunId,
+					fixture.workflowRunId,
+					fixture.jobRunId,
+					fixture.repoId,
+				),
+			);
+			expect(job?.status).toBe(JobRunStatus.failed);
+		});
+
+		// ...with its step recorded as failed...
+		const steps = await transaction((txn) =>
+			txn.pipelines.getJobRunSteps(fixture.workflowRunId, fixture.jobRunId),
+		);
+		expect(steps).toHaveLength(1);
+		expect(steps[0]?.status).toBe(JobRunStepStatus.failed);
 	});
 });
