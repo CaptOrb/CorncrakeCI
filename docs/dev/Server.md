@@ -93,3 +93,18 @@ cd runtime-overlay && docker build -t localhost/corncrake-runtime-overlay:latest
 ```
 
 (podman can also be used)
+
+## Log storage configuration
+
+Job logs (per step) are stored by a pluggable log store. The `logs` config block selects the backend and its settings.
+
+This is distinct from the `log` block, which configures pino application
+logging. Do not merge the two.
+
+| Environment variable | Description | Default |
+| --- | --- | --- |
+| `LOGS_STORE` | Log store backend. Only `local-disk` is supported today. | `local-disk` |
+| `LOGS_ROOT` | Root directory for the local disk store. One plaintext file is written per step at `<root>/<workflowRunId>/<jobRunId>/step-<index>`. | `./data/logs` |
+| `LOGS_RETENTIONDAYS` | Number of days to retain job logs before they are eligible for deletion. | `30` |
+
+The log store is constructed on startup and its root is created with a recursive `mkdir` if it does not already exist.

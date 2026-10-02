@@ -105,6 +105,20 @@ const LogConfigSchema = v.object({
 	// True to use JSON logging, false for 'pretty' logging
 	json: v.optional(v.boolean(), false),
 });
+
+// Job logs storage. Distinct from `log`, which configures pino.
+const LogsConfigSchema = v.object({
+	// Where job logs are stored. Only local disk is supported today.
+	store: v.optional(v.picklist(["local-disk"]), "local-disk"),
+	// Root directory for the local disk store.
+	root: v.optional(v.string(), "./data/logs"),
+	// Number of days to retain job logs for.
+	retentiondays: v.pipe(
+		v.optional(v.string(), "30"),
+		v.transform(Number),
+		v.integer(),
+	),
+});
 export const RunnerConfigSchema = v.object({
 	type: v.optional(v.string()),
 	defaultcontainer: v.optional(v.string(), "docker.io/alpine:3.23"),
@@ -123,6 +137,7 @@ export const ConfigSchema = v.object({
 	forges: v.optional(ForgesSchema, {}),
 	session: SessionConfigSchema,
 	log: optionalObject(LogConfigSchema),
+	logs: optionalObject(LogsConfigSchema),
 	node: v.object({
 		env: v.picklist(["production", "development", "test"]),
 	}),
@@ -137,12 +152,14 @@ export const CONFIG_SCHEMA_KEYS = [
 	"forges",
 	"session",
 	"log",
+	"logs",
 	"node",
 	"runner",
 ] satisfies (keyof Config)[];
 
 export type Config = v.InferOutput<typeof ConfigSchema>;
 export type DatabaseConfig = v.InferOutput<typeof DatabaseConfigSchema>;
+export type LogsConfig = v.InferOutput<typeof LogsConfigSchema>;
 export type ForgesConfig = v.InferOutput<typeof ForgesSchema>;
 export type ForgeInstanceConfig = v.InferOutput<typeof ForgeInstanceSchema>;
 

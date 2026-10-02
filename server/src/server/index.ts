@@ -1,3 +1,4 @@
+import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
@@ -13,6 +14,7 @@ import { ZodError } from "zod";
 import { config } from "../config";
 import { connectDB } from "../config/db";
 import { setupPostgresTypeParsers } from "../db";
+import { LocalDiskLogStore } from "../execution/logs/store";
 import { ContainerRunner } from "../execution/runner/container";
 import { Scheduler, setGlobalScheduler } from "../execution/scheduler";
 import v0OpenApi from "../generated/api/@typespec/openapi3/openapi.json";
@@ -263,6 +265,10 @@ async function startServer(): Promise<void> {
 	setupPostgresTypeParsers();
 	await connectDB(pool);
 	await runMigrations(pool);
+
+	const logStore = new LocalDiskLogStore(config.logs);
+	// Ensure the log root exists before anything tries to write to it.
+	await mkdir(config.logs.root, { recursive: true });
 
 	const runner = new ContainerRunner({
 		defaultContainer: config.runner.defaultcontainer,
